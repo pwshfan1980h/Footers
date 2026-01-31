@@ -1,0 +1,11 @@
+<svg width="128" height="88" viewBox="0 0 128 88" xmlns="http://www.w3.org/2000/svg">
+  <!-- Ham Pile -->
+  <!-- Base shadow/mess -->
+  <ellipse cx="64" cy="65" rx="50" ry="20" fill="#000" opacity="0.2" />
+  
+  <!-- Sheets of Ham -->
+  <path d="M 30 60 Q 40 40 60 50 Q 80 60 70 70 Q 50 80 30 60" fill="#F48FB1" stroke="#EC407A" stroke-width="1" />
+  <path d="M 50 55 Q 60 30 80 40 Q 100 50 90 65 Q 70 75 50 55" fill="#F8BBD0" stroke="#EC407A" stroke-width="1" />
+  <path d="M 70 50 Q 80 30 100 40 Q 110 60 90 70" fill="#F48FB1" stroke="#EC407A" stroke-width="1" />
+  <path d="M 40 50 Q 50 20 80 30 Q 70 50 40 50" fill="#F8BBD0" stroke="#EC407A" stroke-width="1" />
+</svg>

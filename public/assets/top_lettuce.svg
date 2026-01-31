@@ -1,0 +1,24 @@
+<svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="1" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.3"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="offsetblur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#shadow)">
+    <!-- Ruffled Leaf -->
+    <path d="M60,120 Q80,80 120,70 Q160,60 190,100 Q210,140 170,170 Q130,190 90,170 Q50,150 60,120 Z" fill="#32CD32" stroke="#228B22" stroke-width="2"/>
+    <!-- Veins -->
+    <path d="M120,120 L90,100" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
+    <path d="M120,120 L150,90" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
+    <path d="M120,120 L160,140" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
+    <path d="M120,120 L90,150" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
+  </g>
+</svg>

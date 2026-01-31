@@ -1,0 +1,36 @@
+<svg width="200" height="240" viewBox="0 0 200 240" xmlns="http://www.w3.org/2000/svg">
+  <!-- Checkered Paper Background -->
+  <rect x="0" y="0" width="200" height="240" fill="#FFF" stroke="#DDD" stroke-width="1" />
+  <defs>
+    <pattern id="grid" width="20" height="20" patternUnits="userSpaceOnUse">
+      <path d="M 20 0 L 0 0 0 20" fill="none" stroke="#E0F7FA" stroke-width="1" />
+    </pattern>
+  </defs>
+  <rect x="0" y="0" width="200" height="240" fill="url(#grid)" />
+  
+  <!-- Tape holding it up -->
+  <rect x="80" y="-5" width="40" height="20" fill="#E0E0E0" opacity="0.8" transform="rotate(-2)" />
+  
+  <!-- Title -->
+  <text x="100" y="30" font-family="Comic Sans MS, Chalkboard SE, sans-serif" font-size="16" fill="#D32F2F" text-anchor="middle" font-weight="bold">IMPORTANT!</text>
+  
+  <!-- Message 1 -->
+  <text x="20" y="60" font-family="Comic Sans MS, sans-serif" font-size="14" fill="#333" font-weight="bold">Remember To</text>
+  <text x="20" y="80" font-family="Comic Sans MS, sans-serif" font-size="14" fill="#333" font-weight="bold">Take Breaks!!</text>
+  
+  <!-- Divider -->
+  <line x1="10" y1="100" x2="190" y2="100" stroke="#000" stroke-width="1" opacity="0.3" />
+  
+  <!-- 86 List -->
+  <text x="20" y="125" font-family="Comic Sans MS, sans-serif" font-size="16" fill="#D32F2F" font-weight="bold" text-decoration="underline">86 LIST:</text>
+  
+  <text x="30" y="150" font-family="Comic Sans MS, sans-serif" font-size="13" fill="#555">- Tuna melts</text>
+  <text x="30" y="170" font-family="Comic Sans MS, sans-serif" font-size="13" fill="#555">- Spam club</text>
+  <text x="30" y="190" font-family="Comic Sans MS, sans-serif" font-size="13" fill="#555">- Balogna Loaf</text>
+  
+  <!-- Doodle -->
+  <circle cx="150" cy="200" r="15" fill="none" stroke="#00F" stroke-width="2" />
+  <path d="M 145 195 L 145 205" stroke="#00F" stroke-width="2" />
+  <path d="M 155 195 L 155 205" stroke="#00F" stroke-width="2" />
+  <path d="M 145 210 Q 150 215 155 210" stroke="#00F" stroke-width="2" fill="none" />
+</svg>

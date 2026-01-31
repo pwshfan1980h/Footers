@@ -1,0 +1,12 @@
+<svg width="128" height="80" viewBox="0 0 128 80" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bowl Body -->
+  <path d="M 10 20 Q 10 75 64 75 Q 118 75 118 20" fill="#B0BEC5" stroke="#78909C" stroke-width="3" />
+  
+  <!-- Rim/Opening (Front lip) -->
+  <path d="M 10 20 Q 64 35 118 20" fill="none" stroke="#78909C" stroke-width="3" />
+  <!-- Back lip (visible inside) -->
+  <path d="M 10 20 Q 64 5 118 20" fill="#CFD8DC" stroke="#90A4AE" stroke-width="1" />
+  
+  <!-- Shine -->
+  <path d="M 20 30 Q 25 60 40 65" fill="none" stroke="#FFFFFF" stroke-width="3" opacity="0.6" stroke-linecap="round" />
+</svg>

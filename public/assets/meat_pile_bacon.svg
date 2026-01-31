@@ -1,0 +1,22 @@
+<svg width="128" height="88" viewBox="0 0 128 88" xmlns="http://www.w3.org/2000/svg">
+  <!-- Bacon Pile -->
+  <!-- Base shadow -->
+  <ellipse cx="64" cy="65" rx="55" ry="20" fill="#000" opacity="0.25"/>
+  
+  <!-- Pile of crispy strips -->
+  <!-- Back strips -->
+  <path d="M 20 60 Q 40 40 60 60 T 100 50 L 105 65 Q 65 75 45 55 T 15 70 Z" fill="#8B0000"/>
+  <path d="M 25 62 Q 45 42 65 62 T 95 52" fill="none" stroke="#FFE4E1" stroke-width="3" opacity="0.7"/>
+
+  <!-- Mid strips -->
+  <path d="M 30 50 Q 50 30 70 50 T 110 40 L 115 55 Q 75 65 55 45 T 25 60 Z" fill="#B22222"/>
+  <path d="M 35 52 Q 55 32 75 52 T 105 42" fill="none" stroke="#FFE4E1" stroke-width="3" opacity="0.7"/>
+
+  <!-- Front/Top strips -->
+  <path d="M 40 40 Q 60 20 80 40 T 100 35 L 105 50 Q 85 60 65 40 T 35 55 Z" fill="#CD5C5C"/>
+  <path d="M 45 42 Q 65 22 85 42 T 95 37" fill="none" stroke="#FFE4E1" stroke-width="4" stroke-linecap="round" opacity="0.8"/>
+  
+  <!-- Grease shine -->
+  <circle cx="60" cy="40" r="2" fill="#FFF" opacity="0.6"/>
+  <circle cx="80" cy="50" r="2" fill="#FFF" opacity="0.6"/>
+</svg>

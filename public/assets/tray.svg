@@ -1,0 +1,31 @@
+<svg width="200" height="140" viewBox="0 0 200 140" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="trayShadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
+      <feOffset dx="2" dy="2" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.4"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode in="offsetblur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <g filter="url(#trayShadow)">
+    <!-- Main Board -->
+    <path d="M10,40 L190,40 L190,110 L10,110 Z" fill="#5D2906" stroke="#3E1A03" stroke-width="2"/>
+    <!-- Inner Area -->
+    <path d="M18,48 L182,48 L182,102 L18,102 Z" fill="#8B4513"/>
+    
+    <!-- Wood grain hint -->
+    <path d="M30,60 Q100,50 170,65" stroke="#3E1A03" stroke-width="1" opacity="0.1" fill="none"/>
+    <path d="M30,80 Q100,90 170,75" stroke="#3E1A03" stroke-width="1" opacity="0.1" fill="none"/>
+
+    <!-- Rim Highlights -->
+    <path d="M10,40 L190,40 L182,48 L18,48 Z" fill="#A0522D"/> <!-- Top rim bevel -->
+    <path d="M10,40 L18,48 L18,102 L10,110 Z" fill="#8B4513"/> <!-- Left rim bevel -->
+    <path d="M190,40 L182,48 L182,102 L190,110 Z" fill="#3E1A03"/> <!-- Right rim bevel -->
+    <path d="M10,110 L18,102 L182,102 L190,110 Z" fill="#5D2906"/> <!-- Bottom rim bevel -->
+  </g>
+</svg>
