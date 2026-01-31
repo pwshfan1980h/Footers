@@ -2,6 +2,13 @@ import Phaser from 'phaser';
 import { INGREDIENTS, BIN_LAYOUT, BIN_COLORS, TREATMENTS, DAY_CONFIG } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 
+function darkenColor(color, factor) {
+  const r = Math.floor(((color >> 16) & 0xFF) * factor);
+  const g = Math.floor(((color >> 8) & 0xFF) * factor);
+  const b = Math.floor((color & 0xFF) * factor);
+  return (r << 16) | (g << 8) | b;
+}
+
 export class GameScene extends Phaser.Scene {
   constructor() {
     super('Game');
@@ -48,18 +55,14 @@ export class GameScene extends Phaser.Scene {
     this.treatmentGlow = null;
     this.treatmentItems = {};
 
-    // Shift time (for clock)
-    this.shiftElapsed = 0;
-    this.shiftDuration = this.totalOrders * this.spawnInterval * 1.8;
-
     // Space bar for speed boost
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    // --- background (warm dark brown) ---
-    this.add.rectangle(512, 384, 1024, 768, 0x2A1F14);
+    // --- background (dark steel) ---
+    this.add.rectangle(512, 384, 1024, 768, 0x2A2A30);
 
-    // --- wall with clock ---
+    // --- wall ---
     this.createWall();
 
     // --- HUD ---
@@ -68,11 +71,11 @@ export class GameScene extends Phaser.Scene {
     // --- ticket bar ---
     this.createTicketBar();
 
-    // --- game area bg (warm) ---
-    this.add.rectangle(512, 290, 1024, 290, 0x2E2820).setDepth(0);
+    // --- game area bg (steel) ---
+    this.add.rectangle(512, 290, 1024, 290, 0x303038).setDepth(0);
 
-    // --- window behind belt area ---
-    this.createWindow();
+    // --- isometric floor tiles (belt area Y 265-396) ---
+    this.createFloor();
 
     // --- belt ---
     this.beltGfx = this.add.graphics().setDepth(2);
@@ -81,16 +84,16 @@ export class GameScene extends Phaser.Scene {
     // --- finish line ---
     this.createFinishLine();
 
-    // separator between belt and bins (warm)
-    this.add.rectangle(512, 435, 1024, 2, 0x554433).setDepth(3);
+    // separator between belt and bins
+    this.add.rectangle(512, 435, 1024, 2, 0x606068).setDepth(3);
 
-    // --- bin area background (warm brown) ---
-    this.add.rectangle(370, 590, 740, 300, 0x2A2218).setDepth(0);
+    // --- bin area background ---
+    this.add.rectangle(512, 590, 1024, 300, 0x282830).setDepth(0);
 
-    // --- ingredient bins (2x5 layout) ---
+    // --- ingredient bins ---
     this.createBins();
 
-    // --- prep counter with sauces + treatments ---
+    // --- sauces + treatments (free-floating) ---
     this.createPrepCounter();
 
     // --- click to place (replaces drag & drop) ---
@@ -116,46 +119,27 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     WALL WITH DIGITAL CLOCK
+     WALL (kitchen backsplash)
      ========================================= */
   createWall() {
-    // Wall background (warm)
-    this.add.rectangle(512, 25, 1024, 50, 0x4A3A2A).setDepth(0);
-    this.add.rectangle(512, 50, 1024, 2, 0x3A2A1A).setDepth(1);
+    // Wall background (steel)
+    this.add.rectangle(512, 25, 1024, 50, 0x484850).setDepth(0);
+    this.add.rectangle(512, 50, 1024, 2, 0x383840).setDepth(1);
 
-    // Clock housing
-    this.add.rectangle(512, 25, 140, 38, 0x111111).setDepth(2);
-    this.add.rectangle(512, 25, 136, 34, 0x0a0a0a).setDepth(3);
-    // Green glow
-    this.add.rectangle(512, 25, 134, 32, 0x001100).setDepth(3);
-
-    // Clock text
-    this.clockText = this.add.text(512, 25, '11:00 AM', {
-      fontSize: '17px', color: '#00ff00',
-      fontFamily: 'Courier New', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(4);
-  }
-
-  updateClock() {
-    const p = this.getShiftProgress();
-    const totalMinutes = Math.floor(p * 600); // 11 AM to 9 PM = 10 hours
-    let hours = 11 + Math.floor(totalMinutes / 60);
-    const minutes = totalMinutes % 60;
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    const h12 = hours > 12 ? hours - 12 : (hours === 0 ? 12 : hours);
-    this.clockText.setText(`${h12}:${String(minutes).padStart(2, '0')} ${ampm}`);
-  }
-
-  getShiftProgress() {
-    return Math.min(1, this.shiftElapsed / this.shiftDuration);
+    // Subtle horizontal lines for kitchen tile backsplash
+    const wallTiles = this.add.graphics().setDepth(1);
+    wallTiles.lineStyle(1, 0x555560, 0.15);
+    for (let y = 4; y < 50; y += 8) {
+      wallTiles.lineBetween(0, y, 1024, y);
+    }
   }
 
   /* =========================================
      HUD
      ========================================= */
   createHUD(cfg) {
-    // Subtle warm HUD background strip
-    this.add.rectangle(512, 25, 1024, 50, 0x3A2A1A).setDepth(4).setAlpha(0.5);
+    // Subtle HUD background strip
+    this.add.rectangle(512, 25, 1024, 50, 0x383840).setDepth(4).setAlpha(0.5);
 
     this.dayText = this.add.text(12, 15,
       `Day ${this.day}: ${cfg.name}`, {
@@ -210,9 +194,22 @@ export class GameScene extends Phaser.Scene {
      TICKET BAR
      ========================================= */
   createTicketBar() {
-    this.add.rectangle(512, 95, 1024, 88, 0x3A3028).setDepth(8);
-    this.add.rectangle(512, 52, 1024, 2, 0x5A4A3A).setDepth(9);
-    this.add.rectangle(512, 138, 1024, 2, 0x5A4A3A).setDepth(9);
+    this.add.rectangle(512, 95, 1024, 88, 0x383840).setDepth(8);
+    this.add.rectangle(512, 52, 1024, 2, 0x505058).setDepth(9);
+    this.add.rectangle(512, 138, 1024, 2, 0x505058).setDepth(9);
+
+    // 3D bottom lip/shelf edge for ticket bar
+    const ticketLip = this.add.graphics().setDepth(9);
+    ticketLip.fillStyle(0x303038, 1);
+    ticketLip.fillRect(0, 139, 1024, 4);
+    ticketLip.fillStyle(0x505058, 1);
+    ticketLip.beginPath();
+    ticketLip.moveTo(0, 139);
+    ticketLip.lineTo(1024, 139);
+    ticketLip.lineTo(1024 + 3, 143);
+    ticketLip.lineTo(3, 143);
+    ticketLip.closePath();
+    ticketLip.fillPath();
 
     this.add.text(8, 55, 'ORDERS:', {
       fontSize: '10px', color: '#777', fontFamily: 'Arial', fontStyle: 'bold',
@@ -225,7 +222,8 @@ export class GameScene extends Phaser.Scene {
     const cardW = 110;
     const ingLines = order.ingredients.length;
     const treatLines = order.treatments ? order.treatments.length : 0;
-    const contentH = 18 + ingLines * 9 + (treatLines > 0 ? 8 + treatLines * 9 : 0);
+    const footerLine = order.isFooter ? 10 : 0;
+    const contentH = 18 + footerLine + ingLines * 9 + (treatLines > 0 ? 8 + treatLines * 9 : 0);
     const cardH = Math.max(80, contentH + 5);
     const gap = 5;
     const baseX = 65 + (orderNum - 1) * (cardW + gap);
@@ -233,11 +231,11 @@ export class GameScene extends Phaser.Scene {
 
     const card = this.add.container(baseX + 40, baseY).setDepth(10);
 
-    // Background
+    // Background — footer tickets have a distinct tint
     const bg = this.add.graphics();
-    bg.fillStyle(0xFFFFC0, 1);
+    bg.fillStyle(order.isFooter ? 0xFFEEBB : 0xFFFFC0, 1);
     bg.fillRoundedRect(0, 0, cardW, cardH, 4);
-    bg.lineStyle(2, 0xDDCC80, 1);
+    bg.lineStyle(2, order.isFooter ? 0xDDAA55 : 0xDDCC80, 1);
     bg.strokeRoundedRect(0, 0, cardW, cardH, 4);
     card.add(bg);
 
@@ -247,10 +245,20 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5, 0);
     card.add(numText);
 
+    // Footer label
+    let yOff = 16;
+    if (order.isFooter) {
+      const footerLabel = this.add.text(cardW / 2, 15, '\u2b50 FOOTER', {
+        fontSize: '8px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5, 0);
+      card.add(footerLabel);
+      yOff = 26;
+    }
+
     // Divider
     const div = this.add.graphics();
     div.lineStyle(1, 0xCCBB70, 1);
-    div.lineBetween(4, 16, cardW - 4, 16);
+    div.lineBetween(4, yOff, cardW - 4, yOff);
     card.add(div);
 
     // Ingredient list — show build order
@@ -260,7 +268,7 @@ export class GameScene extends Phaser.Scene {
       const isTopBread = (i === order.ingredients.length - 1 && key.startsWith('bread_'));
       const displayName = isTopBread ? `${ing.name} \u2191` : ing.name;
       const isNext = (i === 0);
-      const txt = this.add.text(14, 18 + i * 9, displayName, {
+      const txt = this.add.text(14, yOff + 2 + i * 9, displayName, {
         fontSize: '8px',
         color: isNext ? '#111' : '#999',
         fontFamily: 'Arial',
@@ -273,7 +281,7 @@ export class GameScene extends Phaser.Scene {
     // Treatment requirements (shown in red below ingredients)
     const treatEntries = [];
     if (order.treatments && order.treatments.length > 0) {
-      const treatStartY = 18 + ingLines * 9 + 2;
+      const treatStartY = yOff + 2 + ingLines * 9 + 2;
       const div2 = this.add.graphics();
       div2.lineStyle(1, 0xCC8800, 0.5);
       div2.lineBetween(4, treatStartY, cardW - 4, treatStartY);
@@ -389,105 +397,98 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     WINDOW WITH REFLECTION
+     FLOOR (isometric checkerboard tiles)
      ========================================= */
-  createWindow() {
-    const cx = 512;
-    const wy = 155;
-    const wh = 110;
-    const ww = 600;
+  createFloor() {
+    const g = this.add.graphics().setDepth(1);
+    const tileW = 32;
+    const tileH = 32;
+    const iso = 2;
+    const startY = 270;
+    const endY = 396;
+    const cols = Math.ceil(1024 / tileW) + 1;
+    const rows = Math.ceil((endY - startY) / tileH) + 1;
 
-    // Wood frame
-    const frame = this.add.graphics().setDepth(1);
-    frame.fillStyle(0x8B6914, 1);
-    frame.fillRoundedRect(cx - ww / 2 - 6, wy - 6, ww + 12, wh + 12, 4);
+    for (let r = 0; r < rows; r++) {
+      for (let c = 0; c < cols; c++) {
+        const tx = c * tileW;
+        const ty = startY + r * tileH;
+        const isLight = (r + c) % 2 === 0;
+        const color = isLight ? 0x363640 : 0x323238;
 
-    // 3 panes
-    const paneW = (ww - 20) / 3;
-    for (let i = 0; i < 3; i++) {
-      const px = cx - ww / 2 + 5 + i * (paneW + 5);
-      const sky = this.add.graphics().setDepth(1);
+        // Top face (parallelogram)
+        g.fillStyle(color, 1);
+        g.beginPath();
+        g.moveTo(tx, ty + iso);
+        g.lineTo(tx + iso, ty);
+        g.lineTo(tx + tileW + iso, ty);
+        g.lineTo(tx + tileW, ty + iso);
+        g.closePath();
+        g.fillPath();
 
-      // Sky blue
-      sky.fillStyle(0x87CEEB, 1);
-      sky.fillRect(px, wy, paneW, wh);
+        // Main face
+        g.fillStyle(darkenColor(color, 0.9), 1);
+        g.fillRect(tx, ty + iso, tileW, tileH);
 
-      // Lighter top gradient
-      sky.fillStyle(0xB0E0FF, 0.5);
-      sky.fillRect(px, wy, paneW, wh * 0.3);
-
-      // Abstract clouds
-      sky.fillStyle(0xFFFFFF, 0.6);
-      sky.fillEllipse(px + paneW * 0.3, wy + 25, 40, 15);
-      sky.fillEllipse(px + paneW * 0.3 + 15, wy + 20, 30, 12);
-      sky.fillStyle(0xDDDDDD, 0.4);
-      sky.fillEllipse(px + paneW * 0.7, wy + 45, 35, 12);
+        // Bottom edge
+        g.lineStyle(1, darkenColor(color, 0.7), 0.3);
+        g.lineBetween(tx, ty + iso + tileH, tx + tileW, ty + iso + tileH);
+      }
     }
-
-    // Wood dividers between panes
-    frame.fillStyle(0x8B6914, 1);
-    for (let i = 1; i < 3; i++) {
-      const dx = cx - ww / 2 + i * (ww / 3);
-      frame.fillRect(dx - 3, wy - 6, 6, wh + 12);
-    }
-
-    // Sill at bottom
-    frame.fillStyle(0x7A5A10, 1);
-    frame.fillRect(cx - ww / 2 - 8, wy + wh + 4, ww + 16, 6);
-
-    // Glare overlay (animated)
-    this.windowGlare = this.add.graphics().setDepth(1);
-    this.glareOffset = 0;
-    this._windowBounds = { cx, wy, wh, ww };
-  }
-
-  updateWindowGlare() {
-    if (!this.windowGlare) return;
-    const { cx, wy, wh, ww } = this._windowBounds;
-    this.windowGlare.clear();
-
-    const stripeW = 30;
-    const totalTravel = ww + stripeW * 2;
-    const xPos = cx - ww / 2 - stripeW + this.glareOffset * totalTravel;
-    const alpha = 0.06 + Math.sin(this.glareOffset * Math.PI * 2) * 0.03;
-
-    this.windowGlare.fillStyle(0xFFFFFF, alpha);
-    this.windowGlare.beginPath();
-    this.windowGlare.moveTo(xPos, wy);
-    this.windowGlare.lineTo(xPos + stripeW, wy);
-    this.windowGlare.lineTo(xPos + stripeW + 20, wy + wh);
-    this.windowGlare.lineTo(xPos + 20, wy + wh);
-    this.windowGlare.closePath();
-    this.windowGlare.fillPath();
   }
 
   /* =========================================
-     BELT (visual only)
+     BELT (isometric with 3D rails)
      ========================================= */
   drawBelt() {
     const g = this.beltGfx;
     g.clear();
-    g.fillStyle(0x555060, 1);
-    g.fillRect(0, 398, 1024, 34);
+
+    const isoOff = 4; // iso offset for top face
+
+    // Top rail — 3D extruded metal
+    // Front face
+    g.fillStyle(0x505058, 1);
+    g.fillRect(0, 396, 1024, 6);
+    // Top face (parallelogram)
+    g.fillStyle(0x808088, 1);
+    g.beginPath();
+    g.moveTo(0, 396);
+    g.lineTo(isoOff, 396 - isoOff);
+    g.lineTo(1024 + isoOff, 396 - isoOff);
+    g.lineTo(1024, 396);
+    g.closePath();
+    g.fillPath();
+
+    // Belt segments
+    g.fillStyle(0x606068, 1);
+    g.fillRect(0, 402, 1024, 28);
     let segIndex = 0;
     for (let x = this.beltOffset - 40; x < 1064; x += 40) {
-      const tint = segIndex % 2 === 0 ? 0x555060 : 0x5A5565;
+      const tint = segIndex % 2 === 0 ? 0x606068 : 0x686870;
       g.fillStyle(tint, 1);
       const sx = Math.max(0, x);
       const sw = Math.min(38, 1024 - sx);
-      if (sw > 0) g.fillRect(sx, 400, sw, 30);
-      g.lineStyle(1, 0x777788, 0.5);
-      g.strokeRect(x, 400, 38, 30);
+      if (sw > 0) g.fillRect(sx, 402, sw, 28);
+      g.lineStyle(1, 0x7A7A84, 0.4);
+      g.strokeRect(x, 402, 38, 28);
       segIndex++;
     }
-    // Rails
-    g.fillStyle(0x44404A, 1);
-    g.fillRect(0, 396, 1024, 4);
+
+    // Front face of belt housing below segments
+    g.fillStyle(0x3A3840, 1);
+    g.fillRect(0, 430, 1024, 6);
+
+    // Bottom rail — polished edge
+    g.fillStyle(0x808088, 1);
     g.fillRect(0, 432, 1024, 4);
+    // Bottom highlight
+    g.lineStyle(1, 0xA0A0A8, 0.3);
+    g.lineBetween(0, 432, 1024, 432);
   }
 
   /* =========================================
-     FINISH LINE
+     FINISH LINE (iso cubes)
      ========================================= */
   createFinishLine() {
     const x = this.finishLineX;
@@ -498,39 +499,99 @@ export class GameScene extends Phaser.Scene {
       g.fillRect(x - 1, y, 3, 8);
     }
 
-    const flagSize = 6;
+    // Checkered flag with tiny iso cubes
+    const s = 6;
+    const iso = 2;
     for (let row = 0; row < 2; row++) {
       for (let col = 0; col < 3; col++) {
-        const color = (row + col) % 2 === 0 ? 0xffffff : 0x000000;
-        g.fillStyle(color, 0.6);
-        g.fillRect(x - 9 + col * flagSize, 140 + row * flagSize, flagSize, flagSize);
+        const isWhite = (row + col) % 2 === 0;
+        const bx = x - 9 + col * s;
+        const by = 140 + row * s;
+
+        // Front face
+        g.fillStyle(isWhite ? 0xffffff : 0x000000, 0.6);
+        g.fillRect(bx, by, s, s);
+        // Top face
+        g.fillStyle(isWhite ? 0xeeeeee : 0x222222, 0.6);
+        g.beginPath();
+        g.moveTo(bx, by);
+        g.lineTo(bx + iso, by - iso);
+        g.lineTo(bx + s + iso, by - iso);
+        g.lineTo(bx + s, by);
+        g.closePath();
+        g.fillPath();
+        // Right face
+        g.fillStyle(isWhite ? 0xcccccc : 0x111111, 0.6);
+        g.beginPath();
+        g.moveTo(bx + s, by);
+        g.lineTo(bx + s + iso, by - iso);
+        g.lineTo(bx + s + iso, by + s - iso);
+        g.lineTo(bx + s, by + s);
+        g.closePath();
+        g.fillPath();
       }
     }
   }
 
   /* =========================================
-     INGREDIENT BINS (physical bins with items)
+     INGREDIENT BINS (dynamic per-row sizing)
      ========================================= */
   createBins() {
-    const startX = 70;
-    const spacing = 135;
     const rows = [500, 635];
+    const availW = 680; // usable width before counter
 
     BIN_LAYOUT.forEach((row, ri) => {
+      const count = row.length;
+      const binW = count > 5 ? 108 : 128;
+      const spacing = (availW - binW) / (count - 1);
+      const startX = binW / 2 + 10;
+
       row.forEach((key, ci) => {
-        this.createBin(key, startX + ci * spacing, rows[ri]);
+        this.createBin(key, startX + ci * spacing, rows[ri], binW);
       });
     });
   }
 
-  createBin(ingredientKey, x, y) {
+  createBin(ingredientKey, x, y, binWidth) {
     const ing = INGREDIENTS[ingredientKey];
     const colors = BIN_COLORS[ingredientKey] || { fill: 0x3a3a4e, border: 0x5a5a6e };
     const bg = this.add.graphics().setDepth(20);
+
+    const bw = binWidth || 128;
+    const bh = 88;
+    const isoOff = 6;
+    const bx = x - bw / 2;
+    const by = y - 44;
+
+    // Front face
     bg.fillStyle(colors.fill, 1);
-    bg.fillRoundedRect(x - 64, y - 50, 128, 100, 8);
-    bg.lineStyle(2, colors.border, 1);
-    bg.strokeRoundedRect(x - 64, y - 50, 128, 100, 8);
+    bg.fillRect(bx, by + isoOff, bw, bh);
+    bg.lineStyle(1, colors.border, 0.6);
+    bg.strokeRect(bx, by + isoOff, bw, bh);
+
+    // Top rim (parallelogram)
+    bg.fillStyle(colors.border, 1);
+    bg.beginPath();
+    bg.moveTo(bx, by + isoOff);
+    bg.lineTo(bx + isoOff, by);
+    bg.lineTo(bx + bw + isoOff, by);
+    bg.lineTo(bx + bw, by + isoOff);
+    bg.closePath();
+    bg.fillPath();
+
+    // Right side (darkened parallelogram)
+    bg.fillStyle(darkenColor(colors.fill, 0.7), 1);
+    bg.beginPath();
+    bg.moveTo(bx + bw, by + isoOff);
+    bg.lineTo(bx + bw + isoOff, by);
+    bg.lineTo(bx + bw + isoOff, by + bh);
+    bg.lineTo(bx + bw, by + isoOff + bh);
+    bg.closePath();
+    bg.fillPath();
+
+    // Inner shadow
+    bg.fillStyle(0x000000, 0.15);
+    bg.fillRect(bx + 2, by + isoOff + 2, bw - 4, 12);
 
     // Ingredient name label at top of bin
     this.add.text(x, y - 41, ing.name, {
@@ -556,51 +617,24 @@ export class GameScene extends Phaser.Scene {
      PREP COUNTER (sauces + treatments)
      ========================================= */
   createPrepCounter() {
-    const cx = 865;
-
-    // Wooden counter background
-    const counter = this.add.graphics().setDepth(20);
-    counter.fillStyle(0x6B4A28, 1);
-    counter.fillRoundedRect(720, 452, 295, 285, 8);
-    counter.lineStyle(2, 0x8B6A38, 1);
-    counter.strokeRoundedRect(720, 452, 295, 285, 8);
-
-    // Top edge
-    counter.fillStyle(0x7B5A30, 1);
-    counter.fillRect(730, 455, 275, 4);
-
-    // Shelf divider
-    counter.fillStyle(0x5A3A18, 1);
-    counter.fillRect(728, 568, 280, 4);
-
-    // Shelf label: treatments
-    this.add.text(cx, 462, 'PREP STATION', {
-      fontSize: '9px', color: '#aa8855', fontFamily: 'Arial', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(21);
-
-    // Treatment items on top shelf
+    // Free-floating treatment items (top row, aligned with bin row 1)
     const treatKeys = ['toasted', 'togo', 'salt_pepper', 'oil_vinegar'];
-    const treatX = [765, 825, 895, 965];
+    const treatX = [750, 820, 890, 960];
     treatKeys.forEach((tKey, i) => {
-      this.createTreatmentItem(tKey, treatX[i], 515);
+      this.createTreatmentItem(tKey, treatX[i], 500);
     });
 
-    // Shelf label: sauces
-    this.add.text(cx, 578, 'SAUCES', {
-      fontSize: '9px', color: '#aa8855', fontFamily: 'Arial', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(21);
-
-    // Sauce bottles (single permanent bottles)
-    this.createSauceBottle('sauce_mayo', 800, 650);
-    this.createSauceBottle('sauce_mustard', 930, 650);
+    // Free-floating sauce bottles (bottom row, aligned with bin row 2)
+    this.createSauceBottle('sauce_mayo', 810, 635);
+    this.createSauceBottle('sauce_mustard', 940, 635);
   }
 
   createSauceBottle(key, x, y) {
     const ing = INGREDIENTS[key];
-    const c = this.add.container(x, y).setDepth(25);
-    c.setSize(60, 80);
+    const c = this.add.container(x, y).setDepth(30);
+    c.setSize(70, 105);
     c.setInteractive(
-      new Phaser.Geom.Rectangle(-30, -40, 60, 80),
+      new Phaser.Geom.Rectangle(-35, -45, 70, 105),
       Phaser.Geom.Rectangle.Contains,
     );
 
@@ -618,9 +652,13 @@ export class GameScene extends Phaser.Scene {
     g.strokeRoundedRect(-20, -8, 40, 45, 8);
     c.add(g);
 
-    // Name label
-    const label = this.add.text(0, 28, ing.name, {
-      fontSize: '11px', color: '#ddd', fontFamily: 'Arial', fontStyle: 'bold',
+    // Name label — below bottle with dark backing
+    const labelBg = this.add.graphics();
+    labelBg.fillStyle(0x000000, 0.5);
+    labelBg.fillRoundedRect(-28, 40, 56, 18, 4);
+    c.add(labelBg);
+    const label = this.add.text(0, 49, ing.name, {
+      fontSize: '12px', color: '#fff', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5);
     c.add(label);
 
@@ -644,17 +682,16 @@ export class GameScene extends Phaser.Scene {
 
   createTreatmentItem(tKey, x, y) {
     const treat = TREATMENTS[tKey];
-    const c = this.add.container(x, y).setDepth(25);
-    c.setSize(50, 55);
+    const c = this.add.container(x, y).setDepth(30);
+    c.setSize(56, 78);
     c.setInteractive(
-      new Phaser.Geom.Rectangle(-25, -28, 50, 55),
+      new Phaser.Geom.Rectangle(-28, -31, 56, 78),
       Phaser.Geom.Rectangle.Contains,
     );
 
     const g = this.add.graphics();
 
     if (tKey === 'toasted') {
-      // Toaster
       g.fillStyle(0x888888, 1);
       g.fillRoundedRect(-18, -10, 36, 30, 4);
       g.lineStyle(1, 0x666666, 1);
@@ -665,7 +702,6 @@ export class GameScene extends Phaser.Scene {
       g.fillStyle(0xAAAAAA, 1);
       g.fillRect(14, 2, 6, 12);
     } else if (tKey === 'togo') {
-      // Paper wrap
       g.fillStyle(0xD4C4A0, 1);
       g.fillRoundedRect(-18, -12, 36, 32, 3);
       g.lineStyle(1, 0xB0A080, 1);
@@ -674,24 +710,20 @@ export class GameScene extends Phaser.Scene {
       g.lineBetween(-12, -2, 12, -2);
       g.lineBetween(-10, 8, 10, 8);
     } else if (tKey === 'salt_pepper') {
-      // Salt shaker (left)
       g.fillStyle(0xEEEEEE, 1);
       g.fillRoundedRect(-18, -8, 14, 24, 4);
       g.fillStyle(0xCCCCCC, 1);
       g.fillRect(-16, -12, 10, 6);
-      // Pepper shaker (right)
       g.fillStyle(0x444444, 1);
       g.fillRoundedRect(4, -8, 14, 24, 4);
       g.fillStyle(0x333333, 1);
       g.fillRect(6, -12, 10, 6);
     } else if (tKey === 'oil_vinegar') {
-      // Oil bottle (left)
       g.fillStyle(0xCCCC44, 0.8);
       g.fillRoundedRect(-18, -4, 14, 22, 4);
       g.fillRect(-14, -14, 6, 12);
       g.fillStyle(0xAAAA22, 1);
       g.fillRect(-15, -17, 8, 5);
-      // Vinegar bottle (right)
       g.fillStyle(0x884422, 0.8);
       g.fillRoundedRect(4, -4, 14, 22, 4);
       g.fillRect(8, -14, 6, 12);
@@ -701,8 +733,13 @@ export class GameScene extends Phaser.Scene {
 
     c.add(g);
 
-    const label = this.add.text(0, 22, treat.name, {
-      fontSize: '9px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
+    // Label below art with dark backing
+    const labelBg = this.add.graphics();
+    labelBg.fillStyle(0x000000, 0.5);
+    labelBg.fillRoundedRect(-24, 26, 48, 18, 4);
+    c.add(labelBg);
+    const label = this.add.text(0, 35, treat.name, {
+      fontSize: '11px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5);
     c.add(label);
 
@@ -727,14 +764,13 @@ export class GameScene extends Phaser.Scene {
     this.activeTreatment = key;
     this._justActivatedTreatment = true;
 
-    // Highlight active treatment item with glow
     const item = this.treatmentItems[key];
     if (item) {
       this.treatmentGlow = this.add.graphics().setDepth(24);
       const bx = item.x - 28;
       const by = item.y - 32;
       this.treatmentGlow.lineStyle(3, 0xFFAA00, 0.8);
-      this.treatmentGlow.strokeRoundedRect(bx, by, 56, 62, 6);
+      this.treatmentGlow.strokeRoundedRect(bx, by, 56, 78, 6);
       this.tweens.add({
         targets: this.treatmentGlow,
         alpha: 0.4,
@@ -782,42 +818,50 @@ export class GameScene extends Phaser.Scene {
 
   drawTreatmentEffect(tray, treatmentKey) {
     const g = this.add.graphics();
-    const topY = -16 - tray.stackLayers.length * 9;
+    const layerCount = tray.stackLayers.length;
+    // Top of the topmost layer and bottom of the stack
+    const stackTop = -16 - (layerCount - 1) * 9;
+    const stackBot = -16 + 9;
+    const hw = tray.isFooter ? 80 : 55;
 
     if (treatmentKey === 'toasted') {
+      // Toast marks across the whole sandwich body
+      const midY = (stackTop + stackBot) / 2;
+      const halfH = (stackBot - stackTop) / 2 + 4;
       g.lineStyle(2, 0x8B4513, 0.6);
-      for (let sx = -40; sx <= 40; sx += 12) {
-        g.lineBetween(sx, topY - 2, sx + 6, topY + 6);
+      for (let sx = -(hw - 15); sx <= (hw - 15); sx += 12) {
+        g.lineBetween(sx, midY - halfH, sx + 6, midY + halfH);
       }
       g.lineStyle(1.5, 0xFF8C00, 0.4);
-      for (let sx = -34; sx <= 34; sx += 12) {
-        g.lineBetween(sx, topY, sx + 4, topY + 5);
+      for (let sx = -(hw - 21); sx <= (hw - 21); sx += 12) {
+        g.lineBetween(sx, midY - halfH + 2, sx + 4, midY + halfH - 2);
       }
     } else if (treatmentKey === 'togo') {
       g.lineStyle(2, 0xD4C4A0, 0.7);
-      g.strokeRoundedRect(-55, topY - 5, 110, (-topY) + 10, 3);
+      g.strokeRoundedRect(-hw, stackTop - 5, hw * 2, stackBot - stackTop + 15, 3);
       g.fillStyle(0xD4C4A0, 0.15);
-      g.fillRoundedRect(-55, topY - 5, 110, (-topY) + 10, 3);
+      g.fillRoundedRect(-hw, stackTop - 5, hw * 2, stackBot - stackTop + 15, 3);
     } else if (treatmentKey === 'salt_pepper') {
       for (let i = 0; i < 12; i++) {
-        const sx = (Math.random() - 0.5) * 80;
-        const sy = topY + Math.random() * 8;
+        const sx = (Math.random() - 0.5) * (hw * 2 - 10);
+        const sy = stackTop + Math.random() * (stackBot - stackTop + 6);
         g.fillStyle(i % 2 === 0 ? 0xFFFFFF : 0x333333, 0.7);
         g.fillCircle(sx, sy, 1);
       }
     } else if (treatmentKey === 'oil_vinegar') {
+      const midY = (stackTop + stackBot) / 2;
       g.lineStyle(1.5, 0xAAAA22, 0.5);
       g.beginPath();
-      g.moveTo(-35, topY + 2);
-      for (let sx = -35; sx <= 35; sx += 6) {
-        g.lineTo(sx, topY + 2 + ((Math.floor(sx / 6) % 2 === 0) ? -2 : 2));
+      g.moveTo(-hw + 20, midY - 2);
+      for (let sx = -hw + 20; sx <= hw - 20; sx += 6) {
+        g.lineTo(sx, midY - 2 + ((Math.floor(sx / 6) % 2 === 0) ? -2 : 2));
       }
       g.strokePath();
       g.lineStyle(1, 0x884422, 0.4);
       g.beginPath();
-      g.moveTo(-30, topY + 5);
-      for (let sx = -30; sx <= 30; sx += 7) {
-        g.lineTo(sx, topY + 5 + ((Math.floor(sx / 7) % 2 === 0) ? 2 : -1));
+      g.moveTo(-hw + 25, midY + 2);
+      for (let sx = -hw + 25; sx <= hw - 25; sx += 7) {
+        g.lineTo(sx, midY + 2 + ((Math.floor(sx / 7) % 2 === 0) ? 2 : -1));
       }
       g.strokePath();
     }
@@ -828,7 +872,6 @@ export class GameScene extends Phaser.Scene {
   spawnBinItem(key, binX, binY, slotIndex) {
     const ITEM_SCALE = 0.45;
 
-    // Scattered positions within the bin (relative to bin center)
     const positions = [
       { dx: -30, dy: -16 },
       { dx: 2, dy: -18 },
@@ -843,7 +886,6 @@ export class GameScene extends Phaser.Scene {
     const slot = slotIndex !== undefined ? slotIndex % positions.length : 0;
     const pos = positions[slot];
 
-    // Slight random offset for natural look
     const rx = pos.dx + (Math.random() - 0.5) * 6;
     const ry = pos.dy + (Math.random() - 0.5) * 4;
     const rot = (Math.random() - 0.5) * 0.15;
@@ -860,7 +902,6 @@ export class GameScene extends Phaser.Scene {
       Phaser.Geom.Rectangle.Contains,
     );
 
-    // Draw recognizable shape
     const g = this.add.graphics();
     this.drawBinIngredient(g, key);
     c.add(g);
@@ -871,14 +912,12 @@ export class GameScene extends Phaser.Scene {
     c.setData('isBinItem', true);
     c.setData('slotIndex', slot);
 
-    // Click handler for pickup
     c.on('pointerdown', () => {
       if (this.isPaused || this.heldItem || this.activeTreatment) return;
       soundManager.init();
       this.pickupItem(c);
     });
 
-    // Track in bin data
     if (this.binData[key]) {
       this.binData[key].items.push(c);
     }
@@ -933,24 +972,67 @@ export class GameScene extends Phaser.Scene {
         g.fillCircle(20, -4, 2);
       }
     } else if (cat === 'meat') {
-      // Deli slice — folded oval
-      g.fillStyle(ing.color, 1);
-      g.fillEllipse(0, -2, 80, 26);
-      g.lineStyle(1, ing.border, 0.8);
-      g.strokeEllipse(0, -2, 80, 26);
-      if (key === 'meat_ham') {
-        g.lineStyle(0.8, 0xE89BA6, 0.3);
-        g.strokeEllipse(0, -2, 50, 14);
-      } else if (key === 'meat_roastbeef') {
-        g.lineStyle(0.8, 0x6B3000, 0.3);
-        g.lineBetween(-15, -6, -8, 3);
-        g.lineBetween(12, -5, 18, 4);
+      if (key === 'meat_bacon') {
+        // Bacon — 3 distinct wavy strips stacked
+        const stripYs = [-14, -3, 8];
+        const stripH = 8;
+        for (let si = 0; si < 3; si++) {
+          const sy = stripYs[si];
+          // Meat strip body
+          g.fillStyle(0xCC3322, 1);
+          g.beginPath();
+          g.moveTo(-36, sy);
+          for (let sx = -36; sx <= 36; sx += 6) {
+            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? -1.5 : 1.5;
+            g.lineTo(sx, sy + wave);
+          }
+          g.lineTo(36, sy + stripH);
+          for (let sx = 36; sx >= -36; sx -= 6) {
+            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? 1.5 : -1.5;
+            g.lineTo(sx, sy + stripH + wave);
+          }
+          g.closePath();
+          g.fillPath();
+          // Fat marbling streaks
+          g.fillStyle(0xFFDDCC, 0.7);
+          g.fillRect(-28 + si * 5, sy + 2, 10, 3);
+          g.fillRect(2 - si * 3, sy + 3, 12, 3);
+          g.fillRect(20 + si * 2, sy + 1, 8, 3);
+          // Strip outline
+          g.lineStyle(0.8, 0x991A11, 0.5);
+          g.beginPath();
+          g.moveTo(-36, sy);
+          for (let sx = -36; sx <= 36; sx += 6) {
+            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? -1.5 : 1.5;
+            g.lineTo(sx, sy + wave);
+          }
+          g.lineTo(36, sy + stripH);
+          for (let sx = 36; sx >= -36; sx -= 6) {
+            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? 1.5 : -1.5;
+            g.lineTo(sx, sy + stripH + wave);
+          }
+          g.closePath();
+          g.strokePath();
+        }
       } else {
-        g.lineStyle(0.8, 0xB89A70, 0.3);
-        g.strokeEllipse(0, -2, 48, 12);
+        // Deli slice — folded oval
+        g.fillStyle(ing.color, 1);
+        g.fillEllipse(0, -2, 80, 26);
+        g.lineStyle(1, ing.border, 0.8);
+        g.strokeEllipse(0, -2, 80, 26);
+        if (key === 'meat_ham') {
+          g.lineStyle(0.8, 0xE89BA6, 0.3);
+          g.strokeEllipse(0, -2, 50, 14);
+        } else if (key === 'meat_roastbeef') {
+          g.lineStyle(0.8, 0x6B3000, 0.3);
+          g.lineBetween(-15, -6, -8, 3);
+          g.lineBetween(12, -5, 18, 4);
+        } else {
+          g.lineStyle(0.8, 0xB89A70, 0.3);
+          g.strokeEllipse(0, -2, 48, 12);
+        }
       }
     } else if (cat === 'cheese') {
-      // Square cheese slice
       g.fillStyle(ing.color, 1);
       g.fillRoundedRect(-40, -14, 80, 26, 3);
       g.lineStyle(1.5, ing.border, 0.8);
@@ -964,86 +1046,84 @@ export class GameScene extends Phaser.Scene {
       }
     } else if (cat === 'topping') {
       if (key === 'top_lettuce') {
-        // Wavy leaf shape
-        g.fillStyle(ing.color, 1);
-        g.beginPath();
-        g.moveTo(-38, 2);
-        g.lineTo(-35, -6);
-        g.lineTo(-22, -10);
-        g.lineTo(-12, -5);
-        g.lineTo(-2, -11);
-        g.lineTo(10, -6);
-        g.lineTo(20, -10);
-        g.lineTo(32, -5);
-        g.lineTo(38, -7);
-        g.lineTo(38, 4);
-        g.lineTo(30, 9);
-        g.lineTo(18, 5);
-        g.lineTo(6, 10);
-        g.lineTo(-6, 4);
-        g.lineTo(-18, 9);
-        g.lineTo(-32, 5);
-        g.closePath();
-        g.fillPath();
-        g.lineStyle(1, ing.border, 0.7);
-        g.beginPath();
-        g.moveTo(-38, 2);
-        g.lineTo(-35, -6);
-        g.lineTo(-22, -10);
-        g.lineTo(-12, -5);
-        g.lineTo(-2, -11);
-        g.lineTo(10, -6);
-        g.lineTo(20, -10);
-        g.lineTo(32, -5);
-        g.lineTo(38, -7);
-        g.lineTo(38, 4);
-        g.lineTo(30, 9);
-        g.lineTo(18, 5);
-        g.lineTo(6, 10);
-        g.lineTo(-6, 4);
-        g.lineTo(-18, 9);
-        g.lineTo(-32, 5);
-        g.closePath();
-        g.strokePath();
+        // Head of lettuce — round leafy ball
+        g.fillStyle(0x228B22, 1);
+        g.fillCircle(0, -2, 16);
+        // Overlapping leaf layers
+        g.fillStyle(0x32CD32, 0.8);
+        g.fillEllipse(-6, -8, 18, 12);
+        g.fillEllipse(7, -5, 16, 14);
+        g.fillEllipse(-3, 3, 20, 12);
+        g.fillStyle(0x44DD44, 0.6);
+        g.fillEllipse(2, -3, 12, 10);
+        // Dark center
+        g.fillStyle(0x1A6B1A, 0.5);
+        g.fillCircle(0, -1, 4);
+        // Outline
+        g.lineStyle(1.5, 0x1A6B1A, 0.8);
+        g.strokeCircle(0, -2, 16);
         // Leaf veins
-        g.lineStyle(0.5, 0x28A428, 0.3);
-        g.lineBetween(0, -8, 0, 6);
-        g.lineBetween(-14, -5, -10, 5);
-        g.lineBetween(14, -6, 10, 5);
+        g.lineStyle(0.5, 0x28A428, 0.4);
+        g.lineBetween(-8, -10, -2, 4);
+        g.lineBetween(8, -8, 2, 5);
+        g.lineBetween(0, -14, 0, 2);
       } else if (key === 'top_tomato') {
-        // Tomato slice circle
-        g.fillStyle(ing.color, 1);
-        g.fillCircle(0, -2, 14);
-        g.fillStyle(0xFF8060, 0.5);
-        g.fillCircle(0, -2, 9);
-        // Seeds
-        g.fillStyle(0xFFCCBB, 0.6);
-        g.fillEllipse(-3, -5, 3, 1.5);
-        g.fillEllipse(3, -4, 3, 1.5);
-        g.fillEllipse(-2, 2, 3, 1.5);
-        g.fillEllipse(4, 1, 3, 1.5);
-        g.lineStyle(1, ing.border, 0.8);
-        g.strokeCircle(0, -2, 14);
+        // Tomato cross-section slice
+        g.fillStyle(0xFF6347, 1);
+        g.fillCircle(0, -2, 16);
+        // Flesh ring
+        g.fillStyle(0xFF8B70, 0.6);
+        g.fillCircle(0, -2, 12);
+        // Center core
+        g.fillStyle(0xFF6347, 0.8);
+        g.fillCircle(0, -2, 5);
+        // Seed chambers (4 segments)
+        g.fillStyle(0xFFAA88, 0.7);
+        g.fillEllipse(-6, -6, 6, 4);
+        g.fillEllipse(6, -6, 6, 4);
+        g.fillEllipse(-6, 2, 6, 4);
+        g.fillEllipse(6, 2, 6, 4);
+        // Seeds in chambers
+        g.fillStyle(0xFFDD99, 0.8);
+        g.fillEllipse(-6, -6, 2, 1);
+        g.fillEllipse(6, -6, 2, 1);
+        g.fillEllipse(-6, 2, 2, 1);
+        g.fillEllipse(6, 2, 2, 1);
+        // Membrane lines
+        g.lineStyle(0.8, 0xFF5030, 0.4);
+        g.lineBetween(0, -14, 0, 10);
+        g.lineBetween(-12, -2, 12, -2);
+        // Outer skin
+        g.lineStyle(1.5, 0xDD4030, 0.9);
+        g.strokeCircle(0, -2, 16);
       } else if (key === 'top_onion') {
-        // Onion ring
-        g.fillStyle(ing.color, 1);
-        g.fillCircle(0, -2, 14);
-        g.lineStyle(1.5, 0xD0B8E0, 0.5);
-        g.strokeCircle(0, -2, 11);
+        // Onion slice with visible concentric rings
+        g.fillStyle(0xF0E0F8, 1);
+        g.fillCircle(0, -2, 16);
+        // Concentric rings (alternating light/dark)
+        g.lineStyle(2.5, 0xD8C0E8, 0.7);
+        g.strokeCircle(0, -2, 13);
+        g.lineStyle(2, 0xE8D4F0, 0.5);
+        g.strokeCircle(0, -2, 10);
+        g.lineStyle(2.5, 0xD0B8E0, 0.7);
         g.strokeCircle(0, -2, 7);
-        g.strokeCircle(0, -2, 3);
-        g.lineStyle(1, ing.border, 0.7);
-        g.strokeCircle(0, -2, 14);
+        g.lineStyle(2, 0xE8D4F0, 0.5);
+        g.strokeCircle(0, -2, 4);
+        // Center dot
+        g.fillStyle(0xC8A8D8, 0.8);
+        g.fillCircle(0, -2, 2);
+        // Outer skin
+        g.lineStyle(1.5, 0xC8B0D0, 0.9);
+        g.strokeCircle(0, -2, 16);
       }
     } else if (cat === 'sauce') {
-      // Bottle shape
       g.fillStyle(ing.color, 1);
-      g.fillRoundedRect(-16, -2, 32, 18, 5); // body
-      g.fillRect(-5, -12, 10, 12); // neck
+      g.fillRoundedRect(-16, -2, 32, 18, 5);
+      g.fillRect(-5, -12, 10, 12);
       g.fillStyle(ing.border || 0x888888, 1);
-      g.fillRoundedRect(-7, -16, 14, 6, 2); // cap
+      g.fillRoundedRect(-7, -16, 14, 6, 2);
       g.fillStyle(ing.border, 0.3);
-      g.fillRect(-12, 1, 24, 10); // label area
+      g.fillRect(-12, 1, 24, 10);
       g.lineStyle(1, ing.border, 0.6);
       g.strokeRoundedRect(-16, -2, 32, 18, 5);
     }
@@ -1055,17 +1135,16 @@ export class GameScene extends Phaser.Scene {
   setupClickToPlace() {
     this.trayHighlight = this.add.graphics().setDepth(9);
 
-    // Pointer tracking — move held item with cursor, or highlight for treatment mode
     this.input.on('pointermove', (pointer) => {
-      // Treatment mode highlight
       if (this.activeTreatment) {
         this.trayHighlight.clear();
         if (pointer.y < 435) {
           const tray = this.findTrayAtX(pointer.x);
           if (tray && !tray.completed && !tray.done && !tray.passedFinish) {
+            const hw = tray.isFooter ? 105 : 72;
             this.trayHighlight.lineStyle(2, 0xFFAA00, 0.5);
             this.trayHighlight.strokeRoundedRect(
-              tray.container.x - 72, 270, 144, 155, 8,
+              tray.container.x - hw, 270, hw * 2, 155, 8,
             );
           }
         }
@@ -1079,24 +1158,22 @@ export class GameScene extends Phaser.Scene {
       this.heldItem.visual.x = pointer.x;
       this.heldItem.visual.y = pointer.y;
 
-      // Highlight nearest valid tray
       this.trayHighlight.clear();
       if (pointer.y < 435) {
         const tray = this.findTrayAtX(pointer.x);
         if (tray && !tray.completed && !tray.done && !tray.passedFinish) {
+          const hw = tray.isFooter ? 105 : 72;
           this.trayHighlight.lineStyle(2, 0x44ff44, 0.35);
           this.trayHighlight.strokeRoundedRect(
-            tray.container.x - 72, 270, 144, 155, 8,
+            tray.container.x - hw, 270, hw * 2, 155, 8,
           );
         }
       }
     });
 
-    // Click to place held item or apply treatment
     this.input.on('pointerdown', (pointer) => {
       if (this.isPaused) return;
 
-      // Treatment mode — apply to tray
       if (this.activeTreatment) {
         if (this._justActivatedTreatment) {
           this._justActivatedTreatment = false;
@@ -1113,7 +1190,6 @@ export class GameScene extends Phaser.Scene {
 
       if (!this.heldItem) return;
 
-      // Skip the same click that picked up the item
       if (this._justPickedUp) {
         this._justPickedUp = false;
         return;
@@ -1122,7 +1198,6 @@ export class GameScene extends Phaser.Scene {
       this.placeHeldItem(pointer);
     });
 
-    // ESC to cancel held item or deselect treatment
     this.escKey.on('down', () => {
       if (this.activeTreatment) {
         this.deactivateTreatment();
@@ -1137,14 +1212,12 @@ export class GameScene extends Phaser.Scene {
     const binX = binItemContainer.getData('binX');
     const binY = binItemContainer.getData('binY');
 
-    // Remove from bin tracking
     if (this.binData[key]) {
       this.binData[key].items = this.binData[key].items.filter((i) => i !== binItemContainer);
     }
 
     binItemContainer.destroy();
 
-    // Create full-size visual that follows the cursor
     const pointer = this.input.activePointer;
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
 
@@ -1156,7 +1229,6 @@ export class GameScene extends Phaser.Scene {
     };
     this._justPickedUp = true;
 
-    // Respawn a replacement in the bin after a short delay
     this.time.delayedCall(600, () => {
       if (this.binData[key]) {
         const slot = this.binData[key].items.length;
@@ -1182,7 +1254,6 @@ export class GameScene extends Phaser.Scene {
 
     c.setAlpha(0.85);
 
-    // Small pop-in scale animation
     c.setScale(0.4);
     this.tweens.add({
       targets: c, scaleX: 1, scaleY: 1,
@@ -1199,7 +1270,6 @@ export class GameScene extends Phaser.Scene {
     const landY = 385;
 
     if (tray && !tray.completed && !tray.done && !tray.passedFinish && pointer.y < landY + 40) {
-      // Gravity fall toward tray
       const fallDist = Math.max(0, landY - obj.y);
       const duration = Math.max(80, Math.min(400, fallDist * 1.8));
 
@@ -1231,7 +1301,6 @@ export class GameScene extends Phaser.Scene {
       this.heldItem = null;
       this.trayHighlight.clear();
     } else {
-      // Not near a tray — cancel, return item to bin
       this.cancelHeldItem();
     }
   }
@@ -1240,7 +1309,6 @@ export class GameScene extends Phaser.Scene {
     if (!this.heldItem) return;
     const obj = this.heldItem.visual;
 
-    // Fade out and destroy
     this.tweens.add({
       targets: obj,
       y: obj.y + 60,
@@ -1257,10 +1325,10 @@ export class GameScene extends Phaser.Scene {
   findTrayAtX(x) {
     let closest = null;
     let closestDist = Infinity;
-    const tolerance = 80;
 
     for (const tray of this.trays) {
       if (tray.done || tray.passedFinish || tray.completed) continue;
+      const tolerance = tray.isFooter ? 110 : 80;
       const dist = Math.abs(tray.container.x - x);
       if (dist < tolerance && dist < closestDist) {
         closest = tray;
@@ -1277,7 +1345,7 @@ export class GameScene extends Phaser.Scene {
     const order = this.generateOrder();
     this.orderNumber++;
     const orderNum = this.orderNumber;
-    const startX = 1120;
+    const startX = order.isFooter ? 1200 : 1120;
     const baseY = 400;
 
     // Add ticket to the slider
@@ -1286,19 +1354,47 @@ export class GameScene extends Phaser.Scene {
     // Tray container
     const container = this.add.container(startX, baseY).setDepth(10);
 
-    // Tray base (larger)
+    // Isometric tray base — wider for footers
     const base = this.add.graphics();
+    const tw = order.isFooter ? 200 : 130;
+    const tFront = 14;
+    const tIso = 4;
+
+    // Front face (darker wood)
+    base.fillStyle(0x6B4030, 1);
+    base.fillRect(-tw / 2, -10 + tIso, tw, tFront);
+
+    // Top face (lighter wood parallelogram)
     base.fillStyle(0x8B7355, 1);
-    base.fillRoundedRect(-65, -10, 130, 24, 5);
-    base.lineStyle(2, 0x6B5335, 1);
-    base.strokeRoundedRect(-65, -10, 130, 24, 5);
+    base.beginPath();
+    base.moveTo(-tw / 2, -10 + tIso);
+    base.lineTo(-tw / 2 + tIso, -10);
+    base.lineTo(tw / 2 + tIso, -10);
+    base.lineTo(tw / 2, -10 + tIso);
+    base.closePath();
+    base.fillPath();
+
+    // Right side (darkest)
+    base.fillStyle(0x5A3020, 1);
+    base.beginPath();
+    base.moveTo(tw / 2, -10 + tIso);
+    base.lineTo(tw / 2 + tIso, -10);
+    base.lineTo(tw / 2 + tIso, -10 + tFront);
+    base.lineTo(tw / 2, -10 + tIso + tFront);
+    base.closePath();
+    base.fillPath();
+
+    // Edge highlight along top
+    base.lineStyle(1, 0xA08A68, 0.5);
+    base.lineBetween(-tw / 2 + tIso, -10, tw / 2 + tIso, -10);
+
     container.add(base);
 
     // Order number badge
     const numBg = this.add.graphics();
-    numBg.fillStyle(0xFFFFC0, 1);
+    numBg.fillStyle(order.isFooter ? 0xFFEEBB : 0xFFFFC0, 1);
     numBg.fillCircle(0, -28, 18);
-    numBg.lineStyle(2, 0xCCCC80, 1);
+    numBg.lineStyle(2, order.isFooter ? 0xDDAA55 : 0xCCCC80, 1);
     numBg.strokeCircle(0, -28, 18);
     container.add(numBg);
 
@@ -1307,10 +1403,19 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(numText);
 
+    // Footer label on tray
+    if (order.isFooter) {
+      const ftLabel = this.add.text(0, -45, 'FOOTER', {
+        fontSize: '9px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5);
+      container.add(ftLabel);
+    }
+
     const tray = {
       container,
       order,
       orderNum,
+      isFooter: order.isFooter || false,
       placed: [],
       stackLayers: [],
       appliedTreatments: [],
@@ -1323,7 +1428,6 @@ export class GameScene extends Phaser.Scene {
     this.trays.push(tray);
     this.ordersSpawned++;
 
-    // Transition to normal timer after 3rd sequential order
     if (this.ordersSpawned === 3) {
       this.spawnTimer = this.spawnInterval * 0.5;
     }
@@ -1344,55 +1448,77 @@ export class GameScene extends Phaser.Scene {
     };
 
     const breads = ['bread_white', 'bread_wheat'];
-    const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef'];
+    const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon'];
     const cheeses = ['cheese_american', 'cheese_swiss'];
     const toppings = ['top_lettuce', 'top_tomato', 'top_onion'];
     const sauces = ['sauce_mayo', 'sauce_mustard'];
 
+    const cfg = DAY_CONFIG[this.day];
+    const isFooter = Math.random() < (cfg.footerChance || 0);
+
     const list = [];
     const bread = pick(breads);
 
-    // Bottom bread first
-    list.push(bread);
-    list.push(pick(meats));
-
-    if (this.day >= 2 || Math.random() > 0.5) {
+    if (isFooter) {
+      // FOOTER: ~2x ingredients
+      list.push(bread);
+      // 2 meats
+      list.push(pick(meats));
+      list.push(pick(meats));
+      // Always 1 cheese, 50% chance of 2nd
       list.push(pick(cheeses));
-    }
-
-    const topCount = Math.min(
-      Math.floor(Math.random() * (1 + Math.min(this.day, 3))),
-      2,
-    );
-    if (topCount > 0) {
+      if (Math.random() > 0.5) {
+        list.push(pick(cheeses));
+      }
+      // 2-3 toppings
+      const topCount = 2 + (Math.random() < 0.5 ? 1 : 0);
       pickN(toppings, topCount).forEach((t) => list.push(t));
-    }
-
-    if (this.day >= 2 || Math.random() > 0.4) {
+      // Always 1 sauce, 50% chance of 2nd
       list.push(pick(sauces));
-    }
+      if (Math.random() > 0.5) {
+        list.push(pick(sauces));
+      }
+      // Top bread
+      list.push(bread);
+    } else {
+      // Normal order
+      list.push(bread);
+      list.push(pick(meats));
 
-    // Top bread last — player must close the sandwich
-    list.push(bread);
+      if (this.day >= 2 || Math.random() > 0.5) {
+        list.push(pick(cheeses));
+      }
+
+      const topCount = Math.min(
+        Math.floor(Math.random() * (1 + Math.min(this.day, 3))),
+        2,
+      );
+      if (topCount > 0) {
+        pickN(toppings, topCount).forEach((t) => list.push(t));
+      }
+
+      if (this.day >= 2 || Math.random() > 0.4) {
+        list.push(pick(sauces));
+      }
+
+      list.push(bread);
+    }
 
     // Treatments based on day config
     const treatments = [];
-    const cfg = DAY_CONFIG[this.day];
     if (cfg.treatmentChance > 0 && Math.random() < cfg.treatmentChance) {
       const allTreatments = Object.keys(TREATMENTS);
       if (this.day <= 2) {
-        // Day 2: only toasted or salt_pepper
         const simple = ['toasted', 'salt_pepper'];
         treatments.push(pick(simple));
       } else {
-        // Day 3+: up to 2 treatments, any type
         const count = Math.random() < 0.4 ? 2 : 1;
         const chosen = pickN(allTreatments, count);
         chosen.forEach((t) => treatments.push(t));
       }
     }
 
-    return { ingredients: list, treatments };
+    return { ingredients: list, treatments, isFooter };
   }
 
   /* =========================================
@@ -1402,19 +1528,15 @@ export class GameScene extends Phaser.Scene {
     const nextIndex = tray.placed.length;
     if (nextIndex >= tray.order.ingredients.length) return 'wrong';
 
-    // Must place in exact order shown on ticket
     const expected = tray.order.ingredients[nextIndex];
     if (ingredientKey !== expected) return 'wrong';
 
     tray.placed.push(ingredientKey);
 
-    // Update ticket in slider
     this.updateTicketIngredient(tray.orderNum, ingredientKey);
 
-    // Stack visual on tray
     this.addStackLayer(tray, ingredientKey);
 
-    // Check completion — all ingredients AND all treatments
     this.checkTrayCompletion(tray);
 
     return 'valid';
@@ -1427,103 +1549,221 @@ export class GameScene extends Phaser.Scene {
     const ing = INGREDIENTS[ingredientKey];
     const idx = tray.stackLayers.length;
     const ly = -16 - idx * 9;
+    const wide = tray.isFooter;
+    // Half-widths for stack layers
+    const hw = wide ? 76 : 52;
+    const mhw = wide ? 72 : 48; // meat/cheese half-width
 
     const g = this.add.graphics();
     const cat = ing.category;
 
     if (cat === 'bread') {
-      // Dome shape for bread
       g.fillStyle(ing.color, 1);
-      g.beginPath();
-      g.moveTo(-52, ly + 9);
-      g.lineTo(-52, ly + 3);
-      g.lineTo(-44, ly);
-      g.lineTo(-30, ly - 3);
-      g.lineTo(-15, ly - 4);
-      g.lineTo(0, ly - 5);
-      g.lineTo(15, ly - 4);
-      g.lineTo(30, ly - 3);
-      g.lineTo(44, ly);
-      g.lineTo(52, ly + 3);
-      g.lineTo(52, ly + 9);
-      g.closePath();
-      g.fillPath();
-      g.lineStyle(0.8, ing.border, 0.6);
-      g.beginPath();
-      g.moveTo(-52, ly + 9);
-      g.lineTo(-52, ly + 3);
-      g.lineTo(-44, ly);
-      g.lineTo(-30, ly - 3);
-      g.lineTo(-15, ly - 4);
-      g.lineTo(0, ly - 5);
-      g.lineTo(15, ly - 4);
-      g.lineTo(30, ly - 3);
-      g.lineTo(44, ly);
-      g.lineTo(52, ly + 3);
-      g.lineTo(52, ly + 9);
-      g.closePath();
-      g.strokePath();
+      if (idx === 0) {
+        // Bottom bread — flat top, curved bottom
+        g.beginPath();
+        g.moveTo(-hw, ly);
+        g.lineTo(hw, ly);
+        g.lineTo(hw, ly + 5);
+        g.lineTo(hw - 8, ly + 8);
+        g.lineTo(hw - 22, ly + 10);
+        g.lineTo(hw * 0.56, ly + 11);
+        g.lineTo(0, ly + 12);
+        g.lineTo(-hw * 0.56, ly + 11);
+        g.lineTo(-hw + 22, ly + 10);
+        g.lineTo(-hw + 8, ly + 8);
+        g.lineTo(-hw, ly + 5);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(0.8, ing.border, 0.6);
+        g.beginPath();
+        g.moveTo(-hw, ly);
+        g.lineTo(hw, ly);
+        g.lineTo(hw, ly + 5);
+        g.lineTo(hw - 8, ly + 8);
+        g.lineTo(hw - 22, ly + 10);
+        g.lineTo(hw * 0.56, ly + 11);
+        g.lineTo(0, ly + 12);
+        g.lineTo(-hw * 0.56, ly + 11);
+        g.lineTo(-hw + 22, ly + 10);
+        g.lineTo(-hw + 8, ly + 8);
+        g.lineTo(-hw, ly + 5);
+        g.closePath();
+        g.strokePath();
+      } else {
+        // Top bread — domed top
+        g.beginPath();
+        g.moveTo(-hw, ly + 9);
+        g.lineTo(-hw, ly + 3);
+        g.lineTo(-hw + 8, ly);
+        g.lineTo(-hw + 22, ly - 3);
+        g.lineTo(-hw * 0.56, ly - 4);
+        g.lineTo(0, ly - 5);
+        g.lineTo(hw * 0.56, ly - 4);
+        g.lineTo(hw - 22, ly - 3);
+        g.lineTo(hw - 8, ly);
+        g.lineTo(hw, ly + 3);
+        g.lineTo(hw, ly + 9);
+        g.closePath();
+        g.fillPath();
+        g.lineStyle(0.8, ing.border, 0.6);
+        g.beginPath();
+        g.moveTo(-hw, ly + 9);
+        g.lineTo(-hw, ly + 3);
+        g.lineTo(-hw + 8, ly);
+        g.lineTo(-hw + 22, ly - 3);
+        g.lineTo(-hw * 0.56, ly - 4);
+        g.lineTo(0, ly - 5);
+        g.lineTo(hw * 0.56, ly - 4);
+        g.lineTo(hw - 22, ly - 3);
+        g.lineTo(hw - 8, ly);
+        g.lineTo(hw, ly + 3);
+        g.lineTo(hw, ly + 9);
+        g.closePath();
+        g.strokePath();
+      }
     } else if (cat === 'sauce') {
-      // Zigzag squirt of sauce
-      g.lineStyle(3, ing.color, 0.9);
+      g.lineStyle(2, ing.color, 0.9);
       g.beginPath();
-      g.moveTo(-35, ly + 4);
-      for (let sx = -35; sx <= 35; sx += 8) {
-        g.lineTo(sx, ly + 4 + ((Math.floor(sx / 8) % 2 === 0) ? -2 : 2));
+      g.moveTo(-mhw + 8, ly + 4);
+      for (let sx = -mhw + 8; sx <= mhw - 8; sx += 5) {
+        g.lineTo(sx, ly + 4 + ((Math.floor(sx / 5) % 2 === 0) ? -1.5 : 1.5));
       }
       g.strokePath();
     } else if (cat === 'cheese') {
       g.fillStyle(ing.color, 1);
-      g.fillRect(-48, ly, 96, 7);
+      g.fillRect(-mhw, ly, mhw * 2, 7);
       if (ingredientKey === 'cheese_swiss') {
         g.fillStyle(ing.border, 0.5);
-        g.fillCircle(-20, ly + 3, 2);
-        g.fillCircle(10, ly + 4, 1.5);
-        g.fillCircle(30, ly + 2, 2);
+        g.fillCircle(-mhw * 0.4, ly + 3, 2);
+        g.fillCircle(mhw * 0.2, ly + 4, 1.5);
+        g.fillCircle(mhw * 0.6, ly + 2, 2);
       }
       g.lineStyle(0.5, ing.border, 0.5);
-      g.strokeRect(-48, ly, 96, 7);
-    } else if (ingredientKey === 'top_lettuce') {
-      // Wavy green strip
-      g.fillStyle(ing.color, 1);
-      g.beginPath();
-      g.moveTo(-48, ly + 7);
-      g.lineTo(-48, ly + 3);
-      for (let sx = -48; sx <= 48; sx += 12) {
-        g.lineTo(sx, (Math.floor((sx + 48) / 12) % 2 === 0) ? ly : ly + 4);
+      g.strokeRect(-mhw, ly, mhw * 2, 7);
+    } else if (ingredientKey === 'meat_bacon') {
+      // Bacon — 2 distinct wavy strips on sandwich
+      const stripOffsets = [0, 4];
+      for (let si = 0; si < 2; si++) {
+        const sy = ly + stripOffsets[si];
+        const stripH = 4;
+        g.fillStyle(0xCC3322, 1);
+        g.beginPath();
+        g.moveTo(-mhw + 4, sy);
+        for (let sx = -mhw + 4; sx <= mhw - 4; sx += 8) {
+          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? -1 : 1;
+          g.lineTo(sx, sy + wave);
+        }
+        g.lineTo(mhw - 4, sy + stripH);
+        for (let sx = mhw - 4; sx >= -mhw + 4; sx -= 8) {
+          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? 1 : -1;
+          g.lineTo(sx, sy + stripH + wave);
+        }
+        g.closePath();
+        g.fillPath();
+        // Fat marbling
+        g.fillStyle(0xFFDDCC, 0.6);
+        g.fillRect(-mhw + 10 + si * 6, sy + 1, 7, 2);
+        g.fillRect(si * 4, sy + 1, 8, 2);
+        g.fillRect(mhw - 18 - si * 4, sy + 1, 7, 2);
+        // Strip outline
+        g.lineStyle(0.4, 0x991A11, 0.4);
+        g.beginPath();
+        g.moveTo(-mhw + 4, sy);
+        for (let sx = -mhw + 4; sx <= mhw - 4; sx += 8) {
+          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? -1 : 1;
+          g.lineTo(sx, sy + wave);
+        }
+        g.lineTo(mhw - 4, sy + stripH);
+        for (let sx = mhw - 4; sx >= -mhw + 4; sx -= 8) {
+          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? 1 : -1;
+          g.lineTo(sx, sy + stripH + wave);
+        }
+        g.closePath();
+        g.strokePath();
       }
-      g.lineTo(48, ly + 7);
+    } else if (ingredientKey === 'top_lettuce') {
+      // Leafy layer with ruffled edges
+      g.fillStyle(0x32CD32, 1);
+      g.beginPath();
+      g.moveTo(-mhw, ly + 8);
+      g.lineTo(-mhw, ly + 3);
+      for (let sx = -mhw; sx <= mhw; sx += 8) {
+        g.lineTo(sx, (Math.floor((sx + mhw) / 8) % 2 === 0) ? ly - 1 : ly + 3);
+      }
+      g.lineTo(mhw, ly + 8);
+      g.closePath();
+      g.fillPath();
+      // Darker leaf layer
+      g.fillStyle(0x28A428, 0.5);
+      g.beginPath();
+      g.moveTo(-mhw + 4, ly + 8);
+      for (let sx = -mhw + 4; sx <= mhw - 4; sx += 10) {
+        g.lineTo(sx, (Math.floor((sx + mhw) / 10) % 2 === 0) ? ly + 2 : ly + 6);
+      }
+      g.lineTo(mhw - 4, ly + 8);
       g.closePath();
       g.fillPath();
     } else if (ingredientKey === 'top_tomato') {
-      g.fillStyle(ing.color, 1);
-      g.fillRect(-44, ly, 88, 7);
-      // Seed dots
-      g.fillStyle(0xFF8060, 0.4);
-      g.fillCircle(-15, ly + 3, 2);
-      g.fillCircle(0, ly + 4, 1.5);
-      g.fillCircle(15, ly + 3, 2);
+      // Tomato slices from the side — thin wide curved shapes
+      const sliceCount = wide ? 5 : 3;
+      const sliceSpacing = (mhw * 2 - 10) / sliceCount;
+      for (let si = 0; si < sliceCount; si++) {
+        const sx = -mhw + 5 + si * sliceSpacing;
+        const sw = sliceSpacing - 2;
+        // Red slice body (rounded rect, thin and wide)
+        g.fillStyle(0xFF6347, 1);
+        g.fillRoundedRect(sx, ly + 1, sw, 7, 2);
+        // Lighter flesh interior
+        g.fillStyle(0xFF8B70, 0.5);
+        g.fillRoundedRect(sx + 2, ly + 2, sw - 4, 4, 1);
+        // Seed dots
+        g.fillStyle(0xFFDD99, 0.7);
+        g.fillCircle(sx + sw * 0.3, ly + 4, 0.8);
+        g.fillCircle(sx + sw * 0.7, ly + 5, 0.8);
+        // Skin edge along top
+        g.lineStyle(1, 0xDD3020, 0.7);
+        g.lineBetween(sx + 2, ly + 1, sx + sw - 2, ly + 1);
+        // Outline
+        g.lineStyle(0.5, 0xDD4030, 0.5);
+        g.strokeRoundedRect(sx, ly + 1, sw, 7, 2);
+      }
     } else if (ingredientKey === 'top_onion') {
-      g.fillStyle(ing.color, 1);
-      g.fillRect(-44, ly, 88, 7);
-      g.lineStyle(0.5, 0xD0B8E0, 0.4);
-      g.strokeCircle(-18, ly + 3, 5);
-      g.strokeCircle(5, ly + 4, 4);
-      g.strokeCircle(22, ly + 3, 5);
+      // Onion slices from the side — thin arched shapes with rings visible
+      const sliceCount = wide ? 4 : 3;
+      const sliceSpacing = (mhw * 2 - 10) / sliceCount;
+      for (let ri = 0; ri < sliceCount; ri++) {
+        const rx = -mhw + 5 + ri * sliceSpacing;
+        const rw = sliceSpacing - 2;
+        // Translucent onion slice body
+        g.fillStyle(0xE8D0F0, 0.7);
+        g.fillRoundedRect(rx, ly + 1, rw, 7, 2);
+        // Inner ring arcs (concentric U-shapes from the side)
+        g.lineStyle(1, 0xD0B0E0, 0.6);
+        g.beginPath();
+        g.arc(rx + rw / 2, ly + 8, rw * 0.35, Math.PI, 0, false);
+        g.strokePath();
+        g.lineStyle(0.7, 0xC8A0D8, 0.5);
+        g.beginPath();
+        g.arc(rx + rw / 2, ly + 8, rw * 0.2, Math.PI, 0, false);
+        g.strokePath();
+        // Outline
+        g.lineStyle(0.5, 0xC8B0D0, 0.6);
+        g.strokeRoundedRect(rx, ly + 1, rw, 7, 2);
+      }
     } else {
       // Default meat — slight oval
       g.fillStyle(ing.color, 1);
-      g.fillEllipse(0, ly + 4, 96, 8);
+      g.fillEllipse(0, ly + 4, mhw * 2, 8);
       if (ing.border) {
         g.lineStyle(0.5, ing.border, 0.4);
-        g.strokeEllipse(0, ly + 4, 96, 8);
+        g.strokeEllipse(0, ly + 4, mhw * 2, 8);
       }
     }
 
     tray.container.add(g);
     tray.stackLayers.push(g);
 
-    // Meat wobble animation
     if (cat === 'meat') {
       this.tweens.add({
         targets: g,
@@ -1531,6 +1771,33 @@ export class GameScene extends Phaser.Scene {
         duration: 400,
         ease: 'Elastic.easeOut',
         yoyo: true,
+      });
+    }
+
+    // Compress the whole sandwich when the top bread is placed
+    if (cat === 'bread' && idx > 0) {
+      this.compressStack(tray);
+    }
+  }
+
+  compressStack(tray) {
+    const layers = tray.stackLayers;
+    const count = layers.length;
+    if (count < 2) return;
+
+    // Original spacing is 9px per layer from y = -16
+    // Compress to ~6px spacing
+    const compressedSpacing = 6;
+    for (let i = 0; i < count; i++) {
+      const targetY = -16 - i * compressedSpacing;
+      const currentY = -16 - i * 9;
+      const dy = targetY - currentY;
+      this.tweens.add({
+        targets: layers[i],
+        y: layers[i].y + dy,
+        duration: 250,
+        ease: 'Back.easeOut',
+        delay: i * 15,
       });
     }
   }
@@ -1547,14 +1814,14 @@ export class GameScene extends Phaser.Scene {
 
   completeTray(tray) {
     tray.completed = true;
-    // No auto-top-bread — player placed it. Just green glow.
     this.flashTray(tray, 0x00ff00);
   }
 
   flashTray(tray, color) {
     const flash = this.add.graphics();
+    const hw = tray.isFooter ? 105 : 70;
     flash.fillStyle(color, 0.25);
-    flash.fillRoundedRect(-70, -130, 140, 145, 8);
+    flash.fillRoundedRect(-hw, -130, hw * 2, 145, 8);
     tray.container.add(flash);
     this.tweens.add({
       targets: flash, alpha: 0, duration: 600,
@@ -1569,14 +1836,15 @@ export class GameScene extends Phaser.Scene {
     tray.scored = true;
     this.ordersCompleted++;
 
-    const speedBonus = tray.container.x > 300 ? 50 : 0;
-    this.dayScore += 100 + speedBonus;
+    const baseScore = tray.isFooter ? 200 : 100;
+    const speedBonus = tray.container.x > 300 ? (tray.isFooter ? 100 : 50) : 0;
+    this.dayScore += baseScore + speedBonus;
     this.refreshHUD();
 
     soundManager.score();
     this.markTicketCompleted(tray.orderNum);
 
-    const pts = 100 + speedBonus;
+    const pts = baseScore + speedBonus;
     const popup = this.add.text(tray.container.x, tray.container.y - 70,
       `+${pts}`, {
         fontSize: '26px', color: '#0f0', fontFamily: 'Arial', fontStyle: 'bold',
@@ -1670,14 +1938,6 @@ export class GameScene extends Phaser.Scene {
     const speedMult = this.spaceKey.isDown ? 2.5 : 1;
     this.speedText.setAlpha(this.spaceKey.isDown ? 0.8 : 0);
 
-    // Shift time
-    this.shiftElapsed += delta * speedMult;
-    this.updateClock();
-
-    // Window glare animation
-    this.glareOffset = (this.glareOffset + delta * 0.00008) % 1;
-    this.updateWindowGlare();
-
     // Belt animation
     this.beltOffset -= this.conveyorSpeed * (delta / 16) * speedMult;
     if (this.beltOffset < -40) this.beltOffset += 40;
@@ -1710,7 +1970,7 @@ export class GameScene extends Phaser.Scene {
       if (tray.done) continue;
 
       let moveSpeed = speed;
-      if (tray.completed) moveSpeed *= 2;
+      if (tray.completed) moveSpeed *= this.spaceKey.isDown ? 6 : 2;
       if (tray.passedFinish) moveSpeed *= 2;
 
       tray.container.x -= moveSpeed;

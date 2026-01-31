@@ -50,16 +50,16 @@ export class MenuScene extends Phaser.Scene {
     bell.fillEllipse(500, 74, 20, 16);
 
     // --- Main title: ORDER UP! ---
-    const titleShadow = this.add.text(514, 137, 'ORDER UP!', {
+    const titleShadow = this.add.text(514, 137, 'FOOTERS', {
       fontSize: '78px', color: '#000000', fontFamily: 'Arial Black, Arial', fontStyle: 'bold',
     }).setOrigin(0.5).setAlpha(0.3);
 
-    const title = this.add.text(512, 135, 'ORDER UP!', {
+    const title = this.add.text(512, 135, 'FOOTERS', {
       fontSize: '78px', color: '#FF6B35', fontFamily: 'Arial Black, Arial', fontStyle: 'bold',
     }).setOrigin(0.5);
 
     // Warm glow on title text
-    const titleGlow = this.add.text(512, 135, 'ORDER UP!', {
+    const titleGlow = this.add.text(512, 135, 'FOOTERS', {
       fontSize: '78px', color: '#FFD700', fontFamily: 'Arial Black, Arial', fontStyle: 'bold',
     }).setOrigin(0.5).setAlpha(0);
 
@@ -74,7 +74,7 @@ export class MenuScene extends Phaser.Scene {
     });
 
     // --- Subtitle ---
-    this.add.text(512, 210, 'A Sandwich Shop Scramble', {
+    this.add.text(512, 210, 'A Sub Shop Scramble', {
       fontSize: '22px', color: '#D4A76A', fontFamily: 'Georgia, serif', fontStyle: 'italic',
     }).setOrigin(0.5);
 
