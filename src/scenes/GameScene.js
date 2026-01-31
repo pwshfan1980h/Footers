@@ -100,9 +100,6 @@ export class GameScene extends Phaser.Scene {
     // --- TREATMENTS (Top Center) ---
     this.createTreatments();
 
-    // --- BINS (Meats - Left) ---
-    this.createBins();
-
     // --- VEGGIE BOWLS (Center Left) ---
     this.createVeggieBowls();
 
@@ -603,13 +600,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     INGREDIENT BINS (dynamic per-row sizing)
-     ========================================= */
-  /* =========================================
-     INGREDIENT BINS (Meats - Left Side)
-     ========================================= */
-  /* =========================================
-     MEAT PILES (Left Side) - Formerly Bins
+     MEAT PILES (Left Side)
      ========================================= */
   createBins() {
     // We keep the function name for compatibility, but it creates Piles now.
@@ -715,73 +706,6 @@ export class GameScene extends Phaser.Scene {
     this._justPickedUp = true;
   }
 
-  createBin(ingredientKey, x, y, binWidth) {
-    const ing = INGREDIENTS[ingredientKey];
-    const colors = BIN_COLORS[ingredientKey] || { fill: 0x3a3a4e, border: 0x5a5a6e };
-    const bg = this.add.graphics().setDepth(20);
-
-    const bw = binWidth || 128;
-    const bh = 88;
-    const isoOff = 6;
-    const bx = x - bw / 2;
-    const by = y - 44;
-
-    // Front face
-    bg.fillStyle(colors.fill, 1);
-    bg.fillRect(bx, by + isoOff, bw, bh);
-    bg.lineStyle(1, colors.border, 0.6);
-    bg.strokeRect(bx, by + isoOff, bw, bh);
-
-    // Top rim (parallelogram)
-    bg.fillStyle(colors.border, 1);
-    bg.beginPath();
-    bg.moveTo(bx, by + isoOff);
-    bg.lineTo(bx + isoOff, by);
-    bg.lineTo(bx + bw + isoOff, by);
-    bg.lineTo(bx + bw, by + isoOff);
-    bg.closePath();
-    bg.fillPath();
-
-    // Right side (darkened parallelogram)
-    bg.fillStyle(darkenColor(colors.fill, 0.7), 1);
-    bg.beginPath();
-    bg.moveTo(bx + bw, by + isoOff);
-    bg.lineTo(bx + bw + isoOff, by);
-    bg.lineTo(bx + bw + isoOff, by + bh);
-    bg.lineTo(bx + bw, by + isoOff + bh);
-    bg.closePath();
-    bg.fillPath();
-
-    // Inner shadow
-    bg.fillStyle(0x000000, 0.15);
-    bg.fillRect(bx + 2, by + isoOff + 2, bw - 4, 12);
-
-    // Ingredient name label at top of bin
-    this.add.text(x, y - 41, ing.name, {
-      fontSize: '11px', color: '#ccc', fontFamily: 'Arial', fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(21);
-
-    // Icon on bin front
-    const icon = this.add.image(x, y + 10, ingredientKey).setDepth(21).setScale(0.25);
-
-    // Category label at bottom
-    this.add.text(x, y + 42, ing.category.toUpperCase(), {
-      fontSize: '9px', color: '#666', fontFamily: 'Arial',
-    }).setOrigin(0.5).setDepth(21);
-
-    // Initialize bin data
-    this.binData[ingredientKey] = { x, y, items: [] };
-
-    // Spawn multiple items in the bin
-    const itemCount = 6;
-    for (let i = 0; i < itemCount; i++) {
-      this.spawnBinItem(ingredientKey, x, y, i);
-    }
-  }
-
-  /* =========================================
-     PREP COUNTER (sauces + treatments)
-     ========================================= */
   /* =========================================
      TREATMENTS (Top Center) & SAUCES
      ========================================= */
@@ -886,44 +810,6 @@ export class GameScene extends Phaser.Scene {
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
     this._justPickedUp = true;
-  }
-
-  // Re-purposed createTreatmentItem (was used by PrepCounter)
-  createTreatmentItem(key, x, y) {
-    const t = TREATMENTS[key];
-    const c = this.add.container(x, y).setDepth(30);
-    c.setSize(70, 70);
-    c.setInteractive(
-      new Phaser.Geom.Rectangle(-35, -35, 70, 70),
-      Phaser.Geom.Rectangle.Contains,
-    );
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x333344, 1);
-    bg.fillRoundedRect(-35, -35, 70, 70, 8);
-    bg.lineStyle(2, 0x555566, 1);
-    bg.strokeRoundedRect(-35, -35, 70, 70, 8);
-    c.add(bg);
-
-    // Icon (simple text or primitive for now if asset missing)
-    const icon = this.add.text(0, -10, t.symbol || '?', {
-      fontSize: '32px', color: '#fff'
-    }).setOrigin(0.5);
-    c.add(icon);
-
-    // Label
-    const lbl = this.add.text(0, 24, t.name, {
-      fontSize: '10px', color: '#aaa', fontFamily: 'Arial'
-    }).setOrigin(0.5);
-    c.add(lbl);
-
-    c.on('pointerdown', () => {
-      if (this.isPaused) return;
-      this.activateTreatment(key);
-    });
-
-    if (!this.treatmentButtons) this.treatmentButtons = [];
-    this.treatmentButtons.push(c); // track for debug/highlight
   }
 
   createSauceBottle(key, x, y) {
@@ -1679,33 +1565,6 @@ export class GameScene extends Phaser.Scene {
     tray.stackLayers.push(topSprite);
   }
 
-  compressStack(tray) {
-    const layers = tray.stackLayers;
-    const count = layers.length;
-    if (count < 2) return;
-
-    const placed = tray.placed;
-    // Compute current and compressed y for each layer
-    const compressRatio = 0.7;
-    let currentY = 0;
-    let compressedY = 0;
-    for (let i = 0; i < count; i++) {
-      const h = this.getLayerHeight(placed[i]);
-      const dy = (compressedY - currentY) * compressRatio;
-      if (dy !== 0) {
-        this.tweens.add({
-          targets: layers[i],
-          y: layers[i].y + dy,
-          duration: 250,
-          ease: 'Back.easeOut',
-          delay: i * 15,
-        });
-      }
-      currentY += h;
-      compressedY += h * compressRatio;
-    }
-  }
-
   checkTrayCompletion(tray) {
     const ingredientsDone = tray.placed.length === tray.order.ingredients.length;
     const treatmentsDone = !tray.order.treatments || tray.order.treatments.length === 0
@@ -1720,28 +1579,56 @@ export class GameScene extends Phaser.Scene {
     tray.completed = true;
     this.flashTray(tray, 0x00ff00);
 
-    // WOBBLE & SETTLE ANIMATION
-    // Squish the ingredients down
-    tray.stackLayers.forEach((layer, i) => {
-      // Skip sauces as they are graphical circles often
-      // But scaling them is fine too usually.
-      this.tweens.add({
-        targets: layer,
-        scaleY: layer.scaleY * 0.85, // Squish
-        y: layer.y + 4, // Shift down slightly to stay grounded
-        duration: 400,
-        ease: 'Bounce.easeOut',
-        delay: i * 30 // Ripple effect
-      });
+    const c = tray.container;
+
+    // Phase 1 — Pop up (0-150ms): celebratory bounce
+    this.tweens.add({
+      targets: c,
+      scaleX: 1.15,
+      scaleY: 1.15,
+      duration: 150,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Phase 3 — Squish settle (200-500ms): squash back down
+        this.tweens.add({
+          targets: c,
+          scaleX: 1.0,
+          scaleY: 0.92,
+          duration: 300,
+          ease: 'Bounce.easeOut',
+        });
+      },
     });
 
-    // Tilt the whole container slightly ("Settled")
-    const tilt = Phaser.Math.Between(-3, 3);
-    this.tweens.add({
-      targets: tray.container,
-      angle: tilt,
-      duration: 500,
-      ease: 'Back.easeOut'
+    // Phase 2 — Wobble (150-600ms): rapid left-right angle oscillation
+    const settleTilt = Phaser.Math.Between(-2, 2);
+    this.tweens.chain({
+      targets: c,
+      tweens: [
+        { angle: -8, duration: 60, ease: 'Sine.easeOut', delay: 150 },
+        { angle: 8, duration: 70, ease: 'Sine.easeInOut' },
+        { angle: -5, duration: 65, ease: 'Sine.easeInOut' },
+        { angle: 5, duration: 60, ease: 'Sine.easeInOut' },
+        { angle: -2, duration: 55, ease: 'Sine.easeInOut' },
+        { angle: settleTilt, duration: 90, ease: 'Sine.easeOut' },
+      ],
+    });
+
+    // Phase 4 — Chef press: crush stack layers down significantly
+    const layerCount = tray.stackLayers.length;
+    tray.stackLayers.forEach((layer, i) => {
+      // Each layer gets squished vertically and pushed toward the tray base
+      // Layers higher in the stack compress more (ratio based on position)
+      const pressRatio = 0.55 + 0.15 * (i / Math.max(layerCount - 1, 1));
+      const pushDown = (layerCount - i) * 3;
+      this.tweens.add({
+        targets: layer,
+        scaleY: layer.scaleY * pressRatio,
+        y: layer.y + pushDown,
+        duration: 500,
+        ease: 'Bounce.easeOut',
+        delay: 150 + i * 25,
+      });
     });
   }
 
