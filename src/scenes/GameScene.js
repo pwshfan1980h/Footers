@@ -818,9 +818,8 @@ export class GameScene extends Phaser.Scene {
 
   drawTreatmentEffect(tray, treatmentKey) {
     const g = this.add.graphics();
-    const layerCount = tray.stackLayers.length;
     // Top of the topmost layer and bottom of the stack
-    const stackTop = -16 - (layerCount - 1) * 9;
+    const stackTop = -16 - (tray.stackHeight || 0);
     const stackBot = -16 + 9;
     const hw = tray.isFooter ? 80 : 55;
 
@@ -1418,6 +1417,7 @@ export class GameScene extends Phaser.Scene {
       isFooter: order.isFooter || false,
       placed: [],
       stackLayers: [],
+      stackHeight: 0,
       appliedTreatments: [],
       completed: false,
       done: false,
@@ -1545,10 +1545,19 @@ export class GameScene extends Phaser.Scene {
   /* =========================================
      STACK VISUALS (recognizable layers)
      ========================================= */
+  getLayerHeight(ingredientKey) {
+    const cat = INGREDIENTS[ingredientKey].category;
+    if (cat === 'sauce') return 4;
+    if (ingredientKey === 'top_tomato' || ingredientKey === 'top_onion') return 5;
+    return 9;
+  }
+
   addStackLayer(tray, ingredientKey) {
     const ing = INGREDIENTS[ingredientKey];
     const idx = tray.stackLayers.length;
-    const ly = -16 - idx * 9;
+    const ly = -16 - tray.stackHeight;
+    const layerH = this.getLayerHeight(ingredientKey);
+    tray.stackHeight += layerH;
     const wide = tray.isFooter;
     // Half-widths for stack layers
     const hw = wide ? 76 : 52;
@@ -1625,9 +1634,9 @@ export class GameScene extends Phaser.Scene {
     } else if (cat === 'sauce') {
       g.lineStyle(2, ing.color, 0.9);
       g.beginPath();
-      g.moveTo(-mhw + 8, ly + 4);
+      g.moveTo(-mhw + 8, ly + 2);
       for (let sx = -mhw + 8; sx <= mhw - 8; sx += 5) {
-        g.lineTo(sx, ly + 4 + ((Math.floor(sx / 5) % 2 === 0) ? -1.5 : 1.5));
+        g.lineTo(sx, ly + 2 + ((Math.floor(sx / 5) % 2 === 0) ? -1 : 1));
       }
       g.strokePath();
     } else if (cat === 'cheese') {
@@ -1711,22 +1720,21 @@ export class GameScene extends Phaser.Scene {
       for (let si = 0; si < sliceCount; si++) {
         const sx = -mhw + 5 + si * sliceSpacing;
         const sw = sliceSpacing - 2;
-        // Red slice body (rounded rect, thin and wide)
+        // Red slice body
         g.fillStyle(0xFF6347, 1);
-        g.fillRoundedRect(sx, ly + 1, sw, 7, 2);
+        g.fillRoundedRect(sx, ly + 1, sw, 4, 1);
         // Lighter flesh interior
         g.fillStyle(0xFF8B70, 0.5);
-        g.fillRoundedRect(sx + 2, ly + 2, sw - 4, 4, 1);
-        // Seed dots
+        g.fillRect(sx + 2, ly + 2, sw - 4, 2);
+        // Seed dot
         g.fillStyle(0xFFDD99, 0.7);
-        g.fillCircle(sx + sw * 0.3, ly + 4, 0.8);
-        g.fillCircle(sx + sw * 0.7, ly + 5, 0.8);
+        g.fillCircle(sx + sw * 0.5, ly + 3, 0.6);
         // Skin edge along top
-        g.lineStyle(1, 0xDD3020, 0.7);
-        g.lineBetween(sx + 2, ly + 1, sx + sw - 2, ly + 1);
+        g.lineStyle(0.8, 0xDD3020, 0.7);
+        g.lineBetween(sx + 1, ly + 1, sx + sw - 1, ly + 1);
         // Outline
-        g.lineStyle(0.5, 0xDD4030, 0.5);
-        g.strokeRoundedRect(sx, ly + 1, sw, 7, 2);
+        g.lineStyle(0.4, 0xDD4030, 0.5);
+        g.strokeRoundedRect(sx, ly + 1, sw, 4, 1);
       }
     } else if (ingredientKey === 'top_onion') {
       // Onion slices from the side — thin arched shapes with rings visible
@@ -1737,19 +1745,15 @@ export class GameScene extends Phaser.Scene {
         const rw = sliceSpacing - 2;
         // Translucent onion slice body
         g.fillStyle(0xE8D0F0, 0.7);
-        g.fillRoundedRect(rx, ly + 1, rw, 7, 2);
-        // Inner ring arcs (concentric U-shapes from the side)
-        g.lineStyle(1, 0xD0B0E0, 0.6);
+        g.fillRoundedRect(rx, ly + 1, rw, 4, 1);
+        // Inner ring arc
+        g.lineStyle(0.7, 0xD0B0E0, 0.6);
         g.beginPath();
-        g.arc(rx + rw / 2, ly + 8, rw * 0.35, Math.PI, 0, false);
-        g.strokePath();
-        g.lineStyle(0.7, 0xC8A0D8, 0.5);
-        g.beginPath();
-        g.arc(rx + rw / 2, ly + 8, rw * 0.2, Math.PI, 0, false);
+        g.arc(rx + rw / 2, ly + 5, rw * 0.3, Math.PI, 0, false);
         g.strokePath();
         // Outline
-        g.lineStyle(0.5, 0xC8B0D0, 0.6);
-        g.strokeRoundedRect(rx, ly + 1, rw, 7, 2);
+        g.lineStyle(0.4, 0xC8B0D0, 0.6);
+        g.strokeRoundedRect(rx, ly + 1, rw, 4, 1);
       }
     } else {
       // Default meat — slight oval
@@ -1785,20 +1789,25 @@ export class GameScene extends Phaser.Scene {
     const count = layers.length;
     if (count < 2) return;
 
-    // Original spacing is 9px per layer from y = -16
-    // Compress to ~6px spacing
-    const compressedSpacing = 6;
+    const placed = tray.placed;
+    // Compute current and compressed y for each layer
+    const compressRatio = 0.7;
+    let currentY = 0;
+    let compressedY = 0;
     for (let i = 0; i < count; i++) {
-      const targetY = -16 - i * compressedSpacing;
-      const currentY = -16 - i * 9;
-      const dy = targetY - currentY;
-      this.tweens.add({
-        targets: layers[i],
-        y: layers[i].y + dy,
-        duration: 250,
-        ease: 'Back.easeOut',
-        delay: i * 15,
-      });
+      const h = this.getLayerHeight(placed[i]);
+      const dy = (compressedY - currentY) * compressRatio;
+      if (dy !== 0) {
+        this.tweens.add({
+          targets: layers[i],
+          y: layers[i].y + dy,
+          duration: 250,
+          ease: 'Back.easeOut',
+          delay: i * 15,
+        });
+      }
+      currentY += h;
+      compressedY += h * compressRatio;
     }
   }
 
