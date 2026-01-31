@@ -132,12 +132,12 @@ class SoundManager {
   plopCategory(category) {
     if (!this.ctx) return;
     switch (category) {
-      case 'bread':   this.plopBread(); break;
-      case 'meat':    this.plopMeat(); break;
-      case 'cheese':  this.plopCheese(); break;
+      case 'bread': this.plopBread(); break;
+      case 'meat': this.plopMeat(); break;
+      case 'cheese': this.plopCheese(); break;
       case 'topping': this.plopTopping(); break;
-      case 'sauce':   this.plopSauce(); break;
-      default:        this.plop(); break;
+      case 'sauce': this.plopSauce(); break;
+      default: this.plop(); break;
     }
   }
 
@@ -178,6 +178,42 @@ class SoundManager {
     this._osc('sine', 988, t + 0.12, 0.15, 0.22);
     this._osc('sine', 1175, t + 0.18, 0.3, 0.25);
     this._osc('sine', 2349, t + 0.25, 0.2, 0.1);
+  }
+
+  waiterGibberish() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Higher pitched female-ish variants
+    // Chain 3-5 syllables
+    const syllables = 3 + Math.floor(Math.random() * 3);
+    let now = t;
+
+    for (let i = 0; i < syllables; i++) {
+      const dur = 0.05 + Math.random() * 0.08;
+      // High pitch range: 600 - 1200 Hz
+      const freq = 600 + Math.random() * 600;
+      const type = Math.random() > 0.5 ? 'triangle' : 'sine';
+
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      osc.type = type;
+      osc.frequency.setValueAtTime(freq, now);
+      // Slide pitch slightly
+      osc.frequency.linearRampToValueAtTime(freq + (Math.random() - 0.5) * 200, now + dur);
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(0.15, now + 0.02);
+      gain.gain.linearRampToValueAtTime(0, now + dur);
+
+      osc.start(now);
+      osc.stop(now + dur);
+
+      now += dur + 0.02; // slight pause between syllables
+    }
   }
 }
 

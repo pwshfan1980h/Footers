@@ -44,6 +44,10 @@ export class GameScene extends Phaser.Scene {
     this.sequentialDelay = 0;
     this.spawnTimer = 0;
 
+    // Store State
+    this.isStoreOpen = false;
+    this.gameMoney = 0; // Total money earned
+
     // Click-to-place state
     this.heldItem = null;
     this._justPickedUp = false;
@@ -108,30 +112,30 @@ export class GameScene extends Phaser.Scene {
     if (this.day === 1) {
       const hint = this.add.text(512, 280,
         'Click ingredients to pick up, click trays to place!\nMatch the # to the ticket above\nHold SPACE to speed up belt', {
-          fontSize: '14px', color: '#8888aa', fontFamily: 'Arial',
-          fontStyle: 'italic', align: 'center',
-        }).setOrigin(0.5).setDepth(5).setAlpha(0.9);
+        fontSize: '14px', color: '#8888aa', fontFamily: 'Arial',
+        fontStyle: 'italic', align: 'center',
+      }).setOrigin(0.5).setDepth(5).setAlpha(0.9);
       this.tweens.add({
         targets: hint, alpha: 0, delay: 7000, duration: 1500,
         onComplete: () => hint.destroy(),
       });
     }
+
+    // --- OPEN FOR BUSINESS BUTTON ---
+    this.createStartButton();
+
+    // --- LOAVES (Standalone bread sources) ---
+    this.createLoaves();
   }
 
   /* =========================================
      WALL (kitchen backsplash)
      ========================================= */
   createWall() {
-    // Wall background (steel)
-    this.add.rectangle(512, 25, 1024, 50, 0x484850).setDepth(0);
+    // Tiled wall texture
+    this.add.tileSprite(512, 25, 1024, 150, 'wall_texture').setDepth(0).setAlpha(0.8);
+    // Shelf/divider
     this.add.rectangle(512, 50, 1024, 2, 0x383840).setDepth(1);
-
-    // Subtle horizontal lines for kitchen tile backsplash
-    const wallTiles = this.add.graphics().setDepth(1);
-    wallTiles.lineStyle(1, 0x555560, 0.15);
-    for (let y = 4; y < 50; y += 8) {
-      wallTiles.lineBetween(0, y, 1024, y);
-    }
   }
 
   /* =========================================
@@ -143,18 +147,23 @@ export class GameScene extends Phaser.Scene {
 
     this.dayText = this.add.text(12, 15,
       `Day ${this.day}: ${cfg.name}`, {
-        fontSize: '16px', color: '#ddd', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setDepth(5);
+      fontSize: '16px', color: '#ddd', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setDepth(5);
 
     this.scoreText = this.add.text(260, 15,
       `Score: ${this.totalScore}`, {
-        fontSize: '16px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setDepth(5);
+      fontSize: '16px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setDepth(5);
 
     this.ordersText = this.add.text(700, 17,
       this.ordersDisplay(), {
-        fontSize: '12px', color: '#bbb', fontFamily: 'Arial',
-      }).setDepth(5);
+      fontSize: '12px', color: '#bbb', fontFamily: 'Arial',
+    }).setDepth(5);
+
+    // Money Display
+    this.moneyText = this.add.text(450, 15, '$0.00', {
+      fontSize: '16px', color: '#88ff88', fontFamily: 'Arial', fontStyle: 'bold'
+    }).setDepth(5);
 
     // Colored strike indicators
     this.strikeContainer = this.add.container(920, 15).setDepth(5);
@@ -187,7 +196,41 @@ export class GameScene extends Phaser.Scene {
   refreshHUD() {
     this.scoreText.setText(`Score: ${this.totalScore + this.dayScore}`);
     this.ordersText.setText(this.ordersDisplay());
+    this.moneyText.setText(`$${this.gameMoney.toFixed(2)}`);
     this.updateStrikeIndicators();
+  }
+
+  createStartButton() {
+    const btn = this.add.container(512, 400).setDepth(200);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x44aa44, 1);
+    bg.fillRoundedRect(-100, -30, 200, 60, 16);
+    bg.lineStyle(4, 0xffffff, 1);
+    bg.strokeRoundedRect(-100, -30, 200, 60, 16);
+    btn.add(bg);
+
+    const txt = this.add.text(0, 0, 'OPEN FOR BUSINESS', {
+      fontSize: '18px', color: '#fff', fontStyle: 'bold', fontFamily: 'Arial'
+    }).setOrigin(0.5);
+    btn.add(txt);
+
+    btn.setSize(200, 60);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-100, -30, 200, 60), Phaser.Geom.Rectangle.Contains);
+
+    btn.on('pointerdown', () => {
+      this.isStoreOpen = true;
+      this.tweens.add({
+        targets: btn, scale: 1.1, alpha: 0, duration: 200,
+        onComplete: () => btn.destroy()
+      });
+      soundManager.ding();
+    });
+
+    // Pulse animation
+    this.tweens.add({
+      targets: btn, scale: 1.05, duration: 600, yoyo: true, repeat: -1
+    });
   }
 
   /* =========================================
@@ -225,11 +268,16 @@ export class GameScene extends Phaser.Scene {
     const footerLine = order.isFooter ? 10 : 0;
     const contentH = 18 + footerLine + ingLines * 9 + (treatLines > 0 ? 8 + treatLines * 9 : 0);
     const cardH = Math.max(80, contentH + 5);
-    const gap = 5;
-    const baseX = 65 + (orderNum - 1) * (cardW + gap);
-    const baseY = 55;
+    // Determine target position on bar
+    const barGap = 5;
+    const targetX = 65 + (orderNum - 1) * (cardW + barGap);
+    const targetY = 55;
 
-    const card = this.add.container(baseX + 40, baseY).setDepth(10);
+    // Spawn large at center first
+    const spawnX = 512;
+    const spawnY = 384;
+
+    const card = this.add.container(spawnX, spawnY).setDepth(100); // High depth for pop-in
 
     // Background — footer tickets have a distinct tint
     const bg = this.add.graphics();
@@ -254,6 +302,12 @@ export class GameScene extends Phaser.Scene {
       card.add(footerLabel);
       yOff = 26;
     }
+
+    // Price Tag
+    const priceTxt = this.add.text(cardW - 6, 4, `$${order.totalPrice.toFixed(2)}`, {
+      fontSize: '10px', color: '#006600', fontFamily: 'Arial', fontStyle: 'bold'
+    }).setOrigin(1, 0);
+    card.add(priceTxt);
 
     // Divider
     const div = this.add.graphics();
@@ -305,19 +359,41 @@ export class GameScene extends Phaser.Scene {
     const ticket = { card, bg, orderNum, entries, treatEntries, cardH, status: 'active' };
     this.tickets.push(ticket);
 
-    // Slide-in animation
+    // Pop-in Animation
+    soundManager.waiterGibberish();
+
+    card.setScale(2.5);
     card.setAlpha(0);
+
     this.tweens.add({
-      targets: card, x: baseX, alpha: 1,
-      duration: 350, ease: 'Power2',
+      targets: card,
+      alpha: 1,
+      scale: 2.0, // briefly stay huge
+      duration: 400,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        // Then shrink and move to bar
+        this.time.delayedCall(600, () => {
+          this.tweens.add({
+            targets: card,
+            x: targetX,
+            y: targetY,
+            scale: 1,
+            depth: 10,
+            duration: 500,
+            ease: 'Power2'
+          });
+        });
+      }
     });
 
-    // Auto-scroll if needed
-    const rightEdge = baseX + cardW + 10;
+    // Auto-scroll if needed (calculated for target position)
+    const rightEdge = targetX + cardW + 10;
     if (rightEdge > 1020) {
       this.tweens.add({
         targets: this.ticketContainer, x: -(rightEdge - 1020),
         duration: 300, ease: 'Power2',
+        delay: 1000 // wait for animation
       });
     }
 
@@ -400,41 +476,10 @@ export class GameScene extends Phaser.Scene {
      FLOOR (isometric checkerboard tiles)
      ========================================= */
   createFloor() {
-    const g = this.add.graphics().setDepth(1);
-    const tileW = 32;
-    const tileH = 32;
-    const iso = 2;
-    const startY = 270;
-    const endY = 396;
-    const cols = Math.ceil(1024 / tileW) + 1;
-    const rows = Math.ceil((endY - startY) / tileH) + 1;
-
-    for (let r = 0; r < rows; r++) {
-      for (let c = 0; c < cols; c++) {
-        const tx = c * tileW;
-        const ty = startY + r * tileH;
-        const isLight = (r + c) % 2 === 0;
-        const color = isLight ? 0x363640 : 0x323238;
-
-        // Top face (parallelogram)
-        g.fillStyle(color, 1);
-        g.beginPath();
-        g.moveTo(tx, ty + iso);
-        g.lineTo(tx + iso, ty);
-        g.lineTo(tx + tileW + iso, ty);
-        g.lineTo(tx + tileW, ty + iso);
-        g.closePath();
-        g.fillPath();
-
-        // Main face
-        g.fillStyle(darkenColor(color, 0.9), 1);
-        g.fillRect(tx, ty + iso, tileW, tileH);
-
-        // Bottom edge
-        g.lineStyle(1, darkenColor(color, 0.7), 0.3);
-        g.lineBetween(tx, ty + iso + tileH, tx + tileW, ty + iso + tileH);
-      }
-    }
+    // Tiled floor texture
+    const floor = this.add.tileSprite(512, 333, 1024, 126, 'floor_tile');
+    floor.setDepth(1);
+    floor.setTileScale(0.5);
   }
 
   /* =========================================
@@ -552,6 +597,56 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+
+
+  /* =========================================
+     LOAVES (Standalone sources)
+     ========================================= */
+  createLoaves() {
+    // Place them to the right of the bins
+    const startX = 850;
+
+    // White Loaf
+    const wLoaf = this.add.image(startX, 530, 'loaf_white').setDepth(20);
+    wLoaf.setInteractive({ cursor: 'pointer' });
+    wLoaf.on('pointerdown', (pointer) => {
+      if (this.isPaused || this.heldItem || this.activeTreatment) return;
+      this.clickLoaf('bread_white', pointer);
+    });
+
+    // Label
+    this.add.text(startX, 530 + 40, 'White', {
+      fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(20);
+
+    // Wheat Loaf
+    const whLoaf = this.add.image(startX, 650, 'loaf_wheat').setDepth(20);
+    whLoaf.setInteractive({ cursor: 'pointer' });
+    whLoaf.on('pointerdown', (pointer) => {
+      if (this.isPaused || this.heldItem || this.activeTreatment) return;
+      this.clickLoaf('bread_wheat', pointer);
+    });
+
+    // Label
+    this.add.text(startX, 650 + 40, 'Wheat', {
+      fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+    }).setOrigin(0.5).setDepth(20);
+  }
+
+  clickLoaf(key, pointer) {
+    soundManager.plopBread();
+
+    const visual = this.createHeldVisual(key, pointer.x, pointer.y);
+
+    this.heldItem = {
+      visual,
+      ingredientKey: key,
+      binX: 0, // Not applicable for loaves
+      binY: 0,
+    };
+    this._justPickedUp = true;
+  }
+
   createBin(ingredientKey, x, y, binWidth) {
     const ing = INGREDIENTS[ingredientKey];
     const colors = BIN_COLORS[ingredientKey] || { fill: 0x3a3a4e, border: 0x5a5a6e };
@@ -598,8 +693,11 @@ export class GameScene extends Phaser.Scene {
       fontSize: '11px', color: '#ccc', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(21);
 
+    // Icon on bin front
+    const icon = this.add.image(x, y + 10, ingredientKey).setDepth(21).setScale(0.25);
+
     // Category label at bottom
-    this.add.text(x, y + 40, ing.category.toUpperCase(), {
+    this.add.text(x, y + 42, ing.category.toUpperCase(), {
       fontSize: '9px', color: '#666', fontFamily: 'Arial',
     }).setOrigin(0.5).setDepth(21);
 
@@ -638,29 +736,9 @@ export class GameScene extends Phaser.Scene {
       Phaser.Geom.Rectangle.Contains,
     );
 
-    const g = this.add.graphics();
-    // Large standing bottle
-    g.fillStyle(ing.color, 1);
-    g.fillRoundedRect(-20, -8, 40, 45, 8);
-    g.fillRect(-7, -28, 14, 22);
-    g.fillStyle(ing.border || 0x888888, 1);
-    g.fillRoundedRect(-9, -35, 18, 9, 3);
-    // Label stripe
-    g.fillStyle(ing.border, 0.3);
-    g.fillRect(-16, 5, 32, 16);
-    g.lineStyle(1.5, ing.border, 0.6);
-    g.strokeRoundedRect(-20, -8, 40, 45, 8);
-    c.add(g);
-
-    // Name label — below bottle with dark backing
-    const labelBg = this.add.graphics();
-    labelBg.fillStyle(0x000000, 0.5);
-    labelBg.fillRoundedRect(-28, 40, 56, 18, 4);
-    c.add(labelBg);
-    const label = this.add.text(0, 49, ing.name, {
-      fontSize: '12px', color: '#fff', fontFamily: 'Arial', fontStyle: 'bold',
-    }).setOrigin(0.5);
-    c.add(label);
+    const assetKey = key === 'sauce_mayo' ? 'sauce_mayo_bottle' : 'sauce_mustard_bottle';
+    const bottle = this.add.image(0, 0, assetKey).setOrigin(0.5, 0.5).setScale(0.8);
+    c.add(bottle);
 
     c.on('pointerdown', () => {
       if (this.isPaused || this.heldItem || this.activeTreatment) return;
@@ -893,7 +971,8 @@ export class GameScene extends Phaser.Scene {
     const iy = binY + ry;
 
     const c = this.add.container(ix, iy).setDepth(25);
-    c.setScale(ITEM_SCALE);
+    const scale = ITEM_SCALE * (key.includes('bread') ? 0.6 : 1.0);
+    c.setScale(scale);
     c.setRotation(rot);
     c.setSize(130, 56);
     c.setInteractive(
@@ -901,9 +980,13 @@ export class GameScene extends Phaser.Scene {
       Phaser.Geom.Rectangle.Contains,
     );
 
-    const g = this.add.graphics();
-    this.drawBinIngredient(g, key);
-    c.add(g);
+    const img = this.add.image(0, 0, key);
+    // Adjust scale based on ingredient type for bin view
+    if (key.includes('meat') || key.includes('cheese')) img.setScale(0.5);
+    else if (key.includes('top')) img.setScale(0.8);
+    else if (key.includes('bread')) img.setScale(0.35);
+
+    c.add(img);
 
     c.setData('ingredientKey', key);
     c.setData('binX', binX);
@@ -925,208 +1008,9 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     INGREDIENT VISUALS (bin items)
+     INGREDIENT VISUALS
      ========================================= */
-  drawBinIngredient(g, key) {
-    const ing = INGREDIENTS[key];
-    const cat = ing.category;
-
-    if (cat === 'bread') {
-      // Bread slice with dome top
-      g.fillStyle(ing.color, 1);
-      g.beginPath();
-      g.moveTo(-44, 8);
-      g.lineTo(-44, 0);
-      g.lineTo(-38, -5);
-      g.lineTo(-28, -10);
-      g.lineTo(-15, -13);
-      g.lineTo(0, -14);
-      g.lineTo(15, -13);
-      g.lineTo(28, -10);
-      g.lineTo(38, -5);
-      g.lineTo(44, 0);
-      g.lineTo(44, 8);
-      g.closePath();
-      g.fillPath();
-      g.lineStyle(1.5, ing.border, 0.9);
-      g.beginPath();
-      g.moveTo(-44, 8);
-      g.lineTo(-44, 0);
-      g.lineTo(-38, -5);
-      g.lineTo(-28, -10);
-      g.lineTo(-15, -13);
-      g.lineTo(0, -14);
-      g.lineTo(15, -13);
-      g.lineTo(28, -10);
-      g.lineTo(38, -5);
-      g.lineTo(44, 0);
-      g.lineTo(44, 8);
-      g.closePath();
-      g.strokePath();
-      if (key === 'bread_wheat') {
-        g.fillStyle(0xB08840, 0.4);
-        g.fillCircle(-15, -2, 2);
-        g.fillCircle(10, 1, 1.5);
-        g.fillCircle(-5, -8, 1.5);
-        g.fillCircle(20, -4, 2);
-      }
-    } else if (cat === 'meat') {
-      if (key === 'meat_bacon') {
-        // Bacon — 3 distinct wavy strips stacked
-        const stripYs = [-14, -3, 8];
-        const stripH = 8;
-        for (let si = 0; si < 3; si++) {
-          const sy = stripYs[si];
-          // Meat strip body
-          g.fillStyle(0xCC3322, 1);
-          g.beginPath();
-          g.moveTo(-36, sy);
-          for (let sx = -36; sx <= 36; sx += 6) {
-            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? -1.5 : 1.5;
-            g.lineTo(sx, sy + wave);
-          }
-          g.lineTo(36, sy + stripH);
-          for (let sx = 36; sx >= -36; sx -= 6) {
-            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? 1.5 : -1.5;
-            g.lineTo(sx, sy + stripH + wave);
-          }
-          g.closePath();
-          g.fillPath();
-          // Fat marbling streaks
-          g.fillStyle(0xFFDDCC, 0.7);
-          g.fillRect(-28 + si * 5, sy + 2, 10, 3);
-          g.fillRect(2 - si * 3, sy + 3, 12, 3);
-          g.fillRect(20 + si * 2, sy + 1, 8, 3);
-          // Strip outline
-          g.lineStyle(0.8, 0x991A11, 0.5);
-          g.beginPath();
-          g.moveTo(-36, sy);
-          for (let sx = -36; sx <= 36; sx += 6) {
-            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? -1.5 : 1.5;
-            g.lineTo(sx, sy + wave);
-          }
-          g.lineTo(36, sy + stripH);
-          for (let sx = 36; sx >= -36; sx -= 6) {
-            const wave = ((Math.floor((sx + 36) / 6) + si) % 2 === 0) ? 1.5 : -1.5;
-            g.lineTo(sx, sy + stripH + wave);
-          }
-          g.closePath();
-          g.strokePath();
-        }
-      } else {
-        // Deli slice — folded oval
-        g.fillStyle(ing.color, 1);
-        g.fillEllipse(0, -2, 80, 26);
-        g.lineStyle(1, ing.border, 0.8);
-        g.strokeEllipse(0, -2, 80, 26);
-        if (key === 'meat_ham') {
-          g.lineStyle(0.8, 0xE89BA6, 0.3);
-          g.strokeEllipse(0, -2, 50, 14);
-        } else if (key === 'meat_roastbeef') {
-          g.lineStyle(0.8, 0x6B3000, 0.3);
-          g.lineBetween(-15, -6, -8, 3);
-          g.lineBetween(12, -5, 18, 4);
-        } else {
-          g.lineStyle(0.8, 0xB89A70, 0.3);
-          g.strokeEllipse(0, -2, 48, 12);
-        }
-      }
-    } else if (cat === 'cheese') {
-      g.fillStyle(ing.color, 1);
-      g.fillRoundedRect(-40, -14, 80, 26, 3);
-      g.lineStyle(1.5, ing.border, 0.8);
-      g.strokeRoundedRect(-40, -14, 80, 26, 3);
-      if (key === 'cheese_swiss') {
-        g.fillStyle(ing.border, 0.5);
-        g.fillCircle(-16, -3, 5);
-        g.fillCircle(8, 3, 4);
-        g.fillCircle(22, -6, 3);
-        g.fillCircle(-4, 5, 3);
-      }
-    } else if (cat === 'topping') {
-      if (key === 'top_lettuce') {
-        // Head of lettuce — round leafy ball
-        g.fillStyle(0x228B22, 1);
-        g.fillCircle(0, -2, 16);
-        // Overlapping leaf layers
-        g.fillStyle(0x32CD32, 0.8);
-        g.fillEllipse(-6, -8, 18, 12);
-        g.fillEllipse(7, -5, 16, 14);
-        g.fillEllipse(-3, 3, 20, 12);
-        g.fillStyle(0x44DD44, 0.6);
-        g.fillEllipse(2, -3, 12, 10);
-        // Dark center
-        g.fillStyle(0x1A6B1A, 0.5);
-        g.fillCircle(0, -1, 4);
-        // Outline
-        g.lineStyle(1.5, 0x1A6B1A, 0.8);
-        g.strokeCircle(0, -2, 16);
-        // Leaf veins
-        g.lineStyle(0.5, 0x28A428, 0.4);
-        g.lineBetween(-8, -10, -2, 4);
-        g.lineBetween(8, -8, 2, 5);
-        g.lineBetween(0, -14, 0, 2);
-      } else if (key === 'top_tomato') {
-        // Tomato cross-section slice
-        g.fillStyle(0xFF6347, 1);
-        g.fillCircle(0, -2, 16);
-        // Flesh ring
-        g.fillStyle(0xFF8B70, 0.6);
-        g.fillCircle(0, -2, 12);
-        // Center core
-        g.fillStyle(0xFF6347, 0.8);
-        g.fillCircle(0, -2, 5);
-        // Seed chambers (4 segments)
-        g.fillStyle(0xFFAA88, 0.7);
-        g.fillEllipse(-6, -6, 6, 4);
-        g.fillEllipse(6, -6, 6, 4);
-        g.fillEllipse(-6, 2, 6, 4);
-        g.fillEllipse(6, 2, 6, 4);
-        // Seeds in chambers
-        g.fillStyle(0xFFDD99, 0.8);
-        g.fillEllipse(-6, -6, 2, 1);
-        g.fillEllipse(6, -6, 2, 1);
-        g.fillEllipse(-6, 2, 2, 1);
-        g.fillEllipse(6, 2, 2, 1);
-        // Membrane lines
-        g.lineStyle(0.8, 0xFF5030, 0.4);
-        g.lineBetween(0, -14, 0, 10);
-        g.lineBetween(-12, -2, 12, -2);
-        // Outer skin
-        g.lineStyle(1.5, 0xDD4030, 0.9);
-        g.strokeCircle(0, -2, 16);
-      } else if (key === 'top_onion') {
-        // Onion slice with visible concentric rings
-        g.fillStyle(0xF0E0F8, 1);
-        g.fillCircle(0, -2, 16);
-        // Concentric rings (alternating light/dark)
-        g.lineStyle(2.5, 0xD8C0E8, 0.7);
-        g.strokeCircle(0, -2, 13);
-        g.lineStyle(2, 0xE8D4F0, 0.5);
-        g.strokeCircle(0, -2, 10);
-        g.lineStyle(2.5, 0xD0B8E0, 0.7);
-        g.strokeCircle(0, -2, 7);
-        g.lineStyle(2, 0xE8D4F0, 0.5);
-        g.strokeCircle(0, -2, 4);
-        // Center dot
-        g.fillStyle(0xC8A8D8, 0.8);
-        g.fillCircle(0, -2, 2);
-        // Outer skin
-        g.lineStyle(1.5, 0xC8B0D0, 0.9);
-        g.strokeCircle(0, -2, 16);
-      }
-    } else if (cat === 'sauce') {
-      g.fillStyle(ing.color, 1);
-      g.fillRoundedRect(-16, -2, 32, 18, 5);
-      g.fillRect(-5, -12, 10, 12);
-      g.fillStyle(ing.border || 0x888888, 1);
-      g.fillRoundedRect(-7, -16, 14, 6, 2);
-      g.fillStyle(ing.border, 0.3);
-      g.fillRect(-12, 1, 24, 10);
-      g.lineStyle(1, ing.border, 0.6);
-      g.strokeRoundedRect(-16, -2, 32, 18, 5);
-    }
-  }
+  // Formerly drawBinIngredient - removed in favor of sprites
 
   /* =========================================
      CLICK TO PLACE (replaces drag & drop)
@@ -1241,9 +1125,14 @@ export class GameScene extends Phaser.Scene {
     const c = this.add.container(x, y).setDepth(100);
     c.setSize(130, 56);
 
-    const g = this.add.graphics();
-    this.drawBinIngredient(g, key);
-    c.add(g);
+    const img = this.add.image(0, 0, key).setOrigin(0.5);
+    // Adjust scale for held view
+    if (key.includes('meat') || key.includes('cheese')) img.setScale(0.65);
+    else if (key.includes('top')) img.setScale(0.7);
+    else if (key.includes('bread')) img.setScale(0.45);
+    else if (key.includes('sauce')) img.setScale(0.4);
+
+    c.add(img);
 
     const label = this.add.text(0, 17, ing.name, {
       fontSize: '13px', color: ing.textColor || '#000',
@@ -1341,6 +1230,11 @@ export class GameScene extends Phaser.Scene {
      TRAY SPAWNING
      ========================================= */
   spawnTray() {
+    // Check if store is open
+    if (!this.isStoreOpen) {
+      return;
+    }
+
     const order = this.generateOrder();
     this.orderNumber++;
     const orderNum = this.orderNumber;
@@ -1353,41 +1247,11 @@ export class GameScene extends Phaser.Scene {
     // Tray container
     const container = this.add.container(startX, baseY).setDepth(10);
 
-    // Isometric tray base — wider for footers
-    const base = this.add.graphics();
-    const tw = order.isFooter ? 200 : 130;
-    const tFront = 14;
-    const tIso = 4;
-
-    // Front face (darker wood)
-    base.fillStyle(0x6B4030, 1);
-    base.fillRect(-tw / 2, -10 + tIso, tw, tFront);
-
-    // Top face (lighter wood parallelogram)
-    base.fillStyle(0x8B7355, 1);
-    base.beginPath();
-    base.moveTo(-tw / 2, -10 + tIso);
-    base.lineTo(-tw / 2 + tIso, -10);
-    base.lineTo(tw / 2 + tIso, -10);
-    base.lineTo(tw / 2, -10 + tIso);
-    base.closePath();
-    base.fillPath();
-
-    // Right side (darkest)
-    base.fillStyle(0x5A3020, 1);
-    base.beginPath();
-    base.moveTo(tw / 2, -10 + tIso);
-    base.lineTo(tw / 2 + tIso, -10);
-    base.lineTo(tw / 2 + tIso, -10 + tFront);
-    base.lineTo(tw / 2, -10 + tIso + tFront);
-    base.closePath();
-    base.fillPath();
-
-    // Edge highlight along top
-    base.lineStyle(1, 0xA08A68, 0.5);
-    base.lineBetween(-tw / 2 + tIso, -10, tw / 2 + tIso, -10);
-
-    container.add(base);
+    // Use tray sprite
+    const traySprite = this.add.image(0, 0, 'tray');
+    // Scale for footer/normal
+    traySprite.setScale(order.isFooter ? 0.9 : 0.7);
+    container.add(traySprite);
 
     // Order number badge
     const numBg = this.add.graphics();
@@ -1518,7 +1382,19 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    return { ingredients: list, treatments, isFooter };
+    // Calculate Dynamic Price
+    let totalPrice = 0;
+    // Base markup
+    totalPrice += isFooter ? 3.00 : 1.50;
+
+    list.forEach(key => {
+      const ing = INGREDIENTS[key];
+      totalPrice += (ing.price || 0.50);
+    });
+
+    treatments.forEach(() => totalPrice += 0.25);
+
+    return { ingredients: list, treatments, isFooter, totalPrice };
   }
 
   /* =========================================
@@ -1554,234 +1430,54 @@ export class GameScene extends Phaser.Scene {
 
   addStackLayer(tray, ingredientKey) {
     const ing = INGREDIENTS[ingredientKey];
-    const idx = tray.stackLayers.length;
-    const ly = -16 - tray.stackHeight;
-    const layerH = this.getLayerHeight(ingredientKey);
-    tray.stackHeight += layerH;
-    const wide = tray.isFooter;
-    // Half-widths for stack layers
-    const hw = wide ? 76 : 52;
-    const mhw = wide ? 72 : 48; // meat/cheese half-width
-
-    const g = this.add.graphics();
     const cat = ing.category;
 
+    // Stack logic
+    const layerH = this.getLayerHeight(ingredientKey);
+    // Stack grows upwards (-y)
+    const ly = -20 - tray.stackHeight;
+    tray.stackHeight += layerH;
+
+    // Add random slight offset for natural look
+    const rX = (Math.random() - 0.5) * 6;
+    const rY = (Math.random() - 0.5) * 4;
+
+    // Create sprite for the layer
+    // Note: 'sauce' might need special handling if we don't have a "splat" sprite
+    if (cat === 'sauce') {
+      const sauceG = this.add.graphics();
+      sauceG.fillStyle(ing.color, 0.9);
+      sauceG.fillCircle(rX, ly + rY, 14);
+      sauceG.lineStyle(2, ing.border || 0x888888, 0.5);
+      sauceG.strokeCircle(rX, ly + rY, 14);
+      tray.container.add(sauceG);
+      tray.stackLayers.push(sauceG);
+      return;
+    }
+
+    const topSprite = this.add.image(rX, ly + rY, ingredientKey);
+
+    // Scaling on tray - dynamic based on footer and type
     if (cat === 'bread') {
-      g.fillStyle(ing.color, 1);
-      if (idx === 0) {
-        // Bottom bread — flat top, curved bottom
-        g.beginPath();
-        g.moveTo(-hw, ly);
-        g.lineTo(hw, ly);
-        g.lineTo(hw, ly + 5);
-        g.lineTo(hw - 8, ly + 8);
-        g.lineTo(hw - 22, ly + 10);
-        g.lineTo(hw * 0.56, ly + 11);
-        g.lineTo(0, ly + 12);
-        g.lineTo(-hw * 0.56, ly + 11);
-        g.lineTo(-hw + 22, ly + 10);
-        g.lineTo(-hw + 8, ly + 8);
-        g.lineTo(-hw, ly + 5);
-        g.closePath();
-        g.fillPath();
-        g.lineStyle(0.8, ing.border, 0.6);
-        g.beginPath();
-        g.moveTo(-hw, ly);
-        g.lineTo(hw, ly);
-        g.lineTo(hw, ly + 5);
-        g.lineTo(hw - 8, ly + 8);
-        g.lineTo(hw - 22, ly + 10);
-        g.lineTo(hw * 0.56, ly + 11);
-        g.lineTo(0, ly + 12);
-        g.lineTo(-hw * 0.56, ly + 11);
-        g.lineTo(-hw + 22, ly + 10);
-        g.lineTo(-hw + 8, ly + 8);
-        g.lineTo(-hw, ly + 5);
-        g.closePath();
-        g.strokePath();
+      const isFooterBread = tray.isFooter;
+      // If footer, stretch texture significantly. 
+      // 0.35 is good for 128px bread on normal tray.
+      // Footer tray is longer? Actually tray.svg is 200px wide.
+      // We need bread to cover the whole sub.
+      // Let's stretch X more for footer.
+      if (isFooterBread) {
+        topSprite.setScale(0.65, 0.35); // Double length-ish
       } else {
-        // Top bread — domed top
-        g.beginPath();
-        g.moveTo(-hw, ly + 9);
-        g.lineTo(-hw, ly + 3);
-        g.lineTo(-hw + 8, ly);
-        g.lineTo(-hw + 22, ly - 3);
-        g.lineTo(-hw * 0.56, ly - 4);
-        g.lineTo(0, ly - 5);
-        g.lineTo(hw * 0.56, ly - 4);
-        g.lineTo(hw - 22, ly - 3);
-        g.lineTo(hw - 8, ly);
-        g.lineTo(hw, ly + 3);
-        g.lineTo(hw, ly + 9);
-        g.closePath();
-        g.fillPath();
-        g.lineStyle(0.8, ing.border, 0.6);
-        g.beginPath();
-        g.moveTo(-hw, ly + 9);
-        g.lineTo(-hw, ly + 3);
-        g.lineTo(-hw + 8, ly);
-        g.lineTo(-hw + 22, ly - 3);
-        g.lineTo(-hw * 0.56, ly - 4);
-        g.lineTo(0, ly - 5);
-        g.lineTo(hw * 0.56, ly - 4);
-        g.lineTo(hw - 22, ly - 3);
-        g.lineTo(hw - 8, ly);
-        g.lineTo(hw, ly + 3);
-        g.lineTo(hw, ly + 9);
-        g.closePath();
-        g.strokePath();
-      }
-    } else if (cat === 'sauce') {
-      g.lineStyle(2, ing.color, 0.9);
-      g.beginPath();
-      g.moveTo(-mhw + 8, ly + 2);
-      for (let sx = -mhw + 8; sx <= mhw - 8; sx += 5) {
-        g.lineTo(sx, ly + 2 + ((Math.floor(sx / 5) % 2 === 0) ? -1 : 1));
-      }
-      g.strokePath();
-    } else if (cat === 'cheese') {
-      g.fillStyle(ing.color, 1);
-      g.fillRect(-mhw, ly, mhw * 2, 7);
-      if (ingredientKey === 'cheese_swiss') {
-        g.fillStyle(ing.border, 0.5);
-        g.fillCircle(-mhw * 0.4, ly + 3, 2);
-        g.fillCircle(mhw * 0.2, ly + 4, 1.5);
-        g.fillCircle(mhw * 0.6, ly + 2, 2);
-      }
-      g.lineStyle(0.5, ing.border, 0.5);
-      g.strokeRect(-mhw, ly, mhw * 2, 7);
-    } else if (ingredientKey === 'meat_bacon') {
-      // Bacon — 2 distinct wavy strips on sandwich
-      const stripOffsets = [0, 4];
-      for (let si = 0; si < 2; si++) {
-        const sy = ly + stripOffsets[si];
-        const stripH = 4;
-        g.fillStyle(0xCC3322, 1);
-        g.beginPath();
-        g.moveTo(-mhw + 4, sy);
-        for (let sx = -mhw + 4; sx <= mhw - 4; sx += 8) {
-          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? -1 : 1;
-          g.lineTo(sx, sy + wave);
-        }
-        g.lineTo(mhw - 4, sy + stripH);
-        for (let sx = mhw - 4; sx >= -mhw + 4; sx -= 8) {
-          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? 1 : -1;
-          g.lineTo(sx, sy + stripH + wave);
-        }
-        g.closePath();
-        g.fillPath();
-        // Fat marbling
-        g.fillStyle(0xFFDDCC, 0.6);
-        g.fillRect(-mhw + 10 + si * 6, sy + 1, 7, 2);
-        g.fillRect(si * 4, sy + 1, 8, 2);
-        g.fillRect(mhw - 18 - si * 4, sy + 1, 7, 2);
-        // Strip outline
-        g.lineStyle(0.4, 0x991A11, 0.4);
-        g.beginPath();
-        g.moveTo(-mhw + 4, sy);
-        for (let sx = -mhw + 4; sx <= mhw - 4; sx += 8) {
-          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? -1 : 1;
-          g.lineTo(sx, sy + wave);
-        }
-        g.lineTo(mhw - 4, sy + stripH);
-        for (let sx = mhw - 4; sx >= -mhw + 4; sx -= 8) {
-          const wave = ((Math.floor((sx + mhw) / 8) + si) % 2 === 0) ? 1 : -1;
-          g.lineTo(sx, sy + stripH + wave);
-        }
-        g.closePath();
-        g.strokePath();
-      }
-    } else if (ingredientKey === 'top_lettuce') {
-      // Leafy layer with ruffled edges
-      g.fillStyle(0x32CD32, 1);
-      g.beginPath();
-      g.moveTo(-mhw, ly + 8);
-      g.lineTo(-mhw, ly + 3);
-      for (let sx = -mhw; sx <= mhw; sx += 8) {
-        g.lineTo(sx, (Math.floor((sx + mhw) / 8) % 2 === 0) ? ly - 1 : ly + 3);
-      }
-      g.lineTo(mhw, ly + 8);
-      g.closePath();
-      g.fillPath();
-      // Darker leaf layer
-      g.fillStyle(0x28A428, 0.5);
-      g.beginPath();
-      g.moveTo(-mhw + 4, ly + 8);
-      for (let sx = -mhw + 4; sx <= mhw - 4; sx += 10) {
-        g.lineTo(sx, (Math.floor((sx + mhw) / 10) % 2 === 0) ? ly + 2 : ly + 6);
-      }
-      g.lineTo(mhw - 4, ly + 8);
-      g.closePath();
-      g.fillPath();
-    } else if (ingredientKey === 'top_tomato') {
-      // Tomato slices from the side — thin wide curved shapes
-      const sliceCount = wide ? 5 : 3;
-      const sliceSpacing = (mhw * 2 - 10) / sliceCount;
-      for (let si = 0; si < sliceCount; si++) {
-        const sx = -mhw + 5 + si * sliceSpacing;
-        const sw = sliceSpacing - 2;
-        // Red slice body
-        g.fillStyle(0xFF6347, 1);
-        g.fillRoundedRect(sx, ly + 1, sw, 4, 1);
-        // Lighter flesh interior
-        g.fillStyle(0xFF8B70, 0.5);
-        g.fillRect(sx + 2, ly + 2, sw - 4, 2);
-        // Seed dot
-        g.fillStyle(0xFFDD99, 0.7);
-        g.fillCircle(sx + sw * 0.5, ly + 3, 0.6);
-        // Skin edge along top
-        g.lineStyle(0.8, 0xDD3020, 0.7);
-        g.lineBetween(sx + 1, ly + 1, sx + sw - 1, ly + 1);
-        // Outline
-        g.lineStyle(0.4, 0xDD4030, 0.5);
-        g.strokeRoundedRect(sx, ly + 1, sw, 4, 1);
-      }
-    } else if (ingredientKey === 'top_onion') {
-      // Onion slices from the side — thin arched shapes with rings visible
-      const sliceCount = wide ? 4 : 3;
-      const sliceSpacing = (mhw * 2 - 10) / sliceCount;
-      for (let ri = 0; ri < sliceCount; ri++) {
-        const rx = -mhw + 5 + ri * sliceSpacing;
-        const rw = sliceSpacing - 2;
-        // Translucent onion slice body
-        g.fillStyle(0xE8D0F0, 0.7);
-        g.fillRoundedRect(rx, ly + 1, rw, 4, 1);
-        // Inner ring arc
-        g.lineStyle(0.7, 0xD0B0E0, 0.6);
-        g.beginPath();
-        g.arc(rx + rw / 2, ly + 5, rw * 0.3, Math.PI, 0, false);
-        g.strokePath();
-        // Outline
-        g.lineStyle(0.4, 0xC8B0D0, 0.6);
-        g.strokeRoundedRect(rx, ly + 1, rw, 4, 1);
-      }
-    } else {
-      // Default meat — slight oval
-      g.fillStyle(ing.color, 1);
-      g.fillEllipse(0, ly + 4, mhw * 2, 8);
-      if (ing.border) {
-        g.lineStyle(0.5, ing.border, 0.4);
-        g.strokeEllipse(0, ly + 4, mhw * 2, 8);
+        topSprite.setScale(0.35);
       }
     }
-
-    tray.container.add(g);
-    tray.stackLayers.push(g);
-
-    if (cat === 'meat') {
-      this.tweens.add({
-        targets: g,
-        rotation: 0.05,
-        duration: 400,
-        ease: 'Elastic.easeOut',
-        yoyo: true,
-      });
+    else if (cat === 'meat' || cat === 'cheese') {
+      topSprite.setScale(tray.isFooter ? 0.6 : 0.5);
     }
+    else if (cat === 'topping') topSprite.setScale(0.55);
 
-    // Compress the whole sandwich when the top bread is placed
-    if (cat === 'bread' && idx > 0) {
-      this.compressStack(tray);
-    }
+    tray.container.add(topSprite);
+    tray.stackLayers.push(topSprite);
   }
 
   compressStack(tray) {
@@ -1845,7 +1541,11 @@ export class GameScene extends Phaser.Scene {
     tray.scored = true;
     this.ordersCompleted++;
 
-    const baseScore = tray.isFooter ? 200 : 100;
+    // Score based on price
+    const orderValue = tray.order.totalPrice || 5.00;
+    this.gameMoney += orderValue;
+
+    const baseScore = Math.floor(orderValue * 10);
     const speedBonus = tray.container.x > 300 ? (tray.isFooter ? 100 : 50) : 0;
     this.dayScore += baseScore + speedBonus;
     this.refreshHUD();
@@ -1855,9 +1555,9 @@ export class GameScene extends Phaser.Scene {
 
     const pts = baseScore + speedBonus;
     const popup = this.add.text(tray.container.x, tray.container.y - 70,
-      `+${pts}`, {
-        fontSize: '26px', color: '#0f0', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(100);
+      `$${orderValue.toFixed(2)}`, {
+      fontSize: '26px', color: '#0f0', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(100);
 
     this.tweens.add({
       targets: popup, y: popup.y - 50, alpha: 0, duration: 1200,
@@ -1953,7 +1653,7 @@ export class GameScene extends Phaser.Scene {
     this.drawBelt();
 
     // --- spawn logic ---
-    if (this.ordersSpawned < this.totalOrders) {
+    if (this.isStoreOpen && this.ordersSpawned < this.totalOrders) {
       if (this.ordersSpawned < 3) {
         if (this.waitingForNext) {
           this.sequentialDelay += delta * speedMult;

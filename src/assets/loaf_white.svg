@@ -1,0 +1,12 @@
+<svg width="200" height="100" viewBox="0 0 200 100" xmlns="http://www.w3.org/2000/svg">
+  <!-- Loaf Body (Crust) -->
+  <path d="M 20 80 L 180 80 Q 190 80 190 70 L 190 40 Q 180 10 100 10 Q 20 10 10 40 L 10 70 Q 10 80 20 80 Z" fill="#D4B896" stroke="#8B4513" stroke-width="3" />
+  
+  <!-- Cut Face (Interior) -->
+  <ellipse cx="190" cy="55" rx="10" ry="25" fill="#F5DEB3" stroke="#D4B896" stroke-width="2" />
+  
+  <!-- Slice Lines (Texture) -->
+  <path d="M 50 20 Q 55 45 50 75" fill="none" stroke="#8B4513" stroke-width="2" opacity="0.4" />
+  <path d="M 90 15 Q 95 45 90 78" fill="none" stroke="#8B4513" stroke-width="2" opacity="0.4" />
+  <path d="M 130 18 Q 135 45 130 76" fill="none" stroke="#8B4513" stroke-width="2" opacity="0.4" />
+</svg>
