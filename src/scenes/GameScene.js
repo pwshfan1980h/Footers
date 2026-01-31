@@ -1306,6 +1306,13 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Anti-bunching: don't spawn if the rightmost tray is still too close
+    const minGap = 200;
+    for (const tray of this.trays) {
+      if (tray.done) continue;
+      if (tray.container.x > 1024 - minGap) return;
+    }
+
     const order = this.generateOrder();
     this.orderNumber++;
     const orderNum = this.orderNumber;

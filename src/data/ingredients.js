@@ -30,9 +30,9 @@ export const TREATMENTS = {
 
 export const DAY_CONFIG = [
   null, // index 0 unused
-  { name: 'Monday', orders: 5, speed: 0.20, spawnInterval: 8800, treatmentChance: 0, footerChance: 0.3 },
-  { name: 'Tuesday', orders: 7, speed: 0.25, spawnInterval: 7700, treatmentChance: 0.3, footerChance: 0.4 },
-  { name: 'Wednesday', orders: 9, speed: 0.31, spawnInterval: 6400, treatmentChance: 0.5, footerChance: 0.5 },
-  { name: 'Thursday', orders: 11, speed: 0.36, spawnInterval: 5400, treatmentChance: 0.6, footerChance: 0.5 },
-  { name: 'Friday', orders: 14, speed: 0.42, spawnInterval: 4500, treatmentChance: 0.6, footerChance: 0.6 },
+  { name: 'Monday', orders: 5, speed: 0.20, spawnInterval: 9000, treatmentChance: 0, footerChance: 0.3 },
+  { name: 'Tuesday', orders: 7, speed: 0.22, spawnInterval: 8200, treatmentChance: 0.3, footerChance: 0.4 },
+  { name: 'Wednesday', orders: 9, speed: 0.25, spawnInterval: 7400, treatmentChance: 0.5, footerChance: 0.5 },
+  { name: 'Thursday', orders: 11, speed: 0.28, spawnInterval: 6600, treatmentChance: 0.6, footerChance: 0.5 },
+  { name: 'Friday', orders: 14, speed: 0.32, spawnInterval: 5800, treatmentChance: 0.6, footerChance: 0.6 },
 ];
