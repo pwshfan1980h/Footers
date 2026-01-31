@@ -1,7 +1,7 @@
 import { defineConfig } from 'vite';
 
 export default defineConfig({
-  base: '/order-up/',
+  base: '/Footers/',
   server: {
     allowedHosts: true,
   },
