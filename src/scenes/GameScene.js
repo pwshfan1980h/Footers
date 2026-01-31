@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { INGREDIENTS, BIN_LAYOUT, BIN_COLORS, TREATMENTS, DAY_CONFIG } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { DEBUG } from '../config.js';
 
 function darkenColor(color, factor) {
   const r = Math.floor(((color >> 16) & 0xFF) * factor);
@@ -111,17 +112,9 @@ export class GameScene extends Phaser.Scene {
       fontSize: '11px', color: '#ff0', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(50).setAlpha(0);
 
-    // --- hints ---
+    // --- hints modal ---
     if (this.day === 1) {
-      const hint = this.add.text(512, 280,
-        'Click ingredients to pick up, click trays to place!\nMatch the # to the ticket above\nHold SPACE to speed up belt', {
-        fontSize: '14px', color: '#8888aa', fontFamily: 'Arial',
-        fontStyle: 'italic', align: 'center',
-      }).setOrigin(0.5).setDepth(5).setAlpha(0.9);
-      this.tweens.add({
-        targets: hint, alpha: 0, delay: 7000, duration: 1500,
-        onComplete: () => hint.destroy(),
-      });
+      this.showHintsModal();
     }
 
     // --- OPEN FOR BUSINESS BUTTON ---
@@ -132,6 +125,11 @@ export class GameScene extends Phaser.Scene {
 
     // --- SETUP INPUT ---
     this.setupClickToPlace();
+
+    // --- DEBUG HITBOXES ---
+    if (DEBUG) {
+      this.drawDebugHitboxes();
+    }
   }
 
   /* =========================================
@@ -254,6 +252,57 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  showHintsModal() {
+    // Clickable overlay covers the full screen and blocks all input behind it
+    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.6)
+      .setDepth(500)
+      .setInteractive({ useHandCursor: true });
+
+    // Visual elements on top of the overlay
+    const box = this.add.graphics().setDepth(501);
+    box.fillStyle(0x2A2A38, 1);
+    box.fillRoundedRect(312, 264, 400, 240, 12);
+    box.lineStyle(2, 0x6666aa, 1);
+    box.strokeRoundedRect(312, 264, 400, 240, 12);
+
+    const title = this.add.text(512, 294, 'HOW TO PLAY', {
+      fontSize: '20px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(501);
+
+    const lines = [
+      'Click ingredients to pick up',
+      'Click a tray to place them',
+      'Match the order # to the ticket above',
+      'Hold SPACE to speed up the belt',
+      'Press ESC to cancel a pickup',
+    ];
+    const lineTexts = lines.map((line, i) =>
+      this.add.text(512, 334 + i * 24, line, {
+        fontSize: '14px', color: '#ccccdd', fontFamily: 'Arial',
+      }).setOrigin(0.5).setDepth(501)
+    );
+
+    const btnBg = this.add.graphics().setDepth(501);
+    btnBg.fillStyle(0x44aa44, 1);
+    btnBg.fillRoundedRect(462, 459, 100, 36, 8);
+    btnBg.lineStyle(2, 0xffffff, 0.8);
+    btnBg.strokeRoundedRect(462, 459, 100, 36, 8);
+
+    const btnTxt = this.add.text(512, 477, 'GOT IT', {
+      fontSize: '16px', color: '#fff', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(501);
+
+    // Click anywhere to dismiss
+    overlay.on('pointerdown', () => {
+      overlay.destroy();
+      box.destroy();
+      title.destroy();
+      lineTexts.forEach((t) => t.destroy());
+      btnBg.destroy();
+      btnTxt.destroy();
+    });
+  }
+
   /* =========================================
      TICKET BAR
      ========================================= */
@@ -298,7 +347,7 @@ export class GameScene extends Phaser.Scene {
     const spawnX = 512;
     const spawnY = 384;
 
-    const card = this.add.container(spawnX, spawnY).setDepth(100); // High depth for pop-in
+    const card = this.add.container(spawnX, spawnY).setDepth(400); // Above everything during pop-in
 
     // Background — footer tickets have a distinct tint
     const bg = this.add.graphics();
@@ -710,9 +759,9 @@ export class GameScene extends Phaser.Scene {
      TREATMENTS (Top Center) & SAUCES
      ========================================= */
   createTreatments() {
-    const startX = 350; // Centered relative to belt
-    const startY = 185; // Above belt
-    const spacing = 80;
+    const startX = 200;
+    const startY = 200;
+    const spacing = 110;
 
     // Treatments
     const treatKeys = ['toasted', 'togo', 'salt_pepper', 'oil_vinegar'];
@@ -720,10 +769,9 @@ export class GameScene extends Phaser.Scene {
       this.createTreatmentItem(key, startX + i * spacing, startY);
     });
 
-    // Sauces (Next to treatments? Or grouped?)
-    // Let's put sauces to the right of treatments
-    this.createSauceBottle('sauce_mayo', startX + 4 * spacing + 20, startY + 10);
-    this.createSauceBottle('sauce_mustard', startX + 5 * spacing + 20, startY + 10);
+    // Sauces to the right of treatments
+    this.createSauceBottle('sauce_mayo', startX + 4 * spacing + 10, startY);
+    this.createSauceBottle('sauce_mustard', startX + 5 * spacing + 10, startY);
   }
 
   /* =========================================
@@ -735,7 +783,7 @@ export class GameScene extends Phaser.Scene {
   createCheeseStacks() {
     const baseX = 720;
     const spacingY = 110;
-    const startY = 550; // Alignment
+    const startY = 510;
 
     const cheeses = [
       { key: 'cheese_american', label: 'American' },
@@ -745,7 +793,12 @@ export class GameScene extends Phaser.Scene {
     cheeses.forEach((c, i) => {
       const y = startY + i * spacingY;
       const stack = this.add.image(baseX, y, `cheese_stack_${c.key.split('_')[1]}`).setDepth(20);
-      stack.setInteractive({ cursor: 'pointer' });
+      // Art lives in ~x:18-105, y:48-90 of the 128x128 frame
+      stack.setInteractive({
+        hitArea: new Phaser.Geom.Rectangle(15, 45, 92, 50),
+        hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+        useHandCursor: true,
+      });
       stack.on('pointerdown', (pointer) => {
         if (this.isPaused || this.heldItem || this.activeTreatment) return;
         this.clickCheeseStack(c.key, pointer);
@@ -769,7 +822,7 @@ export class GameScene extends Phaser.Scene {
      ========================================= */
   createVeggieBowls() {
     const baseX = 480;
-    const startY = 550; // Alignment
+    const startY = 475;
     const spacingY = 90;
 
     const veggies = [
@@ -780,21 +833,9 @@ export class GameScene extends Phaser.Scene {
 
     veggies.forEach((v, i) => {
       const y = startY + i * spacingY;
-      // Bowl container
-      const bowl = this.add.container(baseX, y).setDepth(20);
-
-      // Removed bowl art per request
-      // const bowlImg = this.add.image(0, 0, 'bowl_veggie');
-      // bowl.add(bowlImg);
-
-      // Veggie visual inside
-      const vegImg = this.add.image(0, 0, v.asset || v.key).setScale(0.8);
-      bowl.add(vegImg);
-
-      bowl.setSize(100, 70);
-      bowl.setInteractive(new Phaser.Geom.Rectangle(-50, -35, 100, 70), Phaser.Geom.Rectangle.Contains);
-
-      bowl.on('pointerdown', (pointer) => {
+      const vegImg = this.add.image(baseX, y, v.asset).setDepth(20).setScale(0.8);
+      vegImg.setInteractive({ useHandCursor: true });
+      vegImg.on('pointerdown', (pointer) => {
         if (this.isPaused || this.heldItem || this.activeTreatment) return;
         this.clickVeggieBowl(v.key, pointer);
       });
@@ -813,19 +854,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   createSauceBottle(key, x, y) {
-    const ing = INGREDIENTS[key];
-    const c = this.add.container(x, y).setDepth(30);
-    c.setSize(70, 105);
-    c.setInteractive(
-      new Phaser.Geom.Rectangle(-35, -45, 70, 105),
-      Phaser.Geom.Rectangle.Contains,
-    );
-
     const assetKey = key === 'sauce_mayo' ? 'sauce_mayo_bottle' : 'sauce_mustard_bottle';
-    const bottle = this.add.image(0, 0, assetKey).setOrigin(0.5, 0.5).setScale(0.8);
-    c.add(bottle);
-
-    c.on('pointerdown', () => {
+    const bottle = this.add.image(x, y, assetKey).setDepth(30).setScale(0.8);
+    bottle.setInteractive({ useHandCursor: true });
+    bottle.on('pointerdown', () => {
       if (this.isPaused || this.heldItem || this.activeTreatment) return;
       soundManager.init();
       this.pickupSauce(key);
@@ -845,64 +877,73 @@ export class GameScene extends Phaser.Scene {
 
   createTreatmentItem(tKey, x, y) {
     const treat = TREATMENTS[tKey];
+    const hw = 45;
+    const hh = 50;
     const c = this.add.container(x, y).setDepth(30);
-    c.setSize(56, 78);
-    c.setInteractive(
-      new Phaser.Geom.Rectangle(-28, -31, 56, 78),
-      Phaser.Geom.Rectangle.Contains,
-    );
+    c.setSize(hw * 2, hh * 2);
+    c.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-hw, -hh, hw * 2, hh * 2),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
 
+    // Background card
+    const bg = this.add.graphics();
+    bg.fillStyle(0x333344, 0.8);
+    bg.fillRoundedRect(-hw, -hh, hw * 2, hh * 2, 10);
+    bg.lineStyle(2, 0x555566, 1);
+    bg.strokeRoundedRect(-hw, -hh, hw * 2, hh * 2, 10);
+    c.add(bg);
+
+    // Art (scaled up ~1.8x from original)
     const g = this.add.graphics();
+    const s = 1.8;
 
     if (tKey === 'toasted') {
       g.fillStyle(0x888888, 1);
-      g.fillRoundedRect(-18, -10, 36, 30, 4);
-      g.lineStyle(1, 0x666666, 1);
-      g.strokeRoundedRect(-18, -10, 36, 30, 4);
+      g.fillRoundedRect(-32, -18, 64, 52, 6);
+      g.lineStyle(2, 0x666666, 1);
+      g.strokeRoundedRect(-32, -18, 64, 52, 6);
       g.fillStyle(0x333333, 1);
-      g.fillRect(-12, -8, 10, 4);
-      g.fillRect(2, -8, 10, 4);
+      g.fillRect(-22, -14, 18, 7);
+      g.fillRect(4, -14, 18, 7);
       g.fillStyle(0xAAAAAA, 1);
-      g.fillRect(14, 2, 6, 12);
+      g.fillRect(24, 2, 10, 20);
     } else if (tKey === 'togo') {
       g.fillStyle(0xD4C4A0, 1);
-      g.fillRoundedRect(-18, -12, 36, 32, 3);
-      g.lineStyle(1, 0xB0A080, 1);
-      g.strokeRoundedRect(-18, -12, 36, 32, 3);
-      g.lineStyle(0.8, 0xB0A080, 0.5);
-      g.lineBetween(-12, -2, 12, -2);
-      g.lineBetween(-10, 8, 10, 8);
+      g.fillRoundedRect(-32, -22, 64, 56, 5);
+      g.lineStyle(2, 0xB0A080, 1);
+      g.strokeRoundedRect(-32, -22, 64, 56, 5);
+      g.lineStyle(1.5, 0xB0A080, 0.5);
+      g.lineBetween(-22, -4, 22, -4);
+      g.lineBetween(-18, 14, 18, 14);
     } else if (tKey === 'salt_pepper') {
       g.fillStyle(0xEEEEEE, 1);
-      g.fillRoundedRect(-18, -8, 14, 24, 4);
+      g.fillRoundedRect(-30, -14, 25, 42, 6);
       g.fillStyle(0xCCCCCC, 1);
-      g.fillRect(-16, -12, 10, 6);
+      g.fillRect(-27, -22, 18, 10);
       g.fillStyle(0x444444, 1);
-      g.fillRoundedRect(4, -8, 14, 24, 4);
+      g.fillRoundedRect(6, -14, 25, 42, 6);
       g.fillStyle(0x333333, 1);
-      g.fillRect(6, -12, 10, 6);
+      g.fillRect(9, -22, 18, 10);
     } else if (tKey === 'oil_vinegar') {
       g.fillStyle(0xCCCC44, 0.8);
-      g.fillRoundedRect(-18, -4, 14, 22, 4);
-      g.fillRect(-14, -14, 6, 12);
+      g.fillRoundedRect(-30, -6, 25, 38, 6);
+      g.fillRect(-24, -24, 10, 20);
       g.fillStyle(0xAAAA22, 1);
-      g.fillRect(-15, -17, 8, 5);
+      g.fillRect(-26, -30, 14, 8);
       g.fillStyle(0x884422, 0.8);
-      g.fillRoundedRect(4, -4, 14, 22, 4);
-      g.fillRect(8, -14, 6, 12);
+      g.fillRoundedRect(6, -6, 25, 38, 6);
+      g.fillRect(12, -24, 10, 20);
       g.fillStyle(0x662200, 1);
-      g.fillRect(7, -17, 8, 5);
+      g.fillRect(10, -30, 14, 8);
     }
 
     c.add(g);
 
-    // Label below art with dark backing
-    const labelBg = this.add.graphics();
-    labelBg.fillStyle(0x000000, 0.5);
-    labelBg.fillRoundedRect(-24, 26, 48, 18, 4);
-    c.add(labelBg);
-    const label = this.add.text(0, 35, treat.name, {
-      fontSize: '11px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
+    // Label below art
+    const label = this.add.text(0, hh - 12, treat.name, {
+      fontSize: '14px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5);
     c.add(label);
 
@@ -930,10 +971,10 @@ export class GameScene extends Phaser.Scene {
     const item = this.treatmentItems[key];
     if (item) {
       this.treatmentGlow = this.add.graphics().setDepth(24);
-      const bx = item.x - 28;
-      const by = item.y - 32;
+      const bx = item.x - 48;
+      const by = item.y - 53;
       this.treatmentGlow.lineStyle(3, 0xFFAA00, 0.8);
-      this.treatmentGlow.strokeRoundedRect(bx, by, 56, 78, 6);
+      this.treatmentGlow.strokeRoundedRect(bx, by, 96, 106, 12);
       this.tweens.add({
         targets: this.treatmentGlow,
         alpha: 0.4,
@@ -1175,6 +1216,30 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
+  drawDebugHitboxes() {
+    const g = this.add.graphics().setDepth(999);
+
+    this.children.list.forEach((obj) => {
+      if (!obj.input || !obj.input.hitArea) return;
+      const ha = obj.input.hitArea;
+      if (!(ha instanceof Phaser.Geom.Rectangle)) return;
+
+      if (obj instanceof Phaser.GameObjects.Image) {
+        // Image hitAreas are in frame-space (0,0 = top-left of texture)
+        const ox = obj.x - obj.displayWidth * obj.originX;
+        const oy = obj.y - obj.displayHeight * obj.originY;
+        const sx = obj.displayWidth / obj.width;
+        const sy = obj.displayHeight / obj.height;
+        g.lineStyle(1, 0x00ff00, 0.7);
+        g.strokeRect(ox + ha.x * sx, oy + ha.y * sy, ha.width * sx, ha.height * sy);
+      } else if (obj instanceof Phaser.GameObjects.Container) {
+        // Container hitAreas use centered coordinates
+        g.lineStyle(1, 0x00ffff, 0.7);
+        g.strokeRect(obj.x + ha.x, obj.y + ha.y, ha.width, ha.height);
+      }
+    });
+  }
+
   pickupItem(binItemContainer) {
     const key = binItemContainer.getData('ingredientKey');
     const binX = binItemContainer.getData('binX');
@@ -1210,7 +1275,9 @@ export class GameScene extends Phaser.Scene {
     const c = this.add.container(x, y).setDepth(100);
     c.setSize(130, 56);
 
-    const img = this.add.image(0, 0, key).setOrigin(0.5);
+    // Sauces use _bottle textures since no standalone sauce texture exists
+    const textureKey = key.includes('sauce') ? key + '_bottle' : key;
+    const img = this.add.image(0, 0, textureKey).setOrigin(0.5);
     // Adjust scale for held view
     if (key.includes('meat') || key.includes('cheese')) img.setScale(0.65);
     else if (key.includes('top')) img.setScale(0.7);
@@ -1396,7 +1463,7 @@ export class GameScene extends Phaser.Scene {
       return out;
     };
 
-    const breads = ['bread_white', 'bread_wheat'];
+    const breads = ['bread_white', 'bread_wheat', 'bread_sourdough'];
     const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon'];
     const cheeses = ['cheese_american', 'cheese_swiss'];
     const toppings = ['top_lettuce', 'top_tomato', 'top_onion'];
@@ -1544,16 +1611,10 @@ export class GameScene extends Phaser.Scene {
 
     // Scaling on tray - dynamic based on footer and type
     if (cat === 'bread') {
-      const isFooterBread = tray.isFooter;
-      // If footer, stretch texture significantly. 
-      // 0.35 is good for 128px bread on normal tray.
-      // Footer tray is longer? Actually tray.svg is 200px wide.
-      // We need bread to cover the whole sub.
-      // Let's stretch X more for footer.
-      if (isFooterBread) {
-        topSprite.setScale(0.65, 0.35); // Double length-ish
+      if (tray.isFooter) {
+        topSprite.setScale(0.65, 0.2);
       } else {
-        topSprite.setScale(0.35);
+        topSprite.setScale(0.35, 0.2);
       }
     }
     else if (cat === 'meat' || cat === 'cheese') {
@@ -1614,22 +1675,6 @@ export class GameScene extends Phaser.Scene {
       ],
     });
 
-    // Phase 4 — Chef press: crush stack layers down significantly
-    const layerCount = tray.stackLayers.length;
-    tray.stackLayers.forEach((layer, i) => {
-      // Each layer gets squished vertically and pushed toward the tray base
-      // Layers higher in the stack compress more (ratio based on position)
-      const pressRatio = 0.55 + 0.15 * (i / Math.max(layerCount - 1, 1));
-      const pushDown = (layerCount - i) * 3;
-      this.tweens.add({
-        targets: layer,
-        scaleY: layer.scaleY * pressRatio,
-        y: layer.y + pushDown,
-        duration: 500,
-        ease: 'Bounce.easeOut',
-        delay: 150 + i * 25,
-      });
-    });
   }
 
   flashTray(tray, color) {

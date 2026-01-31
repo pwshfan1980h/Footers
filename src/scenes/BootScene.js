@@ -12,11 +12,12 @@ export class BootScene extends Phaser.Scene {
 
     this.load.svg('bread_white', 'assets/bread_white.svg', { width: 128, height: 128 });
     this.load.svg('bread_wheat', 'assets/bread_wheat.svg', { width: 128, height: 128 });
+    this.load.svg('bread_sourdough', 'assets/bread_sourdough.svg', { width: 128, height: 128 });
 
     // Loaves (Counter objects)
     this.load.svg('loaf_white', 'assets/loaf_white.svg', { width: 200, height: 100 });
     this.load.svg('loaf_wheat', 'assets/loaf_wheat.svg', { width: 200, height: 100 });
-    this.load.svg('loaf_sourdough', 'assets/loaf_sourdough.svg', { width: 140, height: 80 });
+    this.load.svg('loaf_sourdough', 'assets/loaf_sourdough.svg', { width: 200, height: 100 });
 
     // Cheese Stacks
     this.load.svg('cheese_stack_american', 'assets/cheese_stack_american.svg', { width: 128, height: 128 });
