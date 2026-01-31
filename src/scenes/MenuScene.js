@@ -51,16 +51,16 @@ export class MenuScene extends Phaser.Scene {
 
     // --- Main title: ORDER UP! ---
     const titleShadow = this.add.text(514, 137, 'FOOTERS', {
-      fontSize: '78px', color: '#000000', fontFamily: 'Arial Black, Arial', fontStyle: 'bold',
+      fontSize: '78px', color: '#000000', fontFamily: 'Bungee, Arial Black, Arial',
     }).setOrigin(0.5).setAlpha(0.3);
 
     const title = this.add.text(512, 135, 'FOOTERS', {
-      fontSize: '78px', color: '#FF6B35', fontFamily: 'Arial Black, Arial', fontStyle: 'bold',
+      fontSize: '78px', color: '#FF6B35', fontFamily: 'Bungee, Arial Black, Arial',
     }).setOrigin(0.5);
 
     // Warm glow on title text
     const titleGlow = this.add.text(512, 135, 'FOOTERS', {
-      fontSize: '78px', color: '#FFD700', fontFamily: 'Arial Black, Arial', fontStyle: 'bold',
+      fontSize: '78px', color: '#FFD700', fontFamily: 'Bungee, Arial Black, Arial',
     }).setOrigin(0.5).setAlpha(0);
 
     // Pulsing glow on title
@@ -126,7 +126,7 @@ export class MenuScene extends Phaser.Scene {
       .setInteractive({ useHandCursor: true }).setAlpha(0.001);
 
     const btnText = this.add.text(btnX, btnY, 'START SHIFT', {
-      fontSize: '28px', color: '#FFFFFF', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '28px', color: '#FFFFFF', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
     // Button hover/press effects

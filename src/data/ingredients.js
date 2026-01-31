@@ -20,21 +20,6 @@ export const BIN_LAYOUT = [
   ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon'],
 ];
 
-// Bin color theming by ingredient key
-export const BIN_COLORS = {
-  bread_white: { fill: 0x5A4A32, border: 0x7A6A52 },
-  bread_wheat: { fill: 0x5A4A32, border: 0x7A6A52 },
-  meat_ham: { fill: 0x5C3A1E, border: 0x7A5230 },
-  meat_turkey: { fill: 0x5C3A1E, border: 0x7A5230 },
-  meat_roastbeef: { fill: 0x5C3A1E, border: 0x7A5230 },
-  meat_bacon: { fill: 0x5C3A1E, border: 0x7A5230 },
-  cheese_american: { fill: 0x4A4432, border: 0x6A6452 },
-  cheese_swiss: { fill: 0x4A4432, border: 0x6A6452 },
-  top_lettuce: { fill: 0x2A5A2A, border: 0x3A7A3A },
-  top_tomato: { fill: 0x2A5A2A, border: 0x3A7A3A },
-  top_onion: { fill: 0x2A5A2A, border: 0x3A7A3A },
-};
-
 // Treatments that can be applied to sandwiches
 export const TREATMENTS = {
   toasted: { name: 'Toasted', label: '#FFB040', description: 'Toast the sandwich' },

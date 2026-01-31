@@ -154,6 +154,13 @@ class SoundManager {
     this._osc('sawtooth', 120, t, 0.25, 0.15);
   }
 
+  cancelSound() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._osc('sine', 500, t, 0.08, 0.12);
+    this._osc('sine', 350, t + 0.06, 0.1, 0.1);
+  }
+
   fanfare() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

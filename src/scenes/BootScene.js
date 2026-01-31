@@ -23,8 +23,7 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('cheese_stack_american', 'assets/cheese_stack_american.svg', { width: 128, height: 128 });
     this.load.svg('cheese_stack_swiss', 'assets/cheese_stack_swiss.svg', { width: 128, height: 128 });
 
-    // Veggie Bowl
-    this.load.svg('bowl_veggie', 'assets/bowl_veggie.svg', { width: 128, height: 80 });
+    // Veggie Bowl Contents
     this.load.svg('bowl_content_lettuce', 'assets/bowl_content_lettuce.svg', { width: 100, height: 60 });
     this.load.svg('bowl_content_tomato', 'assets/bowl_content_tomato.svg', { width: 100, height: 60 });
     this.load.svg('bowl_content_onion', 'assets/bowl_content_onion.svg', { width: 100, height: 60 });
@@ -54,6 +53,18 @@ export class BootScene extends Phaser.Scene {
   }
 
   create() {
-    this.scene.start('Menu');
+    // Preload Google Fonts so they're ready before any text renders
+    Promise.all([
+      document.fonts.load('16px "Bungee"'),
+      document.fonts.load('16px "Caveat"'),
+      document.fonts.load('16px "Permanent Marker"'),
+      document.fonts.load('16px "Nothing You Could Do"'),
+      document.fonts.load('16px "Grape Nuts"'),
+    ]).then(() => {
+      this.scene.start('Menu');
+    }).catch(() => {
+      // If font loading fails, proceed anyway with fallbacks
+      this.scene.start('Menu');
+    });
   }
 }

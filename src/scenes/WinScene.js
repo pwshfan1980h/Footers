@@ -15,11 +15,11 @@ export class WinScene extends Phaser.Scene {
     this.add.rectangle(512, 384, 1024, 768, 0x0a1a2e);
 
     this.add.text(512, 100, 'EMPLOYEE OF', {
-      fontSize: '40px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '40px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
     this.add.text(512, 155, 'THE WEEK!', {
-      fontSize: '56px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '56px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
     this.add.text(512, 250, 'You survived the whole week!', {
@@ -27,7 +27,7 @@ export class WinScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     this.add.text(512, 320, `Final Score: ${this.totalScore}`, {
-      fontSize: '36px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '36px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
     // Rating
@@ -44,7 +44,7 @@ export class WinScene extends Phaser.Scene {
     const btn = this.add.rectangle(512, 500, 260, 64, 0x4a9e4a)
       .setInteractive({ useHandCursor: true });
     this.add.text(512, 500, 'PLAY AGAIN', {
-      fontSize: '26px', color: '#fff', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '26px', color: '#fff', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
     btn.on('pointerover', () => btn.setFillStyle(0x5cb85c));

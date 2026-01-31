@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { INGREDIENTS, BIN_LAYOUT, BIN_COLORS, TREATMENTS, DAY_CONFIG } from '../data/ingredients.js';
+import { INGREDIENTS, BIN_LAYOUT, TREATMENTS, DAY_CONFIG } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 import { DEBUG } from '../config.js';
 
@@ -23,41 +23,46 @@ export class GameScene extends Phaser.Scene {
   create() {
     const cfg = DAY_CONFIG[this.day];
 
-    // --- state ---
+    // --- layout constants ---
+    this.BELT_Y = 400;
+    this.BELT_TOP = 435;
+    this.SPEED_BONUS_X = 300;
+    this.LAND_Y = 385;
+    this.COMPLETED_SPEED_MULT = 2;
+    this.COMPLETED_FAST_MULT = 6;
+
+    // --- scoring ---
     this.dayScore = 0;
     this.strikes = 0;
     this.maxStrikes = 3;
+    this.gameMoney = 0;
+
+    // --- orders ---
     this.trays = [];
     this.tickets = [];
     this.totalOrders = cfg.orders;
     this.ordersSpawned = 0;
     this.ordersCompleted = 0;
     this.ordersMissed = 0;
-    this.conveyorSpeed = cfg.speed;
-    this.spawnInterval = cfg.spawnInterval;
-    this.isPaused = false;
-    this.beltOffset = 0;
     this.orderNumber = 0;
-    this.finishLineX = 80;
 
-    // Sequential spawn (first 3 orders one at a time)
+    // --- conveyor ---
+    this.conveyorSpeed = cfg.speed;
+    this.beltOffset = 0;
+    this.finishLineX = 80;
+    this.isPaused = false;
+
+    // --- spawning ---
+    this.spawnInterval = cfg.spawnInterval;
     this.waitingForNext = true;
     this.sequentialDelay = 0;
     this.spawnTimer = 0;
-
-    // Store State
     this.isStoreOpen = false;
-    this.gameMoney = 0; // Total money earned
+    this._dayEnding = false;
 
-    // Click-to-place state
+    // --- interaction ---
     this.heldItem = null;
     this._justPickedUp = false;
-    this.binData = {};
-
-    // Treatment state
-    this.activeTreatment = null;
-    this._justActivatedTreatment = false;
-    this.treatmentGlow = null;
     this.treatmentItems = {};
 
     // Space bar for speed boost
@@ -136,25 +141,29 @@ export class GameScene extends Phaser.Scene {
      WALL (kitchen backsplash)
      ========================================= */
   createWall() {
-    // Tiled wall texture
+    // Tiled wall texture — extends above HUD to give signs a backdrop
     this.add.tileSprite(512, 25, 1024, 150, 'wall_texture').setDepth(0).setAlpha(0.8);
     // Shelf/divider
     this.add.rectangle(512, 50, 1024, 2, 0x383840).setDepth(1);
 
-    // Wall Decor
+    // Wall Decor — sits between HUD and ticket bar
     this.createWallDecor();
   }
 
   createWallDecor() {
-    // Footers Sign (Center-ish, slightly left maybe?)
-    const sign = this.add.image(350, 90, 'sign_footers').setDepth(0.5);
-    sign.setAngle(-2); // Jaunty tilt
-    sign.setScale(0.8);
+    // Signs sit on the wall above the ticket bar, behind the HUD text (depth 5)
+    // but above the HUD background strip (depth 4). They poke up from behind
+    // the ticket bar area so the full art is visible.
 
-    // 86 List (Right side)
-    const list = this.add.image(800, 110, 'sign_86_list').setDepth(0.5);
-    list.setAngle(1.5); // Taped up hastily
-    list.setScale(0.7);
+    // Footers Sign — left side of wall
+    const sign = this.add.image(170, 28, 'sign_footers').setDepth(4.5);
+    sign.setAngle(-2);
+    sign.setScale(0.38);
+
+    // 86 List — right side of wall, slightly taller so smiley face shows
+    const list = this.add.image(880, 50, 'sign_86_list').setDepth(35.5);
+    list.setAngle(1.5);
+    list.setScale(0.35);
   }
 
   /* =========================================
@@ -166,12 +175,12 @@ export class GameScene extends Phaser.Scene {
 
     this.dayText = this.add.text(12, 15,
       `Day ${this.day}: ${cfg.name}`, {
-      fontSize: '16px', color: '#ddd', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '16px', color: '#ddd', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
     this.scoreText = this.add.text(260, 15,
       `Score: ${this.totalScore}`, {
-      fontSize: '16px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '16px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
     this.ordersText = this.add.text(700, 17,
@@ -181,7 +190,7 @@ export class GameScene extends Phaser.Scene {
 
     // Money Display
     this.moneyText = this.add.text(450, 15, '$0.00', {
-      fontSize: '16px', color: '#88ff88', fontFamily: 'Arial', fontStyle: 'bold'
+      fontSize: '16px', color: '#88ff88', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
     // Colored strike indicators
@@ -230,19 +239,34 @@ export class GameScene extends Phaser.Scene {
     btn.add(bg);
 
     const txt = this.add.text(0, 0, 'OPEN FOR BUSINESS', {
-      fontSize: '18px', color: '#fff', fontStyle: 'bold', fontFamily: 'Arial'
+      fontSize: '18px', color: '#fff', fontFamily: 'Bungee, Arial'
     }).setOrigin(0.5);
     btn.add(txt);
 
     btn.setSize(200, 60);
     btn.setInteractive(new Phaser.Geom.Rectangle(-100, -30, 200, 60), Phaser.Geom.Rectangle.Contains);
 
+    btn.on('pointerover', () => {
+      bg.clear();
+      bg.fillStyle(0x55cc55, 1);
+      bg.fillRoundedRect(-100, -30, 200, 60, 16);
+      bg.lineStyle(4, 0xffffff, 1);
+      bg.strokeRoundedRect(-100, -30, 200, 60, 16);
+    });
+    btn.on('pointerout', () => {
+      bg.clear();
+      bg.fillStyle(0x44aa44, 1);
+      bg.fillRoundedRect(-100, -30, 200, 60, 16);
+      bg.lineStyle(4, 0xffffff, 1);
+      bg.strokeRoundedRect(-100, -30, 200, 60, 16);
+    });
     btn.on('pointerdown', () => {
       this.isStoreOpen = true;
       this.tweens.add({
         targets: btn, scale: 1.1, alpha: 0, duration: 200,
         onComplete: () => btn.destroy()
       });
+      soundManager.init();
       soundManager.ding();
     });
 
@@ -266,7 +290,7 @@ export class GameScene extends Phaser.Scene {
     box.strokeRoundedRect(312, 264, 400, 240, 12);
 
     const title = this.add.text(512, 294, 'HOW TO PLAY', {
-      fontSize: '20px', color: '#ffd700', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '20px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5).setDepth(501);
 
     const lines = [
@@ -289,7 +313,7 @@ export class GameScene extends Phaser.Scene {
     btnBg.strokeRoundedRect(462, 459, 100, 36, 8);
 
     const btnTxt = this.add.text(512, 477, 'GOT IT', {
-      fontSize: '16px', color: '#fff', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '16px', color: '#fff', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5).setDepth(501);
 
     // Click anywhere to dismiss
@@ -307,12 +331,12 @@ export class GameScene extends Phaser.Scene {
      TICKET BAR
      ========================================= */
   createTicketBar() {
-    this.add.rectangle(512, 95, 1024, 88, 0x383840).setDepth(8);
-    this.add.rectangle(512, 52, 1024, 2, 0x505058).setDepth(9);
-    this.add.rectangle(512, 138, 1024, 2, 0x505058).setDepth(9);
+    this.add.rectangle(512, 95, 1024, 88, 0x383840).setDepth(35);
+    this.add.rectangle(512, 52, 1024, 2, 0x505058).setDepth(35);
+    this.add.rectangle(512, 138, 1024, 2, 0x505058).setDepth(35);
 
     // 3D bottom lip/shelf edge for ticket bar
-    const ticketLip = this.add.graphics().setDepth(9);
+    const ticketLip = this.add.graphics().setDepth(35);
     ticketLip.fillStyle(0x303038, 1);
     ticketLip.fillRect(0, 139, 1024, 4);
     ticketLip.fillStyle(0x505058, 1);
@@ -326,22 +350,27 @@ export class GameScene extends Phaser.Scene {
 
     this.add.text(8, 55, 'ORDERS:', {
       fontSize: '10px', color: '#777', fontFamily: 'Arial', fontStyle: 'bold',
-    }).setDepth(10);
+    }).setDepth(36);
 
-    this.ticketContainer = this.add.container(0, 0).setDepth(10);
+    this.ticketContainer = this.add.container(0, 0).setDepth(36);
   }
 
   addTicket(order, orderNum) {
-    const cardW = 110;
+    const handFonts = ['Caveat, cursive', 'Permanent Marker, cursive', 'Nothing You Could Do, cursive', 'Grape Nuts, cursive'];
+    const ticketFont = handFonts[Math.floor(Math.random() * handFonts.length)];
+    const cardW = 140;
+    const lineH = 13;
     const ingLines = order.ingredients.length;
     const treatLines = order.treatments ? order.treatments.length : 0;
-    const footerLine = order.isFooter ? 10 : 0;
-    const contentH = 18 + footerLine + ingLines * 9 + (treatLines > 0 ? 8 + treatLines * 9 : 0);
-    const cardH = Math.max(80, contentH + 5);
-    // Determine target position on bar
-    const barGap = 5;
-    const targetX = 65 + (orderNum - 1) * (cardW + barGap);
+    const footerLine = order.isFooter ? 14 : 0;
+    const contentH = 22 + footerLine + ingLines * lineH + (treatLines > 0 ? 10 + treatLines * lineH : 0);
+    const cardH = Math.max(90, contentH + 8);
+    // Overlap cards: each card shifts only partially so they stack
+    const overlapStep = 100;
+    const targetX = 65 + (orderNum - 1) * overlapStep;
     const targetY = 55;
+    // Later cards render on top of earlier ones
+    const cardDepth = 36 + orderNum;
 
     // Spawn large at center first
     const spawnX = 512;
@@ -352,30 +381,30 @@ export class GameScene extends Phaser.Scene {
     // Background — footer tickets have a distinct tint
     const bg = this.add.graphics();
     bg.fillStyle(order.isFooter ? 0xFFEEBB : 0xFFFFC0, 1);
-    bg.fillRoundedRect(0, 0, cardW, cardH, 4);
+    bg.fillRoundedRect(0, 0, cardW, cardH, 5);
     bg.lineStyle(2, order.isFooter ? 0xDDAA55 : 0xDDCC80, 1);
-    bg.strokeRoundedRect(0, 0, cardW, cardH, 4);
+    bg.strokeRoundedRect(0, 0, cardW, cardH, 5);
     card.add(bg);
 
     // Order number
-    const numText = this.add.text(cardW / 2, 3, `#${orderNum}`, {
-      fontSize: '12px', color: '#333', fontFamily: 'Arial', fontStyle: 'bold',
+    const numText = this.add.text(cardW / 2, 4, `#${orderNum}`, {
+      fontSize: '14px', color: '#333', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5, 0);
     card.add(numText);
 
     // Footer label
-    let yOff = 16;
+    let yOff = 20;
     if (order.isFooter) {
-      const footerLabel = this.add.text(cardW / 2, 15, '\u2b50 FOOTER', {
-        fontSize: '8px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
+      const footerLabel = this.add.text(cardW / 2, 19, '\u2b50 FOOTER', {
+        fontSize: '10px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
       }).setOrigin(0.5, 0);
       card.add(footerLabel);
-      yOff = 26;
+      yOff = 32;
     }
 
     // Price Tag
-    const priceTxt = this.add.text(cardW - 6, 4, `$${order.totalPrice.toFixed(2)}`, {
-      fontSize: '10px', color: '#006600', fontFamily: 'Arial', fontStyle: 'bold'
+    const priceTxt = this.add.text(cardW - 6, 5, `$${order.totalPrice.toFixed(2)}`, {
+      fontSize: '11px', color: '#006600', fontFamily: 'Arial', fontStyle: 'bold'
     }).setOrigin(1, 0);
     card.add(priceTxt);
 
@@ -392,11 +421,10 @@ export class GameScene extends Phaser.Scene {
       const isTopBread = (i === order.ingredients.length - 1 && key.startsWith('bread_'));
       const displayName = isTopBread ? `${ing.name} \u2191` : ing.name;
       const isNext = (i === 0);
-      const txt = this.add.text(14, yOff + 2 + i * 9, displayName, {
-        fontSize: '8px',
+      const txt = this.add.text(10, yOff + 3 + i * lineH, displayName, {
+        fontSize: '13px',
         color: isNext ? '#111' : '#999',
-        fontFamily: 'Arial',
-        fontStyle: isNext ? 'bold' : 'normal',
+        fontFamily: ticketFont,
       });
       card.add(txt);
       entries.push({ key, text: txt, done: false });
@@ -405,7 +433,7 @@ export class GameScene extends Phaser.Scene {
     // Treatment requirements (shown in red below ingredients)
     const treatEntries = [];
     if (order.treatments && order.treatments.length > 0) {
-      const treatStartY = yOff + 2 + ingLines * 9 + 2;
+      const treatStartY = yOff + 3 + ingLines * lineH + 3;
       const div2 = this.add.graphics();
       div2.lineStyle(1, 0xCC8800, 0.5);
       div2.lineBetween(4, treatStartY, cardW - 4, treatStartY);
@@ -413,11 +441,10 @@ export class GameScene extends Phaser.Scene {
 
       order.treatments.forEach((tKey, i) => {
         const treat = TREATMENTS[tKey];
-        const txt = this.add.text(14, treatStartY + 3 + i * 9, `[${treat.name}]`, {
-          fontSize: '8px',
+        const txt = this.add.text(10, treatStartY + 4 + i * lineH, `[${treat.name}]`, {
+          fontSize: '13px',
           color: '#cc0000',
-          fontFamily: 'Arial',
-          fontStyle: 'bold',
+          fontFamily: ticketFont,
         });
         card.add(txt);
         treatEntries.push({ key: tKey, text: txt, done: false });
@@ -426,10 +453,15 @@ export class GameScene extends Phaser.Scene {
 
     this.ticketContainer.add(card);
 
-    const ticket = { card, bg, orderNum, entries, treatEntries, cardH, status: 'active' };
+    const ticket = { card, bg, orderNum, entries, treatEntries, cardH, cardW, status: 'active' };
     this.tickets.push(ticket);
 
-    // Pop-in Animation
+    this.animateTicketPopIn(card, targetX, targetY, cardW, cardDepth);
+
+    return ticket;
+  }
+
+  animateTicketPopIn(card, targetX, targetY, cardW, cardDepth) {
     soundManager.waiterGibberish();
 
     card.setScale(2.5);
@@ -438,18 +470,17 @@ export class GameScene extends Phaser.Scene {
     this.tweens.add({
       targets: card,
       alpha: 1,
-      scale: 2.0, // briefly stay huge
+      scale: 2.0,
       duration: 400,
       ease: 'Back.easeOut',
       onComplete: () => {
-        // Then shrink and move to bar
         this.time.delayedCall(600, () => {
           this.tweens.add({
             targets: card,
             x: targetX,
             y: targetY,
             scale: 1,
-            depth: 10,
+            depth: cardDepth || 36,
             duration: 500,
             ease: 'Power2'
           });
@@ -457,17 +488,14 @@ export class GameScene extends Phaser.Scene {
       }
     });
 
-    // Auto-scroll if needed (calculated for target position)
     const rightEdge = targetX + cardW + 10;
     if (rightEdge > 1020) {
       this.tweens.add({
         targets: this.ticketContainer, x: -(rightEdge - 1020),
         duration: 300, ease: 'Power2',
-        delay: 1000 // wait for animation
+        delay: 1000
       });
     }
-
-    return ticket;
   }
 
   updateTicketIngredient(orderNum, ingredientKey) {
@@ -516,13 +544,14 @@ export class GameScene extends Phaser.Scene {
     const ticket = this.tickets.find((t) => t.orderNum === orderNum);
     if (!ticket) return;
     ticket.status = 'completed';
-    const h = ticket.cardH || 80;
+    const w = ticket.cardW || 140;
+    const h = ticket.cardH || 90;
     const overlay = this.add.graphics();
     overlay.fillStyle(0x00ff00, 0.15);
-    overlay.fillRoundedRect(0, 0, 110, h, 4);
+    overlay.fillRoundedRect(0, 0, w, h, 5);
     ticket.card.add(overlay);
-    const check = this.add.text(55, h / 2, '\u2713', {
-      fontSize: '32px', color: '#0a0', fontFamily: 'Arial', fontStyle: 'bold',
+    const check = this.add.text(w / 2, h / 2, '\u2713', {
+      fontSize: '36px', color: '#0a0', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5).setAlpha(0.6);
     ticket.card.add(check);
   }
@@ -531,13 +560,14 @@ export class GameScene extends Phaser.Scene {
     const ticket = this.tickets.find((t) => t.orderNum === orderNum);
     if (!ticket) return;
     ticket.status = 'missed';
-    const h = ticket.cardH || 80;
+    const w = ticket.cardW || 140;
+    const h = ticket.cardH || 90;
     const overlay = this.add.graphics();
     overlay.fillStyle(0xff0000, 0.2);
-    overlay.fillRoundedRect(0, 0, 110, h, 4);
+    overlay.fillRoundedRect(0, 0, w, h, 5);
     ticket.card.add(overlay);
-    const xMark = this.add.text(55, h / 2, '\u2717', {
-      fontSize: '32px', color: '#f33', fontFamily: 'Arial', fontStyle: 'bold',
+    const xMark = this.add.text(w / 2, h / 2, '\u2717', {
+      fontSize: '36px', color: '#f33', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5).setAlpha(0.6);
     ticket.card.add(xMark);
   }
@@ -652,13 +682,12 @@ export class GameScene extends Phaser.Scene {
      MEAT PILES (Left Side)
      ========================================= */
   createBins() {
-    // We keep the function name for compatibility, but it creates Piles now.
-    const keys = BIN_LAYOUT[0]; // ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon']
+    const keys = BIN_LAYOUT[0];
 
     const startX = 140;
-    const startY = 480; // Start higher to fit nicely
+    const startY = 480;
     const spacingX = 140;
-    const spacingY = 100; // Tighter vertical spacing
+    const spacingY = 100;
 
     keys.forEach((key, i) => {
       const row = Math.floor(i / 2);
@@ -666,20 +695,14 @@ export class GameScene extends Phaser.Scene {
       const x = startX + col * spacingX;
       const y = startY + row * spacingY;
 
-      // Pile visual
-      // Map key 'meat_ham' -> 'meat_pile_ham'
       const pileKey = key.replace('meat_', 'meat_pile_');
       const pile = this.add.image(x, y, pileKey).setDepth(20);
 
       pile.setInteractive({ useHandCursor: true });
-      pile.on('pointerdown', (pointer) => {
-        if (this.isPaused || this.heldItem || this.activeTreatment) return;
-        // Logic to pickup. Reuse spawnBinItem logic but invisible wrapper?
-        // Actually we can just call pickupItem directly if we mock the container logic 
-        // OR easier: just spawn invisible click targets over the piles?
-        // Let's create a "bin-like" container for logic consistency but visual is the pile.
-
-        // Actually, let's reuse createBin logic but simpler visually
+      pile.on('pointerover', () => pile.setTint(0xdddddd));
+      pile.on('pointerout', () => pile.clearTint());
+      pile.on('pointerdown', () => {
+        if (this.isPaused || this.heldItem) return;
         this.createMeatPileLogic(key, x, y, pile);
       });
 
@@ -692,12 +715,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   createMeatPileLogic(key, x, y, visual) {
-    // Mock the interaction by triggering a pickup immediately on interaction
-    // The `createBins` above sets interaction on the `visual` pile image.
-    // So this method is actually redundant if we put the handler in the loop.
-    // Let's refactor:
-    // The `spawnBinItem` logic spawns items *in* the bin.
-    // Now we just want to pick up "from" the pile.
     soundManager.init();
     const pointer = this.input.activePointer;
     const heldVisual = this.createHeldVisual(key, pointer.x, pointer.y);
@@ -730,8 +747,10 @@ export class GameScene extends Phaser.Scene {
       const y = startY + i * spacingY;
       const loaf = this.add.image(startX, y, b.asset).setDepth(20);
       loaf.setInteractive({ useHandCursor: true });
+      loaf.on('pointerover', () => loaf.setTint(0xdddddd));
+      loaf.on('pointerout', () => loaf.clearTint());
       loaf.on('pointerdown', (pointer) => {
-        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        if (this.isPaused || this.heldItem) return;
         this.clickLoaf(b.key, pointer);
       });
 
@@ -777,9 +796,6 @@ export class GameScene extends Phaser.Scene {
   /* =========================================
      CHEESE STACKS - CENTER RIGHT
      ========================================= */
-  /* =========================================
-     CHEESE STACKS - CENTER RIGHT
-     ========================================= */
   createCheeseStacks() {
     const baseX = 720;
     const spacingY = 110;
@@ -799,8 +815,10 @@ export class GameScene extends Phaser.Scene {
         hitAreaCallback: Phaser.Geom.Rectangle.Contains,
         useHandCursor: true,
       });
+      stack.on('pointerover', () => stack.setTint(0xdddddd));
+      stack.on('pointerout', () => stack.clearTint());
       stack.on('pointerdown', (pointer) => {
-        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        if (this.isPaused || this.heldItem) return;
         this.clickCheeseStack(c.key, pointer);
       });
 
@@ -835,8 +853,10 @@ export class GameScene extends Phaser.Scene {
       const y = startY + i * spacingY;
       const vegImg = this.add.image(baseX, y, v.asset).setDepth(20).setScale(0.8);
       vegImg.setInteractive({ useHandCursor: true });
+      vegImg.on('pointerover', () => vegImg.setTint(0xdddddd));
+      vegImg.on('pointerout', () => vegImg.clearTint());
       vegImg.on('pointerdown', (pointer) => {
-        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        if (this.isPaused || this.heldItem) return;
         this.clickVeggieBowl(v.key, pointer);
       });
 
@@ -857,8 +877,10 @@ export class GameScene extends Phaser.Scene {
     const assetKey = key === 'sauce_mayo' ? 'sauce_mayo_bottle' : 'sauce_mustard_bottle';
     const bottle = this.add.image(x, y, assetKey).setDepth(30).setScale(0.8);
     bottle.setInteractive({ useHandCursor: true });
+    bottle.on('pointerover', () => bottle.setTint(0xdddddd));
+    bottle.on('pointerout', () => bottle.clearTint());
     bottle.on('pointerdown', () => {
-      if (this.isPaused || this.heldItem || this.activeTreatment) return;
+      if (this.isPaused || this.heldItem) return;
       soundManager.init();
       this.pickupSauce(key);
     });
@@ -895,9 +917,7 @@ export class GameScene extends Phaser.Scene {
     bg.strokeRoundedRect(-hw, -hh, hw * 2, hh * 2, 10);
     c.add(bg);
 
-    // Art (scaled up ~1.8x from original)
     const g = this.add.graphics();
-    const s = 1.8;
 
     if (tKey === 'toasted') {
       g.fillStyle(0x888888, 1);
@@ -947,53 +967,58 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     c.add(label);
 
+    c.on('pointerover', () => {
+      this.tweens.add({ targets: c, scaleX: 1.05, scaleY: 1.05, duration: 100, ease: 'Sine.easeOut' });
+    });
+    c.on('pointerout', () => {
+      this.tweens.add({ targets: c, scaleX: 1.0, scaleY: 1.0, duration: 100, ease: 'Sine.easeOut' });
+    });
     c.on('pointerdown', () => {
       if (this.isPaused || this.heldItem) return;
       soundManager.init();
-      this.toggleTreatment(tKey);
+      this.pickupTreatment(tKey);
     });
 
     this.treatmentItems[tKey] = c;
   }
 
   /* =========================================
-     TREATMENT MODE
+     TREATMENT PICKUP (works like ingredients)
      ========================================= */
-  toggleTreatment(key) {
-    if (this.activeTreatment === key) {
-      this.deactivateTreatment();
-      return;
-    }
-    this.deactivateTreatment();
-    this.activeTreatment = key;
-    this._justActivatedTreatment = true;
+  pickupTreatment(tKey) {
+    const treat = TREATMENTS[tKey];
+    const pointer = this.input.activePointer;
 
-    const item = this.treatmentItems[key];
-    if (item) {
-      this.treatmentGlow = this.add.graphics().setDepth(24);
-      const bx = item.x - 48;
-      const by = item.y - 53;
-      this.treatmentGlow.lineStyle(3, 0xFFAA00, 0.8);
-      this.treatmentGlow.strokeRoundedRect(bx, by, 96, 106, 12);
-      this.tweens.add({
-        targets: this.treatmentGlow,
-        alpha: 0.4,
-        duration: 500,
-        yoyo: true,
-        repeat: -1,
-      });
-    }
+    // Create a held visual for the treatment
+    const c = this.add.container(pointer.x, pointer.y).setDepth(100);
+    c.setSize(80, 40);
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x333344, 0.9);
+    bg.fillRoundedRect(-40, -20, 80, 40, 8);
+    bg.lineStyle(2, 0xFFAA00, 1);
+    bg.strokeRoundedRect(-40, -20, 80, 40, 8);
+    c.add(bg);
+
+    const label = this.add.text(0, 0, treat.name, {
+      fontSize: '14px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(0.5);
+    c.add(label);
+
+    c.setAlpha(0.9);
+    c.setScale(0.4);
+    this.tweens.add({
+      targets: c, scaleX: 1, scaleY: 1,
+      duration: 120, ease: 'Back.easeOut',
+    });
+
+    this.heldItem = {
+      visual: c,
+      treatmentKey: tKey,
+    };
+    this._justPickedUp = true;
 
     soundManager.treatmentSound();
-  }
-
-  deactivateTreatment() {
-    this.activeTreatment = null;
-    if (this.treatmentGlow) {
-      this.tweens.killTweensOf(this.treatmentGlow);
-      this.treatmentGlow.destroy();
-      this.treatmentGlow = null;
-    }
   }
 
   applyTreatmentToTray(tray, treatmentKey) {
@@ -1072,72 +1097,6 @@ export class GameScene extends Phaser.Scene {
     tray.container.add(g);
   }
 
-  spawnBinItem(key, binX, binY, slotIndex) {
-    const ITEM_SCALE = 0.45;
-
-    const positions = [
-      { dx: -30, dy: -16 },
-      { dx: 2, dy: -18 },
-      { dx: 32, dy: -14 },
-      { dx: -22, dy: 4 },
-      { dx: 10, dy: 2 },
-      { dx: 35, dy: 6 },
-      { dx: -8, dy: 16 },
-      { dx: 24, dy: 18 },
-    ];
-
-    const slot = slotIndex !== undefined ? slotIndex % positions.length : 0;
-    const pos = positions[slot];
-
-    const rx = pos.dx + (Math.random() - 0.5) * 6;
-    const ry = pos.dy + (Math.random() - 0.5) * 4;
-    const rot = (Math.random() - 0.5) * 0.15;
-
-    const ix = binX + rx;
-    const iy = binY + ry;
-
-    const c = this.add.container(ix, iy).setDepth(25);
-    const scale = ITEM_SCALE * (key.includes('bread') ? 0.6 : 1.0);
-    c.setScale(scale);
-    c.setRotation(rot);
-    c.setSize(130, 56);
-    c.setInteractive(
-      new Phaser.Geom.Rectangle(-65, -28, 130, 56),
-      Phaser.Geom.Rectangle.Contains,
-    );
-
-    const img = this.add.image(0, 0, key);
-    // Adjust scale based on ingredient type for bin view
-    if (key.includes('meat') || key.includes('cheese')) img.setScale(0.5);
-    else if (key.includes('top')) img.setScale(0.8);
-    else if (key.includes('bread')) img.setScale(0.35);
-
-    c.add(img);
-
-    c.setData('ingredientKey', key);
-    c.setData('binX', binX);
-    c.setData('binY', binY);
-    c.setData('isBinItem', true);
-    c.setData('slotIndex', slot);
-
-    c.on('pointerdown', () => {
-      if (this.isPaused || this.heldItem || this.activeTreatment) return;
-      soundManager.init();
-      this.pickupItem(c);
-    });
-
-    if (this.binData[key]) {
-      this.binData[key].items.push(c);
-    }
-
-    return c;
-  }
-
-  /* =========================================
-     INGREDIENT VISUALS
-     ========================================= */
-  // Formerly drawBinIngredient - removed in favor of sprites
-
   /* =========================================
      CLICK TO PLACE (replaces drag & drop)
      ========================================= */
@@ -1145,21 +1104,6 @@ export class GameScene extends Phaser.Scene {
     this.trayHighlight = this.add.graphics().setDepth(9);
 
     this.input.on('pointermove', (pointer) => {
-      if (this.activeTreatment) {
-        this.trayHighlight.clear();
-        if (pointer.y < 435) {
-          const tray = this.findTrayAtX(pointer.x);
-          if (tray && !tray.completed && !tray.done && !tray.passedFinish) {
-            const hw = tray.isFooter ? 105 : 72;
-            this.trayHighlight.lineStyle(2, 0xFFAA00, 0.5);
-            this.trayHighlight.strokeRoundedRect(
-              tray.container.x - hw, 270, hw * 2, 155, 8,
-            );
-          }
-        }
-        return;
-      }
-
       if (!this.heldItem) {
         this.trayHighlight.clear();
         return;
@@ -1168,7 +1112,7 @@ export class GameScene extends Phaser.Scene {
       this.heldItem.visual.y = pointer.y;
 
       this.trayHighlight.clear();
-      if (pointer.y < 435) {
+      if (pointer.y < this.BELT_TOP) {
         const tray = this.findTrayAtX(pointer.x);
         if (tray && !tray.completed && !tray.done && !tray.passedFinish) {
           const hw = tray.isFooter ? 105 : 72;
@@ -1183,20 +1127,6 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointerdown', (pointer) => {
       if (this.isPaused) return;
 
-      if (this.activeTreatment) {
-        if (this._justActivatedTreatment) {
-          this._justActivatedTreatment = false;
-          return;
-        }
-        if (pointer.y < 435) {
-          const tray = this.findTrayAtX(pointer.x);
-          if (tray && !tray.completed && !tray.done && !tray.passedFinish) {
-            this.applyTreatmentToTray(tray, this.activeTreatment);
-          }
-        }
-        return;
-      }
-
       if (!this.heldItem) return;
 
       if (this._justPickedUp) {
@@ -1208,9 +1138,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.escKey.on('down', () => {
-      if (this.activeTreatment) {
-        this.deactivateTreatment();
-      } else if (this.heldItem) {
+      if (this.heldItem) {
         this.cancelHeldItem();
       }
     });
@@ -1236,36 +1164,6 @@ export class GameScene extends Phaser.Scene {
         // Container hitAreas use centered coordinates
         g.lineStyle(1, 0x00ffff, 0.7);
         g.strokeRect(obj.x + ha.x, obj.y + ha.y, ha.width, ha.height);
-      }
-    });
-  }
-
-  pickupItem(binItemContainer) {
-    const key = binItemContainer.getData('ingredientKey');
-    const binX = binItemContainer.getData('binX');
-    const binY = binItemContainer.getData('binY');
-
-    if (this.binData[key]) {
-      this.binData[key].items = this.binData[key].items.filter((i) => i !== binItemContainer);
-    }
-
-    binItemContainer.destroy();
-
-    const pointer = this.input.activePointer;
-    const visual = this.createHeldVisual(key, pointer.x, pointer.y);
-
-    this.heldItem = {
-      visual,
-      ingredientKey: key,
-      binX,
-      binY,
-    };
-    this._justPickedUp = true;
-
-    this.time.delayedCall(600, () => {
-      if (this.binData[key]) {
-        const slot = this.binData[key].items.length;
-        this.spawnBinItem(key, binX, binY, slot);
       }
     });
   }
@@ -1304,10 +1202,12 @@ export class GameScene extends Phaser.Scene {
   }
 
   placeHeldItem(pointer) {
-    const key = this.heldItem.ingredientKey;
     const obj = this.heldItem.visual;
     const tray = this.findTrayAtX(pointer.x);
-    const landY = 385;
+    const landY = this.LAND_Y;
+    const isTreatment = !!this.heldItem.treatmentKey;
+    const savedTreatmentKey = this.heldItem.treatmentKey;
+    const savedIngredientKey = this.heldItem.ingredientKey;
 
     if (tray && !tray.completed && !tray.done && !tray.passedFinish && pointer.y < landY + 40) {
       const fallDist = Math.max(0, landY - obj.y);
@@ -1324,15 +1224,33 @@ export class GameScene extends Phaser.Scene {
           }
         },
         onComplete: () => {
-          const result = this.tryPlace(tray, key);
-          if (result === 'valid') {
-            const ing = INGREDIENTS[key];
-            soundManager.plopCategory(ing.category);
-          } else if (result === 'wrong') {
-            soundManager.buzz();
-            this.dayScore = Math.max(0, this.dayScore - 25);
-            this.refreshHUD();
-            this.flashTray(tray, 0xff0000);
+          if (isTreatment) {
+            this.applyTreatmentToTray(tray, savedTreatmentKey);
+          } else {
+            const key = savedIngredientKey;
+            const result = this.tryPlace(tray, key);
+            if (result === 'valid') {
+              const ing = INGREDIENTS[key];
+              soundManager.plopCategory(ing.category);
+            } else if (result === 'wrong') {
+              soundManager.buzz();
+              this.dayScore = Math.max(0, this.dayScore - 25);
+              this.refreshHUD();
+              this.flashTray(tray, 0xff0000);
+
+              // Show what ingredient is expected
+              const expectedKey = tray.order.ingredients[tray.placed.length];
+              const expectedName = expectedKey ? INGREDIENTS[expectedKey].name : '?';
+              const needTxt = this.add.text(tray.container.x, tray.container.y - 60,
+                `Need ${expectedName}!\n-25`, {
+                fontSize: '16px', color: '#ff4444', fontFamily: 'Arial', fontStyle: 'bold',
+                align: 'center',
+              }).setOrigin(0.5).setDepth(100);
+              this.tweens.add({
+                targets: needTxt, y: needTxt.y - 40, alpha: 0, duration: 1200,
+                onComplete: () => needTxt.destroy(),
+              });
+            }
           }
           obj.destroy();
         },
@@ -1347,6 +1265,7 @@ export class GameScene extends Phaser.Scene {
 
   cancelHeldItem() {
     if (!this.heldItem) return;
+    soundManager.cancelSound();
     const obj = this.heldItem.visual;
 
     this.tweens.add({
@@ -1391,7 +1310,7 @@ export class GameScene extends Phaser.Scene {
     this.orderNumber++;
     const orderNum = this.orderNumber;
     const startX = order.isFooter ? 1200 : 1120;
-    const baseY = 400;
+    const baseY = this.BELT_Y;
 
     // Add ticket to the slider
     this.addTicket(order, orderNum);
@@ -1534,19 +1453,18 @@ export class GameScene extends Phaser.Scene {
       }
     }
 
-    // Calculate Dynamic Price
-    let totalPrice = 0;
-    // Base markup
-    totalPrice += isFooter ? 3.00 : 1.50;
-
-    list.forEach(key => {
-      const ing = INGREDIENTS[key];
-      totalPrice += (ing.price || 0.50);
-    });
-
-    treatments.forEach(() => totalPrice += 0.25);
-
+    const totalPrice = this.calculateOrderPrice(list, treatments, isFooter);
     return { ingredients: list, treatments, isFooter, totalPrice };
+  }
+
+  calculateOrderPrice(ingredients, treatments, isFooter) {
+    let price = isFooter ? 3.00 : 1.50;
+    ingredients.forEach(key => {
+      const ing = INGREDIENTS[key];
+      price += (ing.price || 0.50);
+    });
+    treatments.forEach(() => price += 0.25);
+    return price;
   }
 
   /* =========================================
@@ -1575,55 +1493,123 @@ export class GameScene extends Phaser.Scene {
      ========================================= */
   getLayerHeight(ingredientKey) {
     const cat = INGREDIENTS[ingredientKey].category;
-    if (cat === 'sauce') return 4;
-    if (ingredientKey === 'top_tomato' || ingredientKey === 'top_onion') return 5;
-    return 9;
+    if (cat === 'sauce') return 2;
+    if (cat === 'topping') return 4;
+    if (cat === 'cheese') return 4;
+    if (cat === 'meat') return 5;
+    return 6; // bread
   }
 
   addStackLayer(tray, ingredientKey) {
     const ing = INGREDIENTS[ingredientKey];
     const cat = ing.category;
 
-    // Stack logic
     const layerH = this.getLayerHeight(ingredientKey);
-    // Stack grows upwards (-y)
-    const ly = -20 - tray.stackHeight;
+    const ly = -2 - tray.stackHeight;
     tray.stackHeight += layerH;
 
-    // Add random slight offset for natural look
-    const rX = (Math.random() - 0.5) * 6;
-    const rY = (Math.random() - 0.5) * 4;
+    const rX = (Math.random() - 0.5) * 4;
+    const rY = (Math.random() - 0.5) * 2;
+    const w = tray.isFooter ? 80 : 55;
+    const hw = w / 2;
 
-    // Create sprite for the layer
-    // Note: 'sauce' might need special handling if we don't have a "splat" sprite
-    if (cat === 'sauce') {
-      const sauceG = this.add.graphics();
-      sauceG.fillStyle(ing.color, 0.9);
-      sauceG.fillCircle(rX, ly + rY, 14);
-      sauceG.lineStyle(2, ing.border || 0x888888, 0.5);
-      sauceG.strokeCircle(rX, ly + rY, 14);
-      tray.container.add(sauceG);
-      tray.stackLayers.push(sauceG);
-      return;
-    }
+    const g = this.add.graphics();
 
-    const topSprite = this.add.image(rX, ly + rY, ingredientKey);
-
-    // Scaling on tray - dynamic based on footer and type
     if (cat === 'bread') {
-      if (tray.isFooter) {
-        topSprite.setScale(0.65, 0.2);
+      // Bottom bread = flat base + dome top; top bread = dome
+      const isBottom = tray.stackLayers.length === 0;
+      g.fillStyle(ing.color, 1);
+      g.lineStyle(1.5, ing.border, 0.8);
+      if (isBottom) {
+        g.fillRoundedRect(rX - hw, ly + rY - 4, w, 10, 3);
+        g.strokeRoundedRect(rX - hw, ly + rY - 4, w, 10, 3);
       } else {
-        topSprite.setScale(0.35, 0.2);
+        // Top bread dome
+        g.fillRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
+        g.strokeRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
       }
+    } else if (cat === 'meat') {
+      // Folded deli meat — wavy oval
+      const mw = hw - 2;
+      g.fillStyle(ing.color, 0.95);
+      g.lineStyle(1, ing.border, 0.7);
+      g.fillEllipse(rX, ly + rY, mw * 2, 8);
+      g.strokeEllipse(rX, ly + rY, mw * 2, 8);
+      // Fold highlight
+      g.fillStyle(darkenColor(ing.color, 0.85), 0.4);
+      g.fillEllipse(rX + 4, ly + rY - 1, mw, 4);
+    } else if (cat === 'cheese') {
+      // Thin rectangle, slightly wider than meat, droopy edges
+      const cw = hw - 1;
+      g.fillStyle(ing.color, 1);
+      g.lineStyle(1, ing.border, 0.8);
+      g.fillRect(rX - cw, ly + rY - 2, cw * 2, 5);
+      g.strokeRect(rX - cw, ly + rY - 2, cw * 2, 5);
+      // Droopy edges
+      g.fillTriangle(rX - cw, ly + rY + 3, rX - cw - 3, ly + rY + 7, rX - cw + 5, ly + rY + 3);
+      g.fillTriangle(rX + cw, ly + rY + 3, rX + cw + 3, ly + rY + 7, rX + cw - 5, ly + rY + 3);
+      if (ingredientKey === 'cheese_swiss') {
+        // Swiss cheese holes
+        g.fillStyle(darkenColor(ing.color, 0.8), 0.6);
+        g.fillCircle(rX - 8, ly + rY, 2);
+        g.fillCircle(rX + 6, ly + rY + 1, 1.5);
+      }
+    } else if (ingredientKey === 'top_lettuce') {
+      // Wavy green leaf
+      g.fillStyle(ing.color, 0.9);
+      g.lineStyle(1, ing.border, 0.7);
+      g.beginPath();
+      g.moveTo(rX - hw + 4, ly + rY);
+      for (let i = 0; i <= 8; i++) {
+        const px = rX - hw + 4 + (i / 8) * (w - 8);
+        const py = ly + rY + Math.sin(i * 1.8) * 3;
+        g.lineTo(px, py - 3);
+      }
+      for (let i = 8; i >= 0; i--) {
+        const px = rX - hw + 4 + (i / 8) * (w - 8);
+        const py = ly + rY + Math.sin(i * 1.8 + 1) * 2;
+        g.lineTo(px, py + 3);
+      }
+      g.closePath();
+      g.fillPath();
+      g.strokePath();
+    } else if (ingredientKey === 'top_tomato') {
+      // Two-three tomato slices
+      g.fillStyle(ing.color, 0.9);
+      g.lineStyle(1, ing.border, 0.7);
+      const sliceW = 12;
+      for (let i = -1; i <= 1; i++) {
+        g.fillEllipse(rX + i * (sliceW + 2), ly + rY, sliceW, 6);
+        g.strokeEllipse(rX + i * (sliceW + 2), ly + rY, sliceW, 6);
+        // Seed pattern
+        g.fillStyle(0xFFAAAA, 0.5);
+        g.fillCircle(rX + i * (sliceW + 2), ly + rY, 1.5);
+        g.fillStyle(ing.color, 0.9);
+      }
+    } else if (ingredientKey === 'top_onion') {
+      // Onion rings
+      g.lineStyle(2, ing.border, 0.8);
+      g.strokeEllipse(rX - 10, ly + rY, 14, 6);
+      g.strokeEllipse(rX + 8, ly + rY, 16, 7);
+      g.fillStyle(ing.color, 0.5);
+      g.fillEllipse(rX - 10, ly + rY, 14, 6);
+      g.fillEllipse(rX + 8, ly + rY, 16, 7);
+    } else if (cat === 'sauce') {
+      // Zigzag drizzle across the width
+      g.lineStyle(2.5, ing.color, 0.9);
+      g.beginPath();
+      const steps = 7;
+      g.moveTo(rX - hw + 6, ly + rY);
+      for (let i = 1; i <= steps; i++) {
+        const px = rX - hw + 6 + (i / steps) * (w - 12);
+        const py = ly + rY + (i % 2 === 0 ? -3 : 3);
+        g.lineTo(px, py);
+      }
+      g.strokePath();
     }
-    else if (cat === 'meat' || cat === 'cheese') {
-      topSprite.setScale(tray.isFooter ? 0.6 : 0.5);
-    }
-    else if (cat === 'topping') topSprite.setScale(0.55);
 
-    tray.container.add(topSprite);
-    tray.stackLayers.push(topSprite);
+    tray.container.add(g);
+    tray.stackLayers.push(g);
   }
 
   checkTrayCompletion(tray) {
@@ -1638,43 +1624,69 @@ export class GameScene extends Phaser.Scene {
 
   completeTray(tray) {
     tray.completed = true;
+    tray.completedAtX = tray.container.x;
     this.flashTray(tray, 0x00ff00);
 
     const c = tray.container;
+    this.animateCompletionHop(c, c.y);
+    this.animateCompletionDance(c);
+    this.animateChefPress(c);
+  }
 
-    // Phase 1 — Pop up (0-150ms): celebratory bounce
+  animateCompletionHop(container, baseY) {
     this.tweens.add({
-      targets: c,
-      scaleX: 1.15,
-      scaleY: 1.15,
-      duration: 150,
-      ease: 'Back.easeOut',
+      targets: container, y: baseY - 18, scaleX: 0.9, scaleY: 1.2,
+      duration: 120, ease: 'Quad.easeOut',
       onComplete: () => {
-        // Phase 3 — Squish settle (200-500ms): squash back down
         this.tweens.add({
-          targets: c,
-          scaleX: 1.0,
-          scaleY: 0.92,
-          duration: 300,
-          ease: 'Bounce.easeOut',
+          targets: container, y: baseY, scaleX: 1.15, scaleY: 0.85,
+          duration: 100, ease: 'Quad.easeIn',
+          onComplete: () => {
+            this.tweens.add({
+              targets: container, scaleX: 1.0, scaleY: 1.0,
+              duration: 200, ease: 'Bounce.easeOut',
+            });
+          },
         });
       },
     });
+  }
 
-    // Phase 2 — Wobble (150-600ms): rapid left-right angle oscillation
-    const settleTilt = Phaser.Math.Between(-2, 2);
+  animateCompletionDance(container) {
     this.tweens.chain({
-      targets: c,
+      targets: container,
       tweens: [
-        { angle: -8, duration: 60, ease: 'Sine.easeOut', delay: 150 },
-        { angle: 8, duration: 70, ease: 'Sine.easeInOut' },
-        { angle: -5, duration: 65, ease: 'Sine.easeInOut' },
-        { angle: 5, duration: 60, ease: 'Sine.easeInOut' },
-        { angle: -2, duration: 55, ease: 'Sine.easeInOut' },
-        { angle: settleTilt, duration: 90, ease: 'Sine.easeOut' },
+        { angle: -10, duration: 80, ease: 'Sine.easeOut', delay: 100 },
+        { angle: 10, duration: 100, ease: 'Sine.easeInOut' },
+        { angle: -8, duration: 90, ease: 'Sine.easeInOut' },
+        { angle: 8, duration: 85, ease: 'Sine.easeInOut' },
+        { angle: -4, duration: 75, ease: 'Sine.easeInOut' },
+        { angle: 3, duration: 70, ease: 'Sine.easeInOut' },
+        { angle: 0, duration: 80, ease: 'Sine.easeOut' },
       ],
     });
+  }
 
+  animateChefPress(container) {
+    this.time.delayedCall(700, () => {
+      if (!container || !container.scene) return;
+      this.tweens.add({
+        targets: container,
+        scaleY: 0.82,
+        scaleX: 1.06,
+        duration: 150,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          this.tweens.add({
+            targets: container,
+            scaleY: 0.88,
+            scaleX: 1.02,
+            duration: 200,
+            ease: 'Bounce.easeOut',
+          });
+        },
+      });
+    });
   }
 
   flashTray(tray, color) {
@@ -1701,17 +1713,20 @@ export class GameScene extends Phaser.Scene {
     this.gameMoney += orderValue;
 
     const baseScore = Math.floor(orderValue * 10);
-    const speedBonus = tray.container.x > 300 ? (tray.isFooter ? 100 : 50) : 0;
+    const speedBonus = (tray.completedAtX || 0) > this.SPEED_BONUS_X ? (tray.isFooter ? 100 : 50) : 0;
     this.dayScore += baseScore + speedBonus;
     this.refreshHUD();
 
     soundManager.score();
     this.markTicketCompleted(tray.orderNum);
 
-    const pts = baseScore + speedBonus;
+    const popupText = speedBonus > 0
+      ? `$${orderValue.toFixed(2)}\n+SPEED BONUS!`
+      : `$${orderValue.toFixed(2)}`;
     const popup = this.add.text(tray.container.x, tray.container.y - 70,
-      `$${orderValue.toFixed(2)}`, {
+      popupText, {
       fontSize: '26px', color: '#0f0', fontFamily: 'Arial', fontStyle: 'bold',
+      align: 'center',
     }).setOrigin(0.5).setDepth(100);
 
     this.tweens.add({
@@ -1731,6 +1746,7 @@ export class GameScene extends Phaser.Scene {
      MISSES / STRIKES
      ========================================= */
   handleMiss(tray) {
+    if (this.isPaused) return;
     this.strikes++;
     this.ordersMissed++;
     this.refreshHUD();
@@ -1738,12 +1754,23 @@ export class GameScene extends Phaser.Scene {
 
     this.markTicketMissed(tray.orderNum);
 
-    const miss = this.add.text(140, 340, '\u2717 MISSED!', {
+    // Screen shake
+    this.cameras.main.shake(200, 0.005);
+
+    // Red flash overlay
+    const flash = this.add.rectangle(512, 384, 1024, 768, 0xff0000, 0.18).setDepth(200);
+    this.tweens.add({
+      targets: flash, alpha: 0, duration: 400,
+      onComplete: () => flash.destroy(),
+    });
+
+    // "MISSED!" text at tray position
+    const miss = this.add.text(tray.container.x, tray.container.y - 40, '\u2717 MISSED!', {
       fontSize: '36px', color: '#ff3333', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(100);
 
     this.tweens.add({
-      targets: miss, alpha: 0, y: 280, duration: 1200,
+      targets: miss, alpha: 0, y: miss.y - 60, duration: 1200,
       onComplete: () => miss.destroy(),
     });
 
@@ -1794,7 +1821,6 @@ export class GameScene extends Phaser.Scene {
   update(time, delta) {
     if (this.isPaused) {
       if (this.heldItem) this.cancelHeldItem();
-      if (this.activeTreatment) this.deactivateTreatment();
       return;
     }
 
@@ -1834,7 +1860,7 @@ export class GameScene extends Phaser.Scene {
       if (tray.done) continue;
 
       let moveSpeed = speed;
-      if (tray.completed) moveSpeed *= this.spaceKey.isDown ? 6 : 2;
+      if (tray.completed) moveSpeed *= this.spaceKey.isDown ? this.COMPLETED_FAST_MULT : this.COMPLETED_SPEED_MULT;
       if (tray.passedFinish) moveSpeed *= 2;
 
       tray.container.x -= moveSpeed;
