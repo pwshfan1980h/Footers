@@ -1,6 +1,7 @@
 export const INGREDIENTS = {
   bread_white: { key: 'bread_white', name: 'White', category: 'bread', color: 0xF5DEB3, border: 0xD4B896, textColor: '#543', price: 1.50 },
   bread_wheat: { key: 'bread_wheat', name: 'Wheat', category: 'bread', color: 0xC89B5E, border: 0xA07940, textColor: '#fff', price: 1.75 },
+  bread_sourdough: { key: 'bread_sourdough', name: 'Sourdough', category: 'bread', color: 0xFFEFD5, border: 0xB8860B, textColor: '#554', price: 1.75 },
   meat_ham: { key: 'meat_ham', name: 'Ham', category: 'meat', color: 0xFFB6C1, border: 0xE89BA6, textColor: '#633', price: 1.25 },
   meat_turkey: { key: 'meat_turkey', name: 'Turkey', category: 'meat', color: 0xD2B48C, border: 0xB89A70, textColor: '#432', price: 1.25 },
   meat_roastbeef: { key: 'meat_roastbeef', name: 'R. Beef', category: 'meat', color: 0x8B4513, border: 0x6B3000, textColor: '#fff', price: 1.50 },
@@ -14,10 +15,9 @@ export const INGREDIENTS = {
   sauce_mustard: { key: 'sauce_mustard', name: 'Mustard', category: 'sauce', color: 0xFFDB58, border: 0xDDB830, textColor: '#543', price: 0.10 },
 };
 
-// Bin layout: row 1 has 6 items (includes bacon), row 2 has 5
+// Bin layout: Only meats remain in bins
 export const BIN_LAYOUT = [
   ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon'],
-  ['cheese_american', 'cheese_swiss', 'top_lettuce', 'top_tomato', 'top_onion'],
 ];
 
 // Bin color theming by ingredient key

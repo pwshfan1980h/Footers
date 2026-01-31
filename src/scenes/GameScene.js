@@ -97,11 +97,17 @@ export class GameScene extends Phaser.Scene {
     // --- ingredient bins ---
     this.createBins();
 
-    // --- sauces + treatments (free-floating) ---
-    this.createPrepCounter();
+    // --- TREATMENTS (Top Center) ---
+    this.createTreatments();
 
-    // --- click to place (replaces drag & drop) ---
-    this.setupClickToPlace();
+    // --- BINS (Meats - Left) ---
+    this.createBins();
+
+    // --- VEGGIE BOWLS (Center Left) ---
+    this.createVeggieBowls();
+
+    // --- CHEESE STACKS (Center Right) ---
+    this.createCheeseStacks();
 
     // --- speed indicator ---
     this.speedText = this.add.text(975, 142, '\u25b6\u25b6 FAST', {
@@ -126,6 +132,9 @@ export class GameScene extends Phaser.Scene {
 
     // --- LOAVES (Standalone bread sources) ---
     this.createLoaves();
+
+    // --- SETUP INPUT ---
+    this.setupClickToPlace();
   }
 
   /* =========================================
@@ -136,6 +145,21 @@ export class GameScene extends Phaser.Scene {
     this.add.tileSprite(512, 25, 1024, 150, 'wall_texture').setDepth(0).setAlpha(0.8);
     // Shelf/divider
     this.add.rectangle(512, 50, 1024, 2, 0x383840).setDepth(1);
+
+    // Wall Decor
+    this.createWallDecor();
+  }
+
+  createWallDecor() {
+    // Footers Sign (Center-ish, slightly left maybe?)
+    const sign = this.add.image(350, 90, 'sign_footers').setDepth(0.5);
+    sign.setAngle(-2); // Jaunty tilt
+    sign.setScale(0.8);
+
+    // 86 List (Right side)
+    const list = this.add.image(800, 110, 'sign_86_list').setDepth(0.5);
+    list.setAngle(1.5); // Taped up hastily
+    list.setScale(0.7);
   }
 
   /* =========================================
@@ -581,20 +605,68 @@ export class GameScene extends Phaser.Scene {
   /* =========================================
      INGREDIENT BINS (dynamic per-row sizing)
      ========================================= */
+  /* =========================================
+     INGREDIENT BINS (Meats - Left Side)
+     ========================================= */
+  /* =========================================
+     MEAT PILES (Left Side) - Formerly Bins
+     ========================================= */
   createBins() {
-    const rows = [500, 635];
-    const availW = 680; // usable width before counter
+    // We keep the function name for compatibility, but it creates Piles now.
+    const keys = BIN_LAYOUT[0]; // ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon']
 
-    BIN_LAYOUT.forEach((row, ri) => {
-      const count = row.length;
-      const binW = count > 5 ? 108 : 128;
-      const spacing = (availW - binW) / (count - 1);
-      const startX = binW / 2 + 10;
+    const startX = 140;
+    const startY = 480; // Start higher to fit nicely
+    const spacingX = 140;
+    const spacingY = 100; // Tighter vertical spacing
 
-      row.forEach((key, ci) => {
-        this.createBin(key, startX + ci * spacing, rows[ri], binW);
+    keys.forEach((key, i) => {
+      const row = Math.floor(i / 2);
+      const col = i % 2;
+      const x = startX + col * spacingX;
+      const y = startY + row * spacingY;
+
+      // Pile visual
+      // Map key 'meat_ham' -> 'meat_pile_ham'
+      const pileKey = key.replace('meat_', 'meat_pile_');
+      const pile = this.add.image(x, y, pileKey).setDepth(20);
+
+      pile.setInteractive({ useHandCursor: true });
+      pile.on('pointerdown', (pointer) => {
+        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        // Logic to pickup. Reuse spawnBinItem logic but invisible wrapper?
+        // Actually we can just call pickupItem directly if we mock the container logic 
+        // OR easier: just spawn invisible click targets over the piles?
+        // Let's create a "bin-like" container for logic consistency but visual is the pile.
+
+        // Actually, let's reuse createBin logic but simpler visually
+        this.createMeatPileLogic(key, x, y, pile);
       });
+
+      // Name label
+      const ing = INGREDIENTS[key];
+      this.add.text(x, y + 45, ing.name, {
+        fontSize: '11px', color: '#ccc', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(21);
     });
+  }
+
+  createMeatPileLogic(key, x, y, visual) {
+    // Mock the interaction by triggering a pickup immediately on interaction
+    // The `createBins` above sets interaction on the `visual` pile image.
+    // So this method is actually redundant if we put the handler in the loop.
+    // Let's refactor:
+    // The `spawnBinItem` logic spawns items *in* the bin.
+    // Now we just want to pick up "from" the pile.
+    soundManager.init();
+    const pointer = this.input.activePointer;
+    const heldVisual = this.createHeldVisual(key, pointer.x, pointer.y);
+    this.heldItem = {
+      visual: heldVisual,
+      ingredientKey: key,
+      binX: x, binY: y
+    };
+    this._justPickedUp = true;
   }
 
 
@@ -604,33 +676,29 @@ export class GameScene extends Phaser.Scene {
      ========================================= */
   createLoaves() {
     // Place them to the right of the bins
-    const startX = 850;
+    const startX = 940;
+    const startY = 520;
+    const spacingY = 100;
 
-    // White Loaf
-    const wLoaf = this.add.image(startX, 530, 'loaf_white').setDepth(20);
-    wLoaf.setInteractive({ cursor: 'pointer' });
-    wLoaf.on('pointerdown', (pointer) => {
-      if (this.isPaused || this.heldItem || this.activeTreatment) return;
-      this.clickLoaf('bread_white', pointer);
+    const breads = [
+      { key: 'bread_white', label: 'White', asset: 'loaf_white' },
+      { key: 'bread_wheat', label: 'Wheat', asset: 'loaf_wheat' },
+      { key: 'bread_sourdough', label: 'Sourdough', asset: 'loaf_sourdough' }
+    ];
+
+    breads.forEach((b, i) => {
+      const y = startY + i * spacingY;
+      const loaf = this.add.image(startX, y, b.asset).setDepth(20);
+      loaf.setInteractive({ useHandCursor: true });
+      loaf.on('pointerdown', (pointer) => {
+        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        this.clickLoaf(b.key, pointer);
+      });
+
+      this.add.text(startX, y + 40, b.label, {
+        fontSize: '13px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21);
     });
-
-    // Label
-    this.add.text(startX, 530 + 40, 'White', {
-      fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-    }).setOrigin(0.5).setDepth(20);
-
-    // Wheat Loaf
-    const whLoaf = this.add.image(startX, 650, 'loaf_wheat').setDepth(20);
-    whLoaf.setInteractive({ cursor: 'pointer' });
-    whLoaf.on('pointerdown', (pointer) => {
-      if (this.isPaused || this.heldItem || this.activeTreatment) return;
-      this.clickLoaf('bread_wheat', pointer);
-    });
-
-    // Label
-    this.add.text(startX, 650 + 40, 'Wheat', {
-      fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-    }).setOrigin(0.5).setDepth(20);
   }
 
   clickLoaf(key, pointer) {
@@ -714,17 +782,148 @@ export class GameScene extends Phaser.Scene {
   /* =========================================
      PREP COUNTER (sauces + treatments)
      ========================================= */
-  createPrepCounter() {
-    // Free-floating treatment items (top row, aligned with bin row 1)
+  /* =========================================
+     TREATMENTS (Top Center) & SAUCES
+     ========================================= */
+  createTreatments() {
+    const startX = 350; // Centered relative to belt
+    const startY = 185; // Above belt
+    const spacing = 80;
+
+    // Treatments
     const treatKeys = ['toasted', 'togo', 'salt_pepper', 'oil_vinegar'];
-    const treatX = [750, 820, 890, 960];
-    treatKeys.forEach((tKey, i) => {
-      this.createTreatmentItem(tKey, treatX[i], 500);
+    treatKeys.forEach((key, i) => {
+      this.createTreatmentItem(key, startX + i * spacing, startY);
     });
 
-    // Free-floating sauce bottles (bottom row, aligned with bin row 2)
-    this.createSauceBottle('sauce_mayo', 810, 635);
-    this.createSauceBottle('sauce_mustard', 940, 635);
+    // Sauces (Next to treatments? Or grouped?)
+    // Let's put sauces to the right of treatments
+    this.createSauceBottle('sauce_mayo', startX + 4 * spacing + 20, startY + 10);
+    this.createSauceBottle('sauce_mustard', startX + 5 * spacing + 20, startY + 10);
+  }
+
+  /* =========================================
+     CHEESE STACKS - CENTER RIGHT
+     ========================================= */
+  /* =========================================
+     CHEESE STACKS - CENTER RIGHT
+     ========================================= */
+  createCheeseStacks() {
+    const baseX = 720;
+    const spacingY = 110;
+    const startY = 550; // Alignment
+
+    const cheeses = [
+      { key: 'cheese_american', label: 'American' },
+      { key: 'cheese_swiss', label: 'Swiss' }
+    ];
+
+    cheeses.forEach((c, i) => {
+      const y = startY + i * spacingY;
+      const stack = this.add.image(baseX, y, `cheese_stack_${c.key.split('_')[1]}`).setDepth(20);
+      stack.setInteractive({ cursor: 'pointer' });
+      stack.on('pointerdown', (pointer) => {
+        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        this.clickCheeseStack(c.key, pointer);
+      });
+
+      this.add.text(baseX, y + 50, c.label, {
+        fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21);
+    });
+  }
+
+  clickCheeseStack(key, pointer) {
+    soundManager.init();
+    const visual = this.createHeldVisual(key, pointer.x, pointer.y);
+    this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
+    this._justPickedUp = true;
+  }
+
+  /* =========================================
+     VEGGIE BOWLS - CENTER LEFT
+     ========================================= */
+  createVeggieBowls() {
+    const baseX = 480;
+    const startY = 550; // Alignment
+    const spacingY = 90;
+
+    const veggies = [
+      { key: 'top_lettuce', label: 'Lettuce', asset: 'bowl_content_lettuce' },
+      { key: 'top_tomato', label: 'Tomato', asset: 'bowl_content_tomato' },
+      { key: 'top_onion', label: 'Onion', asset: 'bowl_content_onion' }
+    ];
+
+    veggies.forEach((v, i) => {
+      const y = startY + i * spacingY;
+      // Bowl container
+      const bowl = this.add.container(baseX, y).setDepth(20);
+
+      // Removed bowl art per request
+      // const bowlImg = this.add.image(0, 0, 'bowl_veggie');
+      // bowl.add(bowlImg);
+
+      // Veggie visual inside
+      const vegImg = this.add.image(0, 0, v.asset || v.key).setScale(0.8);
+      bowl.add(vegImg);
+
+      bowl.setSize(100, 70);
+      bowl.setInteractive(new Phaser.Geom.Rectangle(-50, -35, 100, 70), Phaser.Geom.Rectangle.Contains);
+
+      bowl.on('pointerdown', (pointer) => {
+        if (this.isPaused || this.heldItem || this.activeTreatment) return;
+        this.clickVeggieBowl(v.key, pointer);
+      });
+
+      this.add.text(baseX, y + 40, v.label, {
+        fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21);
+    });
+  }
+
+  clickVeggieBowl(key, pointer) {
+    soundManager.init();
+    const visual = this.createHeldVisual(key, pointer.x, pointer.y);
+    this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
+    this._justPickedUp = true;
+  }
+
+  // Re-purposed createTreatmentItem (was used by PrepCounter)
+  createTreatmentItem(key, x, y) {
+    const t = TREATMENTS[key];
+    const c = this.add.container(x, y).setDepth(30);
+    c.setSize(70, 70);
+    c.setInteractive(
+      new Phaser.Geom.Rectangle(-35, -35, 70, 70),
+      Phaser.Geom.Rectangle.Contains,
+    );
+
+    const bg = this.add.graphics();
+    bg.fillStyle(0x333344, 1);
+    bg.fillRoundedRect(-35, -35, 70, 70, 8);
+    bg.lineStyle(2, 0x555566, 1);
+    bg.strokeRoundedRect(-35, -35, 70, 70, 8);
+    c.add(bg);
+
+    // Icon (simple text or primitive for now if asset missing)
+    const icon = this.add.text(0, -10, t.symbol || '?', {
+      fontSize: '32px', color: '#fff'
+    }).setOrigin(0.5);
+    c.add(icon);
+
+    // Label
+    const lbl = this.add.text(0, 24, t.name, {
+      fontSize: '10px', color: '#aaa', fontFamily: 'Arial'
+    }).setOrigin(0.5);
+    c.add(lbl);
+
+    c.on('pointerdown', () => {
+      if (this.isPaused) return;
+      this.activateTreatment(key);
+    });
+
+    if (!this.treatmentButtons) this.treatmentButtons = [];
+    this.treatmentButtons.push(c); // track for debug/highlight
   }
 
   createSauceBottle(key, x, y) {
@@ -1520,6 +1719,30 @@ export class GameScene extends Phaser.Scene {
   completeTray(tray) {
     tray.completed = true;
     this.flashTray(tray, 0x00ff00);
+
+    // WOBBLE & SETTLE ANIMATION
+    // Squish the ingredients down
+    tray.stackLayers.forEach((layer, i) => {
+      // Skip sauces as they are graphical circles often
+      // But scaling them is fine too usually.
+      this.tweens.add({
+        targets: layer,
+        scaleY: layer.scaleY * 0.85, // Squish
+        y: layer.y + 4, // Shift down slightly to stay grounded
+        duration: 400,
+        ease: 'Bounce.easeOut',
+        delay: i * 30 // Ripple effect
+      });
+    });
+
+    // Tilt the whole container slightly ("Settled")
+    const tilt = Phaser.Math.Between(-3, 3);
+    this.tweens.add({
+      targets: tray.container,
+      angle: tilt,
+      duration: 500,
+      ease: 'Back.easeOut'
+    });
   }
 
   flashTray(tray, color) {

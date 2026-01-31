@@ -16,6 +16,25 @@ export class BootScene extends Phaser.Scene {
     // Loaves (Counter objects)
     this.load.svg('loaf_white', 'src/assets/loaf_white.svg', { width: 200, height: 100 });
     this.load.svg('loaf_wheat', 'src/assets/loaf_wheat.svg', { width: 200, height: 100 });
+    this.load.svg('loaf_sourdough', 'src/assets/loaf_sourdough.svg', { width: 140, height: 80 });
+
+    // Cheese Stacks
+    this.load.svg('cheese_stack_american', 'src/assets/cheese_stack_american.svg', { width: 128, height: 128 });
+    this.load.svg('cheese_stack_swiss', 'src/assets/cheese_stack_swiss.svg', { width: 128, height: 128 });
+
+    // Veggie Bowl
+    this.load.svg('bowl_veggie', 'src/assets/bowl_veggie.svg', { width: 128, height: 80 });
+    this.load.svg('bowl_content_lettuce', 'src/assets/bowl_content_lettuce.svg', { width: 100, height: 60 });
+    this.load.svg('bowl_content_tomato', 'src/assets/bowl_content_tomato.svg', { width: 100, height: 60 });
+    this.load.svg('bowl_content_onion', 'src/assets/bowl_content_onion.svg', { width: 100, height: 60 });
+
+    this.load.svg('sign_footers', 'src/assets/sign_footers.svg', { width: 256, height: 128 });
+    this.load.svg('sign_86_list', 'src/assets/sign_86_list.svg', { width: 140, height: 170 });
+
+    this.load.svg('meat_pile_ham', 'src/assets/meat_pile_ham.svg', { width: 128, height: 88 });
+    this.load.svg('meat_pile_turkey', 'src/assets/meat_pile_turkey.svg', { width: 128, height: 88 });
+    this.load.svg('meat_pile_roastbeef', 'src/assets/meat_pile_roastbeef.svg', { width: 128, height: 88 });
+    this.load.svg('meat_pile_bacon', 'src/assets/meat_pile_bacon.svg', { width: 128, height: 88 });
 
     this.load.svg('meat_ham', 'src/assets/meat_ham.svg', { width: 128, height: 128 });
     this.load.svg('meat_turkey', 'src/assets/meat_turkey.svg', { width: 128, height: 128 });

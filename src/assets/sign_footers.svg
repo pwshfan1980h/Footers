@@ -1,0 +1,27 @@
+<svg width="256" height="128" viewBox="0 0 256 128" xmlns="http://www.w3.org/2000/svg">
+  <!-- Footers Sign (Parody of Hooters) -->
+  
+  <!-- Outer Glow/Border -->
+  <ellipse cx="128" cy="64" rx="120" ry="55" fill="#FF6600" stroke="#FFF" stroke-width="4" />
+  <ellipse cx="128" cy="64" rx="112" ry="48" fill="#FFF" />
+  
+  <!-- Owl Icon (Cute/Parody) -->
+  <g transform="translate(30, 25) scale(0.6)">
+    <!-- Body -->
+    <path d="M 30 70 Q 10 70 10 40 Q 10 10 50 10 Q 90 10 90 40 Q 90 70 70 70" fill="#8D6E63" />
+    <!-- Eyes -->
+    <circle cx="35" cy="35" r="12" fill="#FFF" />
+    <circle cx="35" cy="35" r="5" fill="#000" />
+    <circle cx="65" cy="35" r="14" fill="#FFF" /> <!-- Bigger eye usually -->
+    <circle cx="65" cy="35" r="6" fill="#000" />
+    <!-- Beak -->
+    <path d="M 45 45 L 55 45 L 50 55 Z" fill="#FFCC00" />
+    <!-- Feet -->
+    <path d="M 30 70 L 30 80" stroke="#FFCC00" stroke-width="3" />
+    <path d="M 70 70 L 70 80" stroke="#FFCC00" stroke-width="3" />
+  </g>
+  
+  <!-- Text -->
+  <text x="140" y="80" font-family="Arial, sans-serif" font-weight="900" font-size="48" fill="#4E342E" text-anchor="middle" style="font-style: italic;">Footers</text>
+  <text x="140" y="100" font-family="Arial, sans-serif" font-weight="bold" font-size="14" fill="#FF6600" text-anchor="middle">A Sub Shop Scramble</text>
+</svg>
