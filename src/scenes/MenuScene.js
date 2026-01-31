@@ -153,6 +153,17 @@ export class MenuScene extends Phaser.Scene {
       fontSize: '12px', color: '#665544', fontFamily: 'Arial', fontStyle: 'italic',
     }).setOrigin(0.5);
 
+    // --- Wall decor flanking the main content ---
+    const signLogo = this.add.image(90, 380, 'sign_footers');
+    signLogo.setScale(0.55);
+    signLogo.setAngle(-5);
+    signLogo.setAlpha(0.7);
+
+    const sign86 = this.add.image(935, 380, 'sign_86_list');
+    sign86.setScale(1.4);
+    sign86.setAngle(3);
+    sign86.setAlpha(0.7);
+
     // --- Bottom diner decor ---
     const bottomStripe = this.add.graphics();
     bottomStripe.fillStyle(0x331A0A, 1);
