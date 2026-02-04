@@ -65,8 +65,9 @@ export class GameScene extends Phaser.Scene {
     this._justPickedUp = false;
     this.treatmentItems = {};
 
-    // Space bar for speed boost
+    // Space bar for speed boost, Shift for slow down
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
     // --- background (dark steel) ---
@@ -112,9 +113,13 @@ export class GameScene extends Phaser.Scene {
     // --- CHEESE STACKS (Center Right) ---
     this.createCheeseStacks();
 
-    // --- speed indicator ---
+    // --- speed indicators ---
     this.speedText = this.add.text(975, 142, '\u25b6\u25b6 FAST', {
       fontSize: '11px', color: '#ff0', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(1, 0).setDepth(50).setAlpha(0);
+
+    this.slowText = this.add.text(975, 142, '\u25c0\u25c0 SLOW', {
+      fontSize: '11px', color: '#88f', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(50).setAlpha(0);
 
     // --- hints modal ---
@@ -130,6 +135,9 @@ export class GameScene extends Phaser.Scene {
 
     // --- SETUP INPUT ---
     this.setupClickToPlace();
+
+    // --- KEYBOARD SHORTCUTS ---
+    this.setupKeyboardShortcuts();
 
     // --- DEBUG HITBOXES ---
     if (DEBUG) {
@@ -243,8 +251,8 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     btn.add(txt);
 
-    btn.setSize(200, 60);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-100, -30, 200, 60), Phaser.Geom.Rectangle.Contains);
+    btn.setSize(260, 100);
+    btn.setInteractive(new Phaser.Geom.Rectangle(-130, -50, 260, 100), Phaser.Geom.Rectangle.Contains);
 
     btn.on('pointerover', () => {
       bg.clear();
@@ -297,7 +305,7 @@ export class GameScene extends Phaser.Scene {
       'Click ingredients to pick up',
       'Click a tray to place them',
       'Match the order # to the ticket above',
-      'Hold SPACE to speed up the belt',
+      'Hold SPACE to speed up / SHIFT to slow down',
       'Press ESC to cancel a pickup',
     ];
     const lineTexts = lines.map((line, i) =>
@@ -711,6 +719,14 @@ export class GameScene extends Phaser.Scene {
       this.add.text(x, y + 45, ing.name, {
         fontSize: '11px', color: '#ccc', fontFamily: 'Arial', fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(21);
+
+      // Keyboard hint
+      const hints = { 'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4' };
+      if (hints[key]) {
+        this.add.text(x + 35, y - 35, `[${hints[key]}]`, {
+          fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(22).setAlpha(0.7);
+      }
     });
   }
 
@@ -825,6 +841,14 @@ export class GameScene extends Phaser.Scene {
       this.add.text(baseX, y + 50, c.label, {
         fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
       }).setOrigin(0.5).setDepth(21);
+
+      // Keyboard hint
+      const hints = { 'cheese_american': '8', 'cheese_swiss': '9' };
+      if (hints[c.key]) {
+        this.add.text(baseX + 40, y - 30, `[${hints[c.key]}]`, {
+          fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(22).setAlpha(0.7);
+      }
     });
   }
 
@@ -863,6 +887,14 @@ export class GameScene extends Phaser.Scene {
       this.add.text(baseX, y + 40, v.label, {
         fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
       }).setOrigin(0.5).setDepth(21);
+
+      // Keyboard hint
+      const hints = { 'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7' };
+      if (hints[v.key]) {
+        this.add.text(baseX + 35, y - 25, `[${hints[v.key]}]`, {
+          fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
+        }).setOrigin(0.5).setDepth(22).setAlpha(0.7);
+      }
     });
   }
 
@@ -884,6 +916,14 @@ export class GameScene extends Phaser.Scene {
       soundManager.init();
       this.pickupSauce(key);
     });
+
+    // Keyboard hint
+    const sauceHints = { 'sauce_mayo': 'Q', 'sauce_mustard': 'E' };
+    if (sauceHints[key]) {
+      this.add.text(x + 25, y - 35, `[${sauceHints[key]}]`, {
+        fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(31).setAlpha(0.7);
+    }
   }
 
   pickupSauce(key) {
@@ -967,6 +1007,15 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     c.add(label);
 
+    // Keyboard hint
+    const treatHints = { 'toasted': 'R', 'togo': 'F', 'salt_pepper': 'G', 'oil_vinegar': 'V' };
+    if (treatHints[tKey]) {
+      const hint = this.add.text(hw - 4, -hh + 4, `[${treatHints[tKey]}]`, {
+        fontSize: '10px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(1, 0).setAlpha(0.7);
+      c.add(hint);
+    }
+
     c.on('pointerover', () => {
       this.tweens.add({ targets: c, scaleX: 1.05, scaleY: 1.05, duration: 100, ease: 'Sine.easeOut' });
     });
@@ -1042,6 +1091,7 @@ export class GameScene extends Phaser.Scene {
 
     this.updateTicketTreatment(tray.orderNum, treatmentKey);
     this.drawTreatmentEffect(tray, treatmentKey);
+    this.updateTrayNextHint(tray);
     this.checkTrayCompletion(tray);
   }
 
@@ -1166,6 +1216,97 @@ export class GameScene extends Phaser.Scene {
         g.strokeRect(obj.x + ha.x, obj.y + ha.y, ha.width, ha.height);
       }
     });
+  }
+
+  /* =========================================
+     KEYBOARD SHORTCUTS
+     ========================================= */
+  setupKeyboardShortcuts() {
+    // Map of keyboard shortcut key -> ingredient/action
+    this.shortcutMap = {
+      'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4',
+      'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7',
+      'cheese_american': '8', 'cheese_swiss': '9',
+      'sauce_mayo': 'Q', 'sauce_mustard': 'E',
+      'toasted': 'R', 'togo': 'F', 'salt_pepper': 'G', 'oil_vinegar': 'V',
+    };
+
+    const KC = Phaser.Input.Keyboard.KeyCodes;
+
+    const bindings = [
+      { code: KC.ONE,   ingredient: 'meat_ham' },
+      { code: KC.TWO,   ingredient: 'meat_turkey' },
+      { code: KC.THREE, ingredient: 'meat_roastbeef' },
+      { code: KC.FOUR,  ingredient: 'meat_bacon' },
+      { code: KC.FIVE,  ingredient: 'top_lettuce' },
+      { code: KC.SIX,   ingredient: 'top_tomato' },
+      { code: KC.SEVEN, ingredient: 'top_onion' },
+      { code: KC.EIGHT, ingredient: 'cheese_american' },
+      { code: KC.NINE,  ingredient: 'cheese_swiss' },
+      { code: KC.Q,     ingredient: 'sauce_mayo' },
+      { code: KC.E,     ingredient: 'sauce_mustard' },
+      { code: KC.R,     treatment: 'toasted' },
+      { code: KC.F,     treatment: 'togo' },
+      { code: KC.G,     treatment: 'salt_pepper' },
+      { code: KC.V,     treatment: 'oil_vinegar' },
+    ];
+
+    bindings.forEach(({ code, ingredient, treatment }) => {
+      const key = this.input.keyboard.addKey(code);
+      key.on('down', () => {
+        if (this.isPaused || this.heldItem || !this.isStoreOpen) return;
+        soundManager.init();
+        if (treatment) {
+          this.pickupTreatment(treatment);
+        } else if (ingredient) {
+          const pointer = this.input.activePointer;
+          if (ingredient.startsWith('sauce_')) {
+            this.pickupSauce(ingredient);
+          } else {
+            const visual = this.createHeldVisual(ingredient, pointer.x, pointer.y);
+            this.heldItem = { visual, ingredientKey: ingredient, binX: 0, binY: 0 };
+            this._justPickedUp = true;
+          }
+        }
+      });
+    });
+  }
+
+  getShortcutKey(ingredientOrTreatment) {
+    return this.shortcutMap ? this.shortcutMap[ingredientOrTreatment] || '' : '';
+  }
+
+  updateTrayNextHint(tray) {
+    if (!tray.hintText || tray.completed || tray.done) return;
+
+    const nextIndex = tray.placed.length;
+    if (nextIndex < tray.order.ingredients.length) {
+      // Show shortcut for next ingredient
+      const nextKey = tray.order.ingredients[nextIndex];
+      const shortcut = this.getShortcutKey(nextKey);
+      const ingName = INGREDIENTS[nextKey] ? INGREDIENTS[nextKey].name : '';
+      if (shortcut) {
+        tray.hintText.setText(`[${shortcut}] ${ingName}`);
+      } else {
+        // Bread has no shortcut — show name only
+        tray.hintText.setText(ingName);
+      }
+    } else {
+      // All ingredients placed — show treatment hints if any remain
+      const remainingTreats = (tray.order.treatments || []).filter(
+        (t) => !tray.appliedTreatments.includes(t)
+      );
+      if (remainingTreats.length > 0) {
+        const hints = remainingTreats.map((t) => {
+          const shortcut = this.getShortcutKey(t);
+          const name = TREATMENTS[t] ? TREATMENTS[t].name : t;
+          return shortcut ? `[${shortcut}] ${name}` : name;
+        });
+        tray.hintText.setText(hints.join(' '));
+      } else {
+        tray.hintText.setText('');
+      }
+    }
   }
 
   createHeldVisual(key, x, y) {
@@ -1352,6 +1493,14 @@ export class GameScene extends Phaser.Scene {
       container.add(ftLabel);
     }
 
+    // Next-ingredient shortcut hint
+    const hintText = this.add.text(0, -50, '', {
+      fontSize: '12px', color: '#ff0', fontFamily: 'Arial', fontStyle: 'bold',
+      backgroundColor: '#00000088',
+      padding: { x: 3, y: 1 },
+    }).setOrigin(0.5).setDepth(11);
+    container.add(hintText);
+
     const tray = {
       container,
       order,
@@ -1365,9 +1514,11 @@ export class GameScene extends Phaser.Scene {
       done: false,
       passedFinish: false,
       scored: false,
+      hintText,
     };
 
     this.trays.push(tray);
+    this.updateTrayNextHint(tray);
     this.ordersSpawned++;
 
     if (this.ordersSpawned === 3) {
@@ -1489,6 +1640,8 @@ export class GameScene extends Phaser.Scene {
     this.updateTicketIngredient(tray.orderNum, ingredientKey);
 
     this.addStackLayer(tray, ingredientKey);
+
+    this.updateTrayNextHint(tray);
 
     this.checkTrayCompletion(tray);
 
@@ -1632,6 +1785,7 @@ export class GameScene extends Phaser.Scene {
   completeTray(tray) {
     tray.completed = true;
     tray.completedAtX = tray.container.x;
+    if (tray.hintText) tray.hintText.setText('');
     this.flashTray(tray, 0x00ff00);
 
     const c = tray.container;
@@ -1831,9 +1985,38 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Speed boost from space bar
-    const speedMult = this.spaceKey.isDown ? 2.5 : 1;
-    this.speedText.setAlpha(this.spaceKey.isDown ? 0.8 : 0);
+    // Count active (non-completed, non-done) tickets for dynamic speed
+    const activeTickets = this.trays.filter(t => !t.done && !t.completed).length;
+
+    // Base speed modifier based on ticket count:
+    // 0-1 tickets = 1.3x speed (pressure when you're caught up)
+    // 2 tickets = 1.0x normal speed
+    // 3 tickets = 0.85x (slight mercy)
+    // 4+ tickets = 0.7x (more mercy when overwhelmed)
+    let ticketSpeedMult = 1.0;
+    if (activeTickets <= 1) {
+      ticketSpeedMult = 1.3;
+    } else if (activeTickets === 2) {
+      ticketSpeedMult = 1.0;
+    } else if (activeTickets === 3) {
+      ticketSpeedMult = 0.85;
+    } else {
+      ticketSpeedMult = 0.7;
+    }
+
+    // Player controls: SPACE speeds up, SHIFT slows down
+    let playerMult = 1;
+    if (this.spaceKey.isDown && !this.shiftKey.isDown) {
+      playerMult = 2.0;
+    } else if (this.shiftKey.isDown && !this.spaceKey.isDown) {
+      playerMult = 0.4;
+    }
+
+    const speedMult = ticketSpeedMult * playerMult;
+
+    // Update speed indicators
+    this.speedText.setAlpha(this.spaceKey.isDown && !this.shiftKey.isDown ? 0.8 : 0);
+    this.slowText.setAlpha(this.shiftKey.isDown && !this.spaceKey.isDown ? 0.8 : 0);
 
     // Belt animation
     this.beltOffset -= this.conveyorSpeed * (delta / 16) * speedMult;
