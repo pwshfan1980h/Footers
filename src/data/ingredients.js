@@ -24,7 +24,8 @@ export const BIN_LAYOUT = [
 export const TREATMENTS = {
   toasted: { name: 'Toasted', label: '#FFB040', description: 'Toast the sandwich' },
   togo: { name: 'To-Go', label: '#E8C555', description: 'Wrap for takeout' },
-  salt_pepper: { name: 'S&P', label: '#CCCCCC', description: 'Salt & pepper' },
+  salt: { name: 'Salt', label: '#FFFFFF', description: 'Add salt' },
+  pepper: { name: 'Pepper', label: '#444444', description: 'Add pepper' },
   oil_vinegar: { name: 'O&V', label: '#B8D458', description: 'Oil & vinegar drizzle' },
 };
 

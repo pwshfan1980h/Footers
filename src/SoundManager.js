@@ -187,6 +187,37 @@ class SoundManager {
     this._osc('sine', 2349, t + 0.25, 0.2, 0.1);
   }
 
+  // Robot arm sounds
+  robotMove() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Servo whir sound
+    this._osc('sawtooth', 80, t, 0.05, 0.04);
+    this._osc('sine', 200, t, 0.03, 0.03);
+  }
+
+  robotPickup() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Pneumatic grip sound - ascending
+    this._osc('square', 150, t, 0.04, 0.08);
+    this._osc('sine', 300, t + 0.02, 0.06, 0.1);
+    this._osc('sine', 500, t + 0.05, 0.08, 0.08);
+    // Mechanical click
+    this._noise(0.02, 0.15);
+  }
+
+  robotRelease() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Pneumatic release - descending
+    this._osc('sine', 400, t, 0.05, 0.1);
+    this._osc('sine', 200, t + 0.03, 0.08, 0.08);
+    this._osc('square', 100, t + 0.06, 0.05, 0.06);
+    // Air release hiss
+    this._noise(0.08, 0.1);
+  }
+
   waiterGibberish() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;

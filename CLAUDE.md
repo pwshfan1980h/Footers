@@ -14,13 +14,13 @@ No test runner, linter, or formatter is configured.
 
 ## Project Overview
 
-**ORDER UP!** is a browser-based time-management arcade game built with Phaser 3 and Vite. Players work as a sandwich artist: clicking ingredients from bins, placing them on moving conveyor belt trays in strict order, and applying treatments to complete orders before trays slide past the finish line. The game spans 5 days (Monday-Friday) with increasing difficulty. 3 missed orders = game over.
+**SammyBot** is a browser-based time-management arcade game built with Phaser 3 and Vite. Players control a robot arm to pick up ingredients from bins and place them on moving conveyor belt trays in strict order, applying treatments to complete orders before trays slide past the finish line. The game spans 5 days (Monday-Friday) with increasing difficulty. 3 missed orders = game over.
 
 ## Architecture
 
 **Entry:** `index.html` loads `src/main.js`, which initializes a 1024x768 Phaser game with FIT scaling.
 
-**Scene flow:** `BootScene` → `MenuScene` → `GameScene` ↔ `DayEndScene` → (after day 5) `WinScene`. `GameOverScene` triggers on 3 strikes.
+**Scene flow:** `BootScene` → `GameScene` ↔ `DayEndScene` → (after day 5) `WinScene`. `GameOverScene` triggers on 3 strikes.
 
 **Key files:**
 

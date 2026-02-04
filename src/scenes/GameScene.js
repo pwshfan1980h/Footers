@@ -23,13 +23,80 @@ export class GameScene extends Phaser.Scene {
   create() {
     const cfg = DAY_CONFIG[this.day];
 
+    // --- isometric constants ---
+    this.ISO_SKEW = 0.25;
+    this.TABLE_SKEW = 50;
+
+    // === SPACE STATION COLOR PALETTE - LIGHT METALS & GLASS ===
+    // Space colors
+    this.SPACE_BLACK = 0x0a0a18;
+    this.SPACE_DEEP = 0x080814;
+    this.STAR_WHITE = 0xffffff;
+    this.STAR_BLUE = 0xaaddff;
+    this.STAR_WARM = 0xffeedd;
+
+    // Smoked glass overlay for window
+    this.SMOKED_GLASS = 0x1a2030;
+    this.SMOKED_GLASS_ALPHA = 0.35;
+
+    // Station interior - WARM LIGHT METALS (no flat gray!)
+    this.HULL_DARK = 0x4a4a58;      // Warm dark steel
+    this.HULL_MID = 0x6a6a78;       // Mid brushed metal
+    this.HULL_LIGHT = 0x8a8a98;     // Light steel
+    this.HULL_BRIGHT = 0xa8a8b8;    // Bright highlight
+    this.HULL_WARM = 0x7a7068;      // Warm bronze accent
+    this.PANEL_SEAM = 0x3a3a48;
+
+    // Chrome/polished metal accents
+    this.CHROME_DARK = 0x5a5a6a;
+    this.CHROME_MID = 0x8a8a9a;
+    this.CHROME_LIGHT = 0xb8b8c8;
+    this.CHROME_HIGHLIGHT = 0xd8d8e8;
+
+    // Beam colors (brushed aluminum)
+    this.BEAM_DARK = 0x3a3a4a;
+    this.BEAM_MID = 0x5a5a6a;
+    this.BEAM_LIGHT = 0x7a7a8a;
+    this.BEAM_HIGHLIGHT = 0x9a9aaa;
+
+    // Neon accents
+    this.NEON_CYAN = 0x00ddff;
+    this.NEON_ORANGE = 0xff9955;
+    this.NEON_MAGENTA = 0xff66bb;
+    this.NEON_GREEN = 0x66ff99;
+
+    // Glass colors
+    this.GLASS_TINT = 0x4a6080;
+    this.GLASS_HIGHLIGHT = 0x8ab0d0;
+    this.GLASS_EDGE = 0x2a4060;
+    this.FRAME_DARK = 0x3a3a4a;
+    this.FRAME_LIGHT = 0x6a6a7a;
+
+    // Brushed steel prep table
+    this.TABLE_TOP = 0x7a7a8a;
+    this.TABLE_FRONT = 0x5a5a6a;
+    this.TABLE_HIGHLIGHT = 0x9a9aaa;
+    this.TABLE_SHADOW = 0x2a2a3a;
+
+    // Glass shelf
+    this.SHELF_TOP = 0x6a8898;
+    this.SHELF_FRONT = 0x4a6878;
+    this.SHELF_GLASS = 0x5a7a8a;
+
     // --- layout constants ---
     this.BELT_Y = 400;
-    this.BELT_TOP = 435;
+    this.BELT_TOP = 420;
     this.SPEED_BONUS_X = 300;
     this.LAND_Y = 385;
     this.COMPLETED_SPEED_MULT = 2;
     this.COMPLETED_FAST_MULT = 6;
+
+    // --- window layout constants ---
+    this.WINDOW_TOP = 145;
+    this.WINDOW_BOTTOM = 390;
+    this.WINDOW_HEIGHT = 245;
+    this.BEAM_WIDTH = 45;
+    this.BEAM_POSITIONS = [0, 230, 512 - 22, 794 - 45, 1024 - 45];
 
     // --- scoring ---
     this.dayScore = 0;
@@ -70,11 +137,26 @@ export class GameScene extends Phaser.Scene {
     this.shiftKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SHIFT);
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
-    // --- background (dark steel) ---
-    this.add.rectangle(512, 384, 1024, 768, 0x2A2A30);
+    // F1 for hotkey hints toggle (prevent browser default)
+    this.f1Key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F1);
+    this.hotkeyHints = []; // Store all hotkey hint elements
+    this.labelHints = []; // Store all ingredient/item labels (toggled with F1)
+    this.f1Key.on('down', (event) => {
+      if (event && event.originalEvent) event.originalEvent.preventDefault();
+      this.showHotkeyHints(true);
+    });
+    this.f1Key.on('up', () => this.showHotkeyHints(false));
+    // Also prevent default at window level
+    this.input.keyboard.on('keydown-F1', (event) => {
+      event.preventDefault();
+    });
 
-    // --- wall ---
-    this.createWall();
+    // --- background (space station interior) ---
+    this.add.rectangle(512, 384, 1024, 768, this.HULL_DARK);
+
+    // --- space background & windows ---
+    this.createSpaceBackground();
+    this.createSpaceWindows();
 
     // --- HUD ---
     this.createHUD(cfg);
@@ -82,8 +164,9 @@ export class GameScene extends Phaser.Scene {
     // --- ticket bar ---
     this.createTicketBar();
 
-    // --- game area bg (steel) ---
-    this.add.rectangle(512, 290, 1024, 290, 0x303038).setDepth(0);
+    // --- game area bg (space station interior - now only below belt) ---
+    // The large window area (Y:145-390) now shows space, so we only need hull below that
+    this.createMetalSurface();
 
     // --- isometric floor tiles (belt area Y 265-396) ---
     this.createFloor();
@@ -95,16 +178,18 @@ export class GameScene extends Phaser.Scene {
     // --- finish line ---
     this.createFinishLine();
 
-    // separator between belt and bins
-    this.add.rectangle(512, 435, 1024, 2, 0x606068).setDepth(3);
+    // separator between belt and bins (neon accent)
+    const sep = this.add.graphics().setDepth(3);
+    sep.fillStyle(this.HULL_LIGHT, 1);
+    sep.fillRect(0, 434, 1024, 3);
+    sep.fillStyle(this.NEON_CYAN, 0.4);
+    sep.fillRect(0, 435, 1024, 1);
 
-    // --- bin area background ---
-    this.add.rectangle(512, 590, 1024, 300, 0x282830).setDepth(0);
 
     // --- ingredient bins ---
     this.createBins();
 
-    // --- TREATMENTS (Top Center) ---
+    // --- TREATMENTS (on shelf) ---
     this.createTreatments();
 
     // --- VEGGIE BOWLS (Center Left) ---
@@ -122,11 +207,6 @@ export class GameScene extends Phaser.Scene {
       fontSize: '11px', color: '#88f', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(50).setAlpha(0);
 
-    // --- hints modal ---
-    if (this.day === 1) {
-      this.showHintsModal();
-    }
-
     // --- OPEN FOR BUSINESS BUTTON ---
     this.createStartButton();
 
@@ -143,47 +223,278 @@ export class GameScene extends Phaser.Scene {
     if (DEBUG) {
       this.drawDebugHitboxes();
     }
+
+    // --- BOIDS (passing vessels in space window) ---
+    this.createBoids();
+
+    // --- ROBOT ARM ---
+    this.createRobotArm();
   }
 
   /* =========================================
-     WALL (kitchen backsplash)
+     SPACE BACKGROUND (stars behind smoked glass)
      ========================================= */
-  createWall() {
-    // Tiled wall texture — extends above HUD to give signs a backdrop
-    this.add.tileSprite(512, 25, 1024, 150, 'wall_texture').setDepth(0).setAlpha(0.8);
-    // Shelf/divider
-    this.add.rectangle(512, 50, 1024, 2, 0x383840).setDepth(1);
+  createSpaceBackground() {
+    const g = this.add.graphics().setDepth(0);
 
-    // Wall Decor — sits between HUD and ticket bar
+    // Deep space background
+    g.fillStyle(this.SPACE_DEEP, 1);
+    g.fillRect(0, this.WINDOW_TOP, 1024, this.WINDOW_HEIGHT);
+    g.fillRect(0, 0, 1024, 145);
+
+    // Subtle nebula wisps (very faint, will be behind smoked glass)
+    g.fillStyle(0x3a2255, 0.08);
+    g.fillEllipse(200, 240, 300, 150);
+    g.fillStyle(0x253555, 0.06);
+    g.fillEllipse(700, 300, 350, 140);
+    g.fillStyle(0x453355, 0.05);
+    g.fillEllipse(500, 200, 250, 100);
+
+    // Static stars (single pixels, will be dimmed by smoked glass)
+    const stars = [];
+    for (let i = 0; i < 80; i++) {
+      stars.push({
+        x: Phaser.Math.Between(50, 974),
+        y: Phaser.Math.Between(this.WINDOW_TOP + 15, this.WINDOW_BOTTOM - 15),
+        size: Phaser.Math.FloatBetween(0.5, 1.5),
+        alpha: Phaser.Math.FloatBetween(0.3, 0.8),
+      });
+    }
+
+    stars.forEach(star => {
+      const rand = Math.random();
+      const color = rand > 0.8 ? this.STAR_BLUE : rand > 0.6 ? this.STAR_WARM : this.STAR_WHITE;
+      g.fillStyle(color, star.alpha);
+      g.fillCircle(star.x, star.y, star.size);
+    });
+
+    this.starPositions = stars;
+  }
+
+  /* =========================================
+     SPACE WINDOWS (chrome frames with smoked glass)
+     ========================================= */
+  createSpaceWindows() {
+    const winTop = this.WINDOW_TOP;
+    const winBottom = this.WINDOW_BOTTOM;
+    const winHeight = this.WINDOW_HEIGHT;
+
+    // === SMOKED GLASS OVERLAY (goes over stars, under beams) ===
+    const smokedGlass = this.add.graphics().setDepth(0.8);
+    smokedGlass.fillStyle(this.SMOKED_GLASS, this.SMOKED_GLASS_ALPHA);
+    smokedGlass.fillRect(0, winTop, 1024, winHeight);
+    // Subtle gradient effect - darker at edges
+    smokedGlass.fillStyle(0x101520, 0.15);
+    smokedGlass.fillRect(0, winTop, 60, winHeight);
+    smokedGlass.fillRect(964, winTop, 60, winHeight);
+    smokedGlass.fillStyle(0x101520, 0.1);
+    smokedGlass.fillRect(0, winTop, 1024, 30);
+    smokedGlass.fillRect(0, winBottom - 30, 1024, 30);
+
+    // Glass reflection highlight (subtle diagonal shine)
+    smokedGlass.fillStyle(0x6688aa, 0.06);
+    smokedGlass.beginPath();
+    smokedGlass.moveTo(100, winTop);
+    smokedGlass.lineTo(400, winTop);
+    smokedGlass.lineTo(200, winBottom);
+    smokedGlass.lineTo(0, winBottom);
+    smokedGlass.closePath();
+    smokedGlass.fillPath();
+
+    const g = this.add.graphics().setDepth(1);
+
+    // === CHROME FRAME BEAMS ===
+    const beamW = 35; // Thinner, more elegant beams
+    const beamPositions = [0, 250, 512 - beamW/2, 774 - beamW, 1024 - beamW];
+
+    beamPositions.forEach((bx, i) => {
+      // Main beam body (brushed chrome)
+      g.fillStyle(this.CHROME_MID, 1);
+      g.fillRect(bx, winTop, beamW, winHeight);
+
+      // Left highlight (polished edge)
+      g.fillStyle(this.CHROME_HIGHLIGHT, 0.7);
+      g.fillRect(bx, winTop, 2, winHeight);
+      g.fillStyle(this.CHROME_LIGHT, 0.5);
+      g.fillRect(bx + 2, winTop, 4, winHeight);
+
+      // Right shadow
+      g.fillStyle(this.CHROME_DARK, 0.8);
+      g.fillRect(bx + beamW - 4, winTop, 4, winHeight);
+
+      // Subtle vertical brushed metal lines
+      g.lineStyle(1, this.CHROME_LIGHT, 0.15);
+      for (let lx = bx + 8; lx < bx + beamW - 8; lx += 4) {
+        g.lineBetween(lx, winTop, lx, winBottom);
+      }
+
+      // Chrome rivets (polished)
+      for (let ry = winTop + 25; ry < winBottom - 20; ry += 50) {
+        g.fillStyle(this.CHROME_DARK, 1);
+        g.fillCircle(bx + beamW/2, ry, 4);
+        g.fillStyle(this.CHROME_HIGHLIGHT, 0.8);
+        g.fillCircle(bx + beamW/2 - 1, ry - 1, 2);
+      }
+    });
+
+    // Horizontal chrome rail at top
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, winTop, 1024, 10);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.6);
+    g.fillRect(0, winTop, 1024, 2);
+    g.fillStyle(this.CHROME_DARK, 0.6);
+    g.fillRect(0, winTop + 8, 1024, 2);
+
+    // Horizontal chrome rail at bottom
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, winBottom - 10, 1024, 12);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.5);
+    g.fillRect(0, winBottom - 10, 1024, 2);
+
+    // Cyan neon accent strip
+    g.fillStyle(this.NEON_CYAN, 0.6);
+    g.fillRect(0, winBottom, 1024, 2);
+
+    // Glass edge highlights between beams
+    const glassEdge = this.add.graphics().setDepth(1);
+    glassEdge.lineStyle(1, this.GLASS_HIGHLIGHT, 0.25);
+    for (let i = 0; i < beamPositions.length - 1; i++) {
+      const left = beamPositions[i] + beamW + 3;
+      const right = beamPositions[i + 1] - 3;
+      glassEdge.strokeRect(left, winTop + 14, right - left, winHeight - 28);
+    }
+
+    // === SMALL WINDOW PANELS AT TOP ===
+    const smallWinY = 8;
+    const smallWinH = 100;
+    const frameThickness = 10;
+    const numWindows = 4;
+    const totalWidth = 1024 - 40;
+    const windowWidth = (totalWidth - (numWindows + 1) * frameThickness) / numWindows;
+
+    // Top chrome frame
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, 0, 1024, 8);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.5);
+    g.fillRect(0, 0, 1024, 2);
+
+    // Frame below small windows
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, smallWinY + smallWinH, 1024, frameThickness + 28);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.4);
+    g.fillRect(0, smallWinY + smallWinH, 1024, 2);
+
+    // Vertical chrome dividers
+    for (let i = 0; i <= numWindows; i++) {
+      const frameX = 20 + i * (windowWidth + frameThickness);
+      g.fillStyle(this.CHROME_MID, 1);
+      g.fillRect(frameX - frameThickness, smallWinY, frameThickness, smallWinH);
+      g.fillStyle(this.CHROME_HIGHLIGHT, 0.4);
+      g.fillRect(frameX - frameThickness, smallWinY, 2, smallWinH);
+    }
+
+    // Glass panes with tint
+    for (let i = 0; i < numWindows; i++) {
+      const paneX = 20 + frameThickness + i * (windowWidth + frameThickness);
+      g.fillStyle(this.GLASS_TINT, 0.2);
+      g.fillRect(paneX, smallWinY, windowWidth, smallWinH);
+      g.lineStyle(1, this.GLASS_HIGHLIGHT, 0.3);
+      g.strokeRect(paneX + 2, smallWinY + 2, windowWidth - 4, smallWinH - 4);
+
+      // Chrome rivets
+      g.fillStyle(this.CHROME_DARK, 0.9);
+      g.fillCircle(paneX - 5, smallWinY + 10, 3);
+      g.fillCircle(paneX + windowWidth + 5, smallWinY + 10, 3);
+      g.fillStyle(this.CHROME_HIGHLIGHT, 0.6);
+      g.fillCircle(paneX - 6, smallWinY + 9, 1.5);
+      g.fillCircle(paneX + windowWidth + 4, smallWinY + 9, 1.5);
+    }
+
+    // Cyan accent below small windows
+    g.fillStyle(this.NEON_CYAN, 0.5);
+    g.fillRect(20, smallWinY + smallWinH + 3, totalWidth, 2);
+
     this.createWallDecor();
   }
 
+  /* =========================================
+     BOIDS (single pixels drifting slowly - distant ships/debris)
+     ========================================= */
+  createBoids() {
+    this.boids = [];
+    this.boidsContainer = this.add.container(0, 0).setDepth(0.3); // Behind smoked glass
+
+    // Spawn 12 single-pixel boids spread across
+    for (let i = 0; i < 12; i++) {
+      this.spawnBoid(true);
+    }
+  }
+
+  spawnBoid(initialSpawn = false) {
+    const boid = {
+      x: initialSpawn ? Phaser.Math.Between(0, 1024) : Phaser.Math.Between(-30, -5),
+      y: Phaser.Math.Between(this.WINDOW_TOP + 25, this.WINDOW_BOTTOM - 25),
+      speed: Phaser.Math.FloatBetween(0.05, 0.2), // Very slow drift
+      size: 1, // Single pixel
+      color: Phaser.Utils.Array.GetRandom([0xffffff, 0xccddff, 0xffeedd, 0xaaccee]),
+      alpha: Phaser.Math.FloatBetween(0.3, 0.6), // Dim, distant
+    };
+
+    const g = this.add.graphics();
+    this.drawBoid(g, boid);
+    boid.graphics = g;
+    this.boidsContainer.add(g);
+    this.boids.push(boid);
+  }
+
+  drawBoid(g, boid) {
+    g.clear();
+    g.fillStyle(boid.color, boid.alpha);
+    g.fillCircle(boid.x, boid.y, boid.size);
+  }
+
+  updateBoids(delta) {
+    if (!this.boids) return;
+
+    for (const boid of this.boids) {
+      // Very slow rightward drift
+      boid.x += boid.speed * (delta / 16);
+
+      // Slight vertical wobble for realism
+      boid.y += Math.sin(boid.x * 0.02) * 0.02;
+
+      this.drawBoid(boid.graphics, boid);
+
+      // Respawn when off-screen
+      if (boid.x > 1030) {
+        boid.x = Phaser.Math.Between(-30, -5);
+        boid.y = Phaser.Math.Between(this.WINDOW_TOP + 25, this.WINDOW_BOTTOM - 25);
+        boid.speed = Phaser.Math.FloatBetween(0.05, 0.2);
+        boid.color = Phaser.Utils.Array.GetRandom([0xffffff, 0xccddff, 0xffeedd, 0xaaccee]);
+        boid.alpha = Phaser.Math.FloatBetween(0.3, 0.6);
+      }
+    }
+  }
+
   createWallDecor() {
-    // Signs sit on the wall above the ticket bar, behind the HUD text (depth 5)
-    // but above the HUD background strip (depth 4). They poke up from behind
-    // the ticket bar area so the full art is visible.
-
-    // Footers Sign — left side of wall
-    const sign = this.add.image(170, 28, 'sign_footers').setDepth(4.5);
-    sign.setAngle(-2);
-    sign.setScale(0.38);
-
-    // 86 List — right side of wall, slightly taller so smiley face shows
-    const list = this.add.image(880, 50, 'sign_86_list').setDepth(35.5);
-    list.setAngle(1.5);
-    list.setScale(0.35);
+    // Wall decor removed for cleaner UI
   }
 
   /* =========================================
      HUD
      ========================================= */
   createHUD(cfg) {
-    // Subtle HUD background strip
-    this.add.rectangle(512, 25, 1024, 50, 0x383840).setDepth(4).setAlpha(0.5);
+    // Space station HUD background strip
+    const hudBg = this.add.graphics().setDepth(4);
+    hudBg.fillStyle(this.HULL_DARK, 0.85);
+    hudBg.fillRect(0, 0, 1024, 50);
+    // Neon accent line below HUD
+    hudBg.fillStyle(this.NEON_CYAN, 0.4);
+    hudBg.fillRect(0, 48, 1024, 2);
 
     this.dayText = this.add.text(12, 15,
       `Day ${this.day}: ${cfg.name}`, {
-      fontSize: '16px', color: '#ddd', fontFamily: 'Bungee, Arial',
+      fontSize: '16px', color: '#00ddff', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
     this.scoreText = this.add.text(260, 15,
@@ -193,12 +504,12 @@ export class GameScene extends Phaser.Scene {
 
     this.ordersText = this.add.text(700, 17,
       this.ordersDisplay(), {
-      fontSize: '12px', color: '#bbb', fontFamily: 'Arial',
+      fontSize: '12px', color: '#aaddff', fontFamily: 'Arial',
     }).setDepth(5);
 
     // Money Display
     this.moneyText = this.add.text(450, 15, '$0.00', {
-      fontSize: '16px', color: '#88ff88', fontFamily: 'Bungee, Arial',
+      fontSize: '16px', color: '#44ff88', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
     // Colored strike indicators
@@ -206,11 +517,143 @@ export class GameScene extends Phaser.Scene {
     this.strikeIcons = [];
     for (let i = 0; i < this.maxStrikes; i++) {
       const icon = this.add.text(i * 24, 2, '\u25cb', {
-        fontSize: '16px', color: '#44aa44', fontFamily: 'Arial', fontStyle: 'bold',
+        fontSize: '16px', color: '#44ffaa', fontFamily: 'Arial', fontStyle: 'bold',
       });
       this.strikeContainer.add(icon);
       this.strikeIcons.push(icon);
     }
+
+    // F1=Hotkeys memo indicator
+    this.createHotkeyMemo();
+
+    // Hotkey legend panel (hidden until F1 pressed)
+    this.createHotkeyLegend();
+  }
+
+  createHotkeyMemo() {
+    const memoX = 600;
+    const memoY = 22;
+
+    // Space datapad style memo
+    const memo = this.add.graphics().setDepth(5);
+    // Dark panel background
+    memo.fillStyle(this.HULL_LIGHT, 0.95);
+    memo.fillRoundedRect(memoX, memoY - 12, 70, 24, 4);
+    // Cyan border glow
+    memo.lineStyle(1, this.NEON_CYAN, 0.8);
+    memo.strokeRoundedRect(memoX, memoY - 12, 70, 24, 4);
+
+    // Text on memo
+    this.add.text(memoX + 35, memoY, 'F1=Help', {
+      fontSize: '11px',
+      color: '#00ddff',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(5);
+  }
+
+  showHotkeyHints(visible) {
+    this.hotkeyHints.forEach(hint => {
+      if (hint && hint.setVisible) {
+        hint.setVisible(visible);
+      }
+    });
+
+    // Also toggle ingredient/item labels
+    this.labelHints.forEach(label => {
+      if (label && label.setVisible) {
+        label.setVisible(visible);
+      }
+    });
+
+    // Show/hide the legend panel
+    if (this.hotkeyLegend) {
+      this.hotkeyLegend.setVisible(visible);
+    }
+  }
+
+  createHotkeyLegend() {
+    // Create a legend panel showing all controls
+    const panelX = 60;
+    const panelY = 300;
+    const panelW = 160;
+    const panelH = 200;
+
+    const legend = this.add.container(panelX, panelY).setDepth(100);
+
+    // Background - space datapad style
+    const bg = this.add.graphics();
+    bg.fillStyle(this.HULL_DARK, 0.95);
+    bg.fillRoundedRect(0, 0, panelW, panelH, 8);
+    bg.lineStyle(2, this.NEON_CYAN, 0.9);
+    bg.strokeRoundedRect(0, 0, panelW, panelH, 8);
+    legend.add(bg);
+
+    // Title
+    const title = this.add.text(panelW / 2, 12, 'CONTROLS', {
+      fontSize: '14px', color: '#00ffcc', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    legend.add(title);
+
+    // Control entries
+    const controls = [
+      { key: 'SPACE', desc: 'Speed up belt' },
+      { key: 'SHIFT', desc: 'Slow down belt' },
+      { key: 'ESC', desc: 'Cancel pickup' },
+      { key: '1-4', desc: 'Meats' },
+      { key: '5-7', desc: 'Veggies' },
+      { key: '8-9', desc: 'Cheese' },
+      { key: 'Q/E', desc: 'Sauces' },
+      { key: 'R/F', desc: 'Toast/ToGo' },
+      { key: 'G/H', desc: 'Salt/Pepper' },
+      { key: 'V', desc: 'Oil & Vinegar' },
+    ];
+
+    controls.forEach((ctrl, i) => {
+      const y = 34 + i * 16;
+      const keyTxt = this.add.text(8, y, ctrl.key, {
+        fontSize: '11px', color: '#00ddff', fontFamily: 'Arial', fontStyle: 'bold',
+      });
+      const descTxt = this.add.text(55, y, ctrl.desc, {
+        fontSize: '11px', color: '#aaddff', fontFamily: 'Arial',
+      });
+      legend.add(keyTxt);
+      legend.add(descTxt);
+    });
+
+    legend.setVisible(false);
+    this.hotkeyLegend = legend;
+  }
+
+  createHotkeyHint(x, y, key, depth = 22) {
+    // Create a highly visible hotkey hint with background - space style
+    const container = this.add.container(x, y).setDepth(depth);
+
+    // Background pill
+    const bg = this.add.graphics();
+    const textWidth = key.length > 1 ? 28 : 22;
+    bg.fillStyle(this.HULL_DARK, 0.9);
+    bg.fillRoundedRect(-textWidth / 2 - 4, -10, textWidth + 8, 20, 6);
+    bg.lineStyle(2, this.NEON_CYAN, 1);
+    bg.strokeRoundedRect(-textWidth / 2 - 4, -10, textWidth + 8, 20, 6);
+    container.add(bg);
+
+    // Key text
+    const txt = this.add.text(0, 0, key, {
+      fontSize: '14px',
+      color: '#00ffff',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+    }).setOrigin(0.5);
+    container.add(txt);
+
+    // Hidden by default
+    container.setVisible(false);
+
+    // Store reference for F1 toggle
+    this.hotkeyHints.push(container);
+
+    return container;
   }
 
   ordersDisplay() {
@@ -221,10 +664,10 @@ export class GameScene extends Phaser.Scene {
     for (let i = 0; i < this.maxStrikes; i++) {
       if (i < this.strikes) {
         this.strikeIcons[i].setText('\u2717');
-        this.strikeIcons[i].setColor('#ff3333');
+        this.strikeIcons[i].setColor('#ff4466');
       } else {
         this.strikeIcons[i].setText('\u25cb');
-        this.strikeIcons[i].setColor('#44aa44');
+        this.strikeIcons[i].setColor('#44ffaa');
       }
     }
   }
@@ -237,101 +680,61 @@ export class GameScene extends Phaser.Scene {
   }
 
   createStartButton() {
-    const btn = this.add.container(512, 400).setDepth(200);
+    // Subtle title overlay - click anywhere to start
+    const overlay = this.add.container(0, 0).setDepth(200);
 
-    const bg = this.add.graphics();
-    bg.fillStyle(0x44aa44, 1);
-    bg.fillRoundedRect(-100, -30, 200, 60, 16);
-    bg.lineStyle(4, 0xffffff, 1);
-    bg.strokeRoundedRect(-100, -30, 200, 60, 16);
-    btn.add(bg);
+    // Semi-transparent backdrop
+    const backdrop = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.5);
+    overlay.add(backdrop);
 
-    const txt = this.add.text(0, 0, 'OPEN FOR BUSINESS', {
-      fontSize: '18px', color: '#fff', fontFamily: 'Bungee, Arial'
-    }).setOrigin(0.5);
-    btn.add(txt);
+    // Title text
+    const title = this.add.text(512, 340, 'SammyBot', {
+      fontSize: '64px',
+      color: '#00ddff',
+      fontFamily: 'Bungee, Arial',
+      stroke: '#004455',
+      strokeThickness: 4
+    }).setOrigin(0.5).setAlpha(0.9);
+    overlay.add(title);
 
-    btn.setSize(260, 100);
-    btn.setInteractive(new Phaser.Geom.Rectangle(-130, -50, 260, 100), Phaser.Geom.Rectangle.Contains);
+    // Subtitle
+    const subtitle = this.add.text(512, 410, `Day ${this.day}`, {
+      fontSize: '24px',
+      color: '#aaddff',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5).setAlpha(0.8);
+    overlay.add(subtitle);
 
-    btn.on('pointerover', () => {
-      bg.clear();
-      bg.fillStyle(0x55cc55, 1);
-      bg.fillRoundedRect(-100, -30, 200, 60, 16);
-      bg.lineStyle(4, 0xffffff, 1);
-      bg.strokeRoundedRect(-100, -30, 200, 60, 16);
+    // Click prompt
+    const prompt = this.add.text(512, 480, 'click to start', {
+      fontSize: '16px',
+      color: '#88aacc',
+      fontFamily: 'Arial',
+      fontStyle: 'italic'
+    }).setOrigin(0.5).setAlpha(0.6);
+    overlay.add(prompt);
+
+    // Pulse the prompt
+    this.tweens.add({
+      targets: prompt,
+      alpha: 0.3,
+      duration: 800,
+      yoyo: true,
+      repeat: -1
     });
-    btn.on('pointerout', () => {
-      bg.clear();
-      bg.fillStyle(0x44aa44, 1);
-      bg.fillRoundedRect(-100, -30, 200, 60, 16);
-      bg.lineStyle(4, 0xffffff, 1);
-      bg.strokeRoundedRect(-100, -30, 200, 60, 16);
-    });
-    btn.on('pointerdown', () => {
+
+    // Click anywhere to dismiss
+    backdrop.setInteractive({ useHandCursor: true });
+    backdrop.on('pointerdown', () => {
       this.isStoreOpen = true;
       this.tweens.add({
-        targets: btn, scale: 1.1, alpha: 0, duration: 200,
-        onComplete: () => btn.destroy()
+        targets: overlay,
+        alpha: 0,
+        duration: 300,
+        onComplete: () => overlay.destroy()
       });
       soundManager.init();
       soundManager.ding();
-    });
-
-    // Pulse animation
-    this.tweens.add({
-      targets: btn, scale: 1.05, duration: 600, yoyo: true, repeat: -1
-    });
-  }
-
-  showHintsModal() {
-    // Clickable overlay covers the full screen and blocks all input behind it
-    const overlay = this.add.rectangle(512, 384, 1024, 768, 0x000000, 0.6)
-      .setDepth(500)
-      .setInteractive({ useHandCursor: true });
-
-    // Visual elements on top of the overlay
-    const box = this.add.graphics().setDepth(501);
-    box.fillStyle(0x2A2A38, 1);
-    box.fillRoundedRect(312, 264, 400, 240, 12);
-    box.lineStyle(2, 0x6666aa, 1);
-    box.strokeRoundedRect(312, 264, 400, 240, 12);
-
-    const title = this.add.text(512, 294, 'HOW TO PLAY', {
-      fontSize: '20px', color: '#ffd700', fontFamily: 'Bungee, Arial',
-    }).setOrigin(0.5).setDepth(501);
-
-    const lines = [
-      'Click ingredients to pick up',
-      'Click a tray to place them',
-      'Match the order # to the ticket above',
-      'Hold SPACE to speed up / SHIFT to slow down',
-      'Press ESC to cancel a pickup',
-    ];
-    const lineTexts = lines.map((line, i) =>
-      this.add.text(512, 334 + i * 24, line, {
-        fontSize: '14px', color: '#ccccdd', fontFamily: 'Arial',
-      }).setOrigin(0.5).setDepth(501)
-    );
-
-    const btnBg = this.add.graphics().setDepth(501);
-    btnBg.fillStyle(0x44aa44, 1);
-    btnBg.fillRoundedRect(462, 459, 100, 36, 8);
-    btnBg.lineStyle(2, 0xffffff, 0.8);
-    btnBg.strokeRoundedRect(462, 459, 100, 36, 8);
-
-    const btnTxt = this.add.text(512, 477, 'GOT IT', {
-      fontSize: '16px', color: '#fff', fontFamily: 'Bungee, Arial',
-    }).setOrigin(0.5).setDepth(501);
-
-    // Click anywhere to dismiss
-    overlay.on('pointerdown', () => {
-      overlay.destroy();
-      box.destroy();
-      title.destroy();
-      lineTexts.forEach((t) => t.destroy());
-      btnBg.destroy();
-      btnTxt.destroy();
     });
   }
 
@@ -339,15 +742,16 @@ export class GameScene extends Phaser.Scene {
      TICKET BAR
      ========================================= */
   createTicketBar() {
-    this.add.rectangle(512, 95, 1024, 88, 0x383840).setDepth(35);
-    this.add.rectangle(512, 52, 1024, 2, 0x505058).setDepth(35);
-    this.add.rectangle(512, 138, 1024, 2, 0x505058).setDepth(35);
+    // Space station ticket display panel
+    this.add.rectangle(512, 95, 1024, 88, this.HULL_MID).setDepth(35);
+    this.add.rectangle(512, 52, 1024, 2, this.HULL_LIGHT).setDepth(35);
+    this.add.rectangle(512, 138, 1024, 2, this.HULL_LIGHT).setDepth(35);
 
     // 3D bottom lip/shelf edge for ticket bar
     const ticketLip = this.add.graphics().setDepth(35);
-    ticketLip.fillStyle(0x303038, 1);
+    ticketLip.fillStyle(this.HULL_DARK, 1);
     ticketLip.fillRect(0, 139, 1024, 4);
-    ticketLip.fillStyle(0x505058, 1);
+    ticketLip.fillStyle(this.HULL_LIGHT, 1);
     ticketLip.beginPath();
     ticketLip.moveTo(0, 139);
     ticketLip.lineTo(1024, 139);
@@ -355,9 +759,12 @@ export class GameScene extends Phaser.Scene {
     ticketLip.lineTo(3, 143);
     ticketLip.closePath();
     ticketLip.fillPath();
+    // Neon accent on ticket bar edge
+    ticketLip.fillStyle(this.NEON_CYAN, 0.3);
+    ticketLip.fillRect(0, 139, 1024, 1);
 
     this.add.text(8, 55, 'ORDERS:', {
-      fontSize: '10px', color: '#777', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '10px', color: '#00bbdd', fontFamily: 'Arial', fontStyle: 'bold',
     }).setDepth(36);
 
     this.ticketContainer = this.add.container(0, 0).setDepth(36);
@@ -581,30 +988,218 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     FLOOR (isometric checkerboard tiles)
+     METAL SURFACE (brushed steel prep area below belt)
      ========================================= */
-  createFloor() {
-    // Tiled floor texture
-    const floor = this.add.tileSprite(512, 333, 1024, 126, 'floor_tile');
-    floor.setDepth(1);
-    floor.setTileScale(0.5);
+  createMetalSurface() {
+    const g = this.add.graphics().setDepth(0);
+
+    const surfaceY = 437;
+    const surfaceH = 331; // To bottom of screen (768 - 437)
+    const surfaceW = 1024;
+
+    // Lighter brushed steel base
+    const baseColor = 0x8a8a9a;
+    g.fillStyle(baseColor, 1);
+    g.fillRect(0, surfaceY, surfaceW, surfaceH);
+
+    // Brushed metal horizontal lines (fine texture)
+    g.lineStyle(1, 0x9a9aaa, 0.12);
+    for (let y = surfaceY + 4; y < surfaceY + surfaceH; y += 6) {
+      g.lineBetween(0, y, surfaceW, y);
+    }
+
+    // Top edge highlight (light source from above)
+    g.fillStyle(0xb0b0c0, 0.6);
+    g.fillRect(0, surfaceY, surfaceW, 2);
+
+    // Subtle gradient darkening toward bottom
+    for (let i = 0; i < 8; i++) {
+      const alpha = 0.02 * i;
+      const yPos = surfaceY + surfaceH - 80 + i * 10;
+      g.fillStyle(0x000000, alpha);
+      g.fillRect(0, yPos, surfaceW, 10);
+    }
+
+    // Panel sections (vertical dividers)
+    const panelWidth = surfaceW / 5;
+    g.lineStyle(1, 0x6a6a7a, 0.4);
+    for (let i = 1; i < 5; i++) {
+      const px = i * panelWidth;
+      g.lineBetween(px, surfaceY + 10, px, surfaceY + surfaceH - 10);
+    }
+
+    // Panel section highlights (left edge of each panel)
+    g.lineStyle(1, 0xaaaabc, 0.2);
+    for (let i = 1; i < 5; i++) {
+      const px = i * panelWidth + 1;
+      g.lineBetween(px, surfaceY + 10, px, surfaceY + surfaceH - 10);
+    }
+
+    // Rivet details along top edge
+    const rivetColor = 0x7a7a8a;
+    const rivetHighlight = 0xb8b8c8;
+    for (let x = 30; x < surfaceW; x += 80) {
+      // Rivet base
+      g.fillStyle(rivetColor, 1);
+      g.fillCircle(x, surfaceY + 15, 4);
+      // Rivet highlight
+      g.fillStyle(rivetHighlight, 0.6);
+      g.fillCircle(x - 1, surfaceY + 14, 1.5);
+    }
+
+    // Rivet details along bottom edge
+    for (let x = 30; x < surfaceW; x += 80) {
+      g.fillStyle(rivetColor, 1);
+      g.fillCircle(x, surfaceY + surfaceH - 15, 4);
+      g.fillStyle(rivetHighlight, 0.6);
+      g.fillCircle(x - 1, surfaceY + surfaceH - 16, 1.5);
+    }
+
+    // Corner bracket details (top-left, top-right)
+    this.drawCornerBracket(g, 8, surfaceY + 8, false);
+    this.drawCornerBracket(g, surfaceW - 8, surfaceY + 8, true);
+
+    // Subtle center highlight (reflection)
+    g.fillStyle(0xffffff, 0.04);
+    g.fillRect(200, surfaceY + 60, 624, 200);
+
+    // Robot arm base slot (center bottom)
+    const slotX = 512;
+    const slotY = surfaceY + surfaceH - 40;
+    const slotW = 100;
+    const slotH = 50;
+
+    // Dark recessed area for arm
+    g.fillStyle(0x2a2a3a, 1);
+    g.fillRoundedRect(slotX - slotW / 2, slotY, slotW, slotH, 8);
+
+    // Inner shadow
+    g.fillStyle(0x1a1a2a, 1);
+    g.fillRoundedRect(slotX - slotW / 2 + 4, slotY + 4, slotW - 8, slotH - 4, 6);
+
+    // Edge highlights
+    g.lineStyle(1, 0x5a5a6a, 0.6);
+    g.strokeRoundedRect(slotX - slotW / 2, slotY, slotW, slotH, 8);
+
+    // Warning chevrons around slot
+    g.fillStyle(0xffaa00, 0.4);
+    g.fillTriangle(slotX - slotW / 2 - 15, slotY + 10, slotX - slotW / 2 - 5, slotY + 5, slotX - slotW / 2 - 5, slotY + 15);
+    g.fillTriangle(slotX + slotW / 2 + 15, slotY + 10, slotX + slotW / 2 + 5, slotY + 5, slotX + slotW / 2 + 5, slotY + 15);
+  }
+
+  drawCornerBracket(g, x, y, flipX) {
+    const dir = flipX ? -1 : 1;
+    g.lineStyle(2, 0x6a6a7a, 0.5);
+    g.beginPath();
+    g.moveTo(x, y + 20);
+    g.lineTo(x, y);
+    g.lineTo(x + dir * 20, y);
+    g.strokePath();
+    g.lineStyle(1, 0xaaaabc, 0.3);
+    g.beginPath();
+    g.moveTo(x + dir * 1, y + 19);
+    g.lineTo(x + dir * 1, y + 1);
+    g.lineTo(x + dir * 19, y + 1);
+    g.strokePath();
   }
 
   /* =========================================
-     BELT (isometric with 3D rails)
+     FLOOR (brushed chrome strip below window)
+     ========================================= */
+  createFloor() {
+    const g = this.add.graphics().setDepth(1);
+    const floorY = this.WINDOW_BOTTOM;
+    const floorH = 28;
+
+    // Brushed chrome base
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, floorY, 1024, floorH);
+
+    // Top highlight
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.5);
+    g.fillRect(0, floorY, 1024, 3);
+
+    // Brushed metal horizontal lines
+    g.lineStyle(1, this.CHROME_LIGHT, 0.2);
+    for (let y = floorY + 6; y < floorY + floorH - 4; y += 4) {
+      g.lineBetween(0, y, 1024, y);
+    }
+
+    // Bottom edge shadow
+    g.fillStyle(this.CHROME_DARK, 0.6);
+    g.fillRect(0, floorY + floorH - 3, 1024, 3);
+
+    // Diamond plate texture (subtle)
+    g.fillStyle(this.CHROME_LIGHT, 0.15);
+    for (let x = 20; x < 1024; x += 40) {
+      for (let row = 0; row < 2; row++) {
+        const yOff = floorY + 8 + row * 10;
+        g.beginPath();
+        g.moveTo(x, yOff);
+        g.lineTo(x + 8, yOff - 4);
+        g.lineTo(x + 16, yOff);
+        g.lineTo(x + 8, yOff + 4);
+        g.closePath();
+        g.fillPath();
+      }
+    }
+
+    // Neon accent strips at edges
+    g.fillStyle(this.NEON_ORANGE, 0.35);
+    g.fillRect(0, floorY, 3, floorH);
+    g.fillRect(1021, floorY, 3, floorH);
+  }
+
+  /* =========================================
+     ISOMETRIC HELPERS
+     ========================================= */
+  getIsoPosition(col, row, baseX, baseY, spacingX, spacingY) {
+    const x = baseX + col * spacingX + row * spacingY * this.ISO_SKEW;
+    const y = baseY + row * spacingY;
+    return { x, y };
+  }
+
+  drawIsoSurface(g, x, y, w, h, skew, topColor, frontColor) {
+    // Front face (rectangle)
+    g.fillStyle(frontColor, 1);
+    g.fillRect(x, y, w, h);
+
+    // Top face (parallelogram)
+    g.fillStyle(topColor, 1);
+    g.beginPath();
+    g.moveTo(x, y);
+    g.lineTo(x + skew, y - skew * 0.6);
+    g.lineTo(x + w + skew, y - skew * 0.6);
+    g.lineTo(x + w, y);
+    g.closePath();
+    g.fillPath();
+
+    // Right edge highlight
+    g.lineStyle(1, 0x606068, 0.5);
+    g.lineBetween(x + w, y, x + w + skew, y - skew * 0.6);
+  }
+
+  drawItemShadow(g, x, y, radiusX, radiusY) {
+    g.fillStyle(0x000000, 0.15);
+    g.fillEllipse(x, y, radiusX, radiusY);
+  }
+
+  /* =========================================
+     BELT (chrome rails with dark rubber belt)
      ========================================= */
   drawBelt() {
     const g = this.beltGfx;
     g.clear();
 
-    const isoOff = 4; // iso offset for top face
+    const isoOff = 4;
 
-    // Top rail — 3D extruded metal
-    // Front face
-    g.fillStyle(0x505058, 1);
-    g.fillRect(0, 396, 1024, 6);
+    // Top chrome rail
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, 396, 1024, 5);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.6);
+    g.fillRect(0, 396, 1024, 2);
     // Top face (parallelogram)
-    g.fillStyle(0x808088, 1);
+    g.fillStyle(this.CHROME_LIGHT, 1);
     g.beginPath();
     g.moveTo(0, 396);
     g.lineTo(isoOff, 396 - isoOff);
@@ -613,31 +1208,30 @@ export class GameScene extends Phaser.Scene {
     g.closePath();
     g.fillPath();
 
-    // Belt segments
-    g.fillStyle(0x606068, 1);
-    g.fillRect(0, 402, 1024, 28);
+    // Belt segments (dark rubber with subtle texture)
+    g.fillStyle(0x3a3a42, 1);
+    g.fillRect(0, 401, 1024, 26);
     let segIndex = 0;
     for (let x = this.beltOffset - 40; x < 1064; x += 40) {
-      const tint = segIndex % 2 === 0 ? 0x606068 : 0x686870;
+      const tint = segIndex % 2 === 0 ? 0x3a3a42 : 0x424248;
       g.fillStyle(tint, 1);
       const sx = Math.max(0, x);
       const sw = Math.min(38, 1024 - sx);
-      if (sw > 0) g.fillRect(sx, 402, sw, 28);
-      g.lineStyle(1, 0x7A7A84, 0.4);
-      g.strokeRect(x, 402, 38, 28);
+      if (sw > 0) g.fillRect(sx, 401, sw, 26);
+      g.lineStyle(1, 0x4a4a52, 0.3);
+      g.strokeRect(x, 401, 38, 26);
       segIndex++;
     }
 
-    // Front face of belt housing below segments
-    g.fillStyle(0x3A3840, 1);
-    g.fillRect(0, 430, 1024, 6);
+    // Belt housing front
+    g.fillStyle(this.CHROME_DARK, 1);
+    g.fillRect(0, 427, 1024, 5);
 
-    // Bottom rail — polished edge
-    g.fillStyle(0x808088, 1);
-    g.fillRect(0, 432, 1024, 4);
-    // Bottom highlight
-    g.lineStyle(1, 0xA0A0A8, 0.3);
-    g.lineBetween(0, 432, 1024, 432);
+    // Bottom chrome rail
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, 430, 1024, 4);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.4);
+    g.fillRect(0, 430, 1024, 1);
   }
 
   /* =========================================
@@ -687,21 +1281,23 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     MEAT PILES (Left Side)
+     MEAT PILES (Left Side - Isometric Grid)
      ========================================= */
   createBins() {
     const keys = BIN_LAYOUT[0];
 
-    const startX = 140;
-    const startY = 480;
-    const spacingX = 140;
-    const spacingY = 100;
+    // Isometric grid layout - tighter spacing
+    const baseX = 100;
+    const baseY = 495;
+    const spacingX = 110;
+    const spacingY = 80;
 
     keys.forEach((key, i) => {
       const row = Math.floor(i / 2);
       const col = i % 2;
-      const x = startX + col * spacingX;
-      const y = startY + row * spacingY;
+      const pos = this.getIsoPosition(col, row, baseX, baseY, spacingX, spacingY);
+      const x = pos.x;
+      const y = pos.y;
 
       const pileKey = key.replace('meat_', 'meat_pile_');
       const pile = this.add.image(x, y, pileKey).setDepth(20);
@@ -714,24 +1310,24 @@ export class GameScene extends Phaser.Scene {
         this.createMeatPileLogic(key, x, y, pile);
       });
 
-      // Name label
+      // Name label (hidden by default, shown with F1)
       const ing = INGREDIENTS[key];
-      this.add.text(x, y + 45, ing.name, {
+      const label = this.add.text(x, y + 48, ing.name, {
         fontSize: '11px', color: '#ccc', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(21);
+      }).setOrigin(0.5).setDepth(21).setVisible(false);
+      this.labelHints.push(label);
 
-      // Keyboard hint
+      // Keyboard hint (hidden by default, shown with F1)
       const hints = { 'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4' };
       if (hints[key]) {
-        this.add.text(x + 35, y - 35, `[${hints[key]}]`, {
-          fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
-        }).setOrigin(0.5).setDepth(22).setAlpha(0.7);
+        this.createHotkeyHint(x + 38, y - 28, hints[key]);
       }
     });
   }
 
   createMeatPileLogic(key, x, y, visual) {
     soundManager.init();
+    soundManager.robotPickup();
     const pointer = this.input.activePointer;
     const heldVisual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = {
@@ -745,13 +1341,12 @@ export class GameScene extends Phaser.Scene {
 
 
   /* =========================================
-     LOAVES (Standalone sources)
+     LOAVES (Standalone - Isometric Grid with Shadows)
      ========================================= */
   createLoaves() {
-    // Place them to the right of the bins
-    const startX = 940;
-    const startY = 520;
-    const spacingY = 100;
+    const baseX = 850;
+    const baseY = 490;
+    const spacingY = 78;
 
     const breads = [
       { key: 'bread_white', label: 'White', asset: 'loaf_white' },
@@ -759,9 +1354,18 @@ export class GameScene extends Phaser.Scene {
       { key: 'bread_sourdough', label: 'Sourdough', asset: 'loaf_sourdough' }
     ];
 
+    // Draw shadows graphics
+    const shadowGfx = this.add.graphics().setDepth(11);
+
     breads.forEach((b, i) => {
-      const y = startY + i * spacingY;
-      const loaf = this.add.image(startX, y, b.asset).setDepth(20);
+      const pos = this.getIsoPosition(0, i, baseX, baseY, 0, spacingY);
+      const x = pos.x;
+      const y = pos.y;
+
+      // Draw shadow under the loaf (no bin)
+      this.drawItemShadow(shadowGfx, x, y + 18, 40, 12);
+
+      const loaf = this.add.image(x, y, b.asset).setDepth(20);
       loaf.setInteractive({ useHandCursor: true });
       loaf.on('pointerover', () => loaf.setTint(0xdddddd));
       loaf.on('pointerout', () => loaf.clearTint());
@@ -770,14 +1374,16 @@ export class GameScene extends Phaser.Scene {
         this.clickLoaf(b.key, pointer);
       });
 
-      this.add.text(startX, y + 40, b.label, {
+      // Label (hidden by default, shown with F1)
+      const label = this.add.text(x, y + 42, b.label, {
         fontSize: '13px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-      }).setOrigin(0.5).setDepth(21);
+      }).setOrigin(0.5).setDepth(21).setVisible(false);
+      this.labelHints.push(label);
     });
   }
 
   clickLoaf(key, pointer) {
-    soundManager.plopBread();
+    soundManager.robotPickup();
 
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
 
@@ -791,31 +1397,32 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
-     TREATMENTS (Top Center) & SAUCES
+     TREATMENTS (Bottom of screen) & SAUCES
      ========================================= */
   createTreatments() {
-    const startX = 200;
-    const startY = 200;
-    const spacing = 110;
+    // Position at bottom of screen, below all ingredients
+    const shelfY = 695;
+    const startX = 120;
+    const spacing = 85;
 
-    // Treatments
-    const treatKeys = ['toasted', 'togo', 'salt_pepper', 'oil_vinegar'];
+    // Treatments - now with separate salt and pepper
+    const treatKeys = ['toasted', 'togo', 'salt', 'pepper', 'oil_vinegar'];
     treatKeys.forEach((key, i) => {
-      this.createTreatmentItem(key, startX + i * spacing, startY);
+      this.createTreatmentItem(key, startX + i * spacing, shelfY);
     });
 
-    // Sauces to the right of treatments
-    this.createSauceBottle('sauce_mayo', startX + 4 * spacing + 10, startY);
-    this.createSauceBottle('sauce_mustard', startX + 5 * spacing + 10, startY);
+    // Sauces to the right of treatments on same row
+    this.createSauceBottle('sauce_mayo', startX + 5 * spacing + 15, shelfY);
+    this.createSauceBottle('sauce_mustard', startX + 6 * spacing + 15, shelfY);
   }
 
   /* =========================================
-     CHEESE STACKS - CENTER RIGHT
+     CHEESE STACKS - CENTER RIGHT (Isometric Grid)
      ========================================= */
   createCheeseStacks() {
-    const baseX = 720;
-    const spacingY = 110;
-    const startY = 510;
+    const baseX = 620;
+    const baseY = 500;
+    const spacingY = 85;
 
     const cheeses = [
       { key: 'cheese_american', label: 'American' },
@@ -823,8 +1430,11 @@ export class GameScene extends Phaser.Scene {
     ];
 
     cheeses.forEach((c, i) => {
-      const y = startY + i * spacingY;
-      const stack = this.add.image(baseX, y, `cheese_stack_${c.key.split('_')[1]}`).setDepth(20);
+      const pos = this.getIsoPosition(0, i, baseX, baseY, 0, spacingY);
+      const x = pos.x;
+      const y = pos.y;
+
+      const stack = this.add.image(x, y, `cheese_stack_${c.key.split('_')[1]}`).setDepth(20);
       // Art lives in ~x:18-105, y:48-90 of the 128x128 frame
       stack.setInteractive({
         hitArea: new Phaser.Geom.Rectangle(15, 45, 92, 50),
@@ -838,34 +1448,35 @@ export class GameScene extends Phaser.Scene {
         this.clickCheeseStack(c.key, pointer);
       });
 
-      this.add.text(baseX, y + 50, c.label, {
+      // Label (hidden by default, shown with F1)
+      const label = this.add.text(x, y + 52, c.label, {
         fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-      }).setOrigin(0.5).setDepth(21);
+      }).setOrigin(0.5).setDepth(21).setVisible(false);
+      this.labelHints.push(label);
 
-      // Keyboard hint
+      // Keyboard hint (hidden by default, shown with F1)
       const hints = { 'cheese_american': '8', 'cheese_swiss': '9' };
       if (hints[c.key]) {
-        this.add.text(baseX + 40, y - 30, `[${hints[c.key]}]`, {
-          fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
-        }).setOrigin(0.5).setDepth(22).setAlpha(0.7);
+        this.createHotkeyHint(x + 42, y - 26, hints[c.key]);
       }
     });
   }
 
   clickCheeseStack(key, pointer) {
     soundManager.init();
+    soundManager.robotPickup();
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
     this._justPickedUp = true;
   }
 
   /* =========================================
-     VEGGIE BOWLS - CENTER LEFT
+     VEGGIE BOWLS - CENTER (Isometric Grid)
      ========================================= */
   createVeggieBowls() {
-    const baseX = 480;
-    const startY = 475;
-    const spacingY = 90;
+    const baseX = 420;
+    const baseY = 495;
+    const spacingY = 75;
 
     const veggies = [
       { key: 'top_lettuce', label: 'Lettuce', asset: 'bowl_content_lettuce' },
@@ -874,8 +1485,11 @@ export class GameScene extends Phaser.Scene {
     ];
 
     veggies.forEach((v, i) => {
-      const y = startY + i * spacingY;
-      const vegImg = this.add.image(baseX, y, v.asset).setDepth(20).setScale(0.8);
+      const pos = this.getIsoPosition(0, i, baseX, baseY, 0, spacingY);
+      const x = pos.x;
+      const y = pos.y;
+
+      const vegImg = this.add.image(x, y, v.asset).setDepth(20).setScale(0.75);
       vegImg.setInteractive({ useHandCursor: true });
       vegImg.on('pointerover', () => vegImg.setTint(0xdddddd));
       vegImg.on('pointerout', () => vegImg.clearTint());
@@ -884,49 +1498,89 @@ export class GameScene extends Phaser.Scene {
         this.clickVeggieBowl(v.key, pointer);
       });
 
-      this.add.text(baseX, y + 40, v.label, {
-        fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-      }).setOrigin(0.5).setDepth(21);
+      // Label (hidden by default, shown with F1)
+      const label = this.add.text(x, y + 42, v.label, {
+        fontSize: '13px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21).setVisible(false);
+      this.labelHints.push(label);
 
-      // Keyboard hint
+      // Keyboard hint (hidden by default, shown with F1)
       const hints = { 'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7' };
       if (hints[v.key]) {
-        this.add.text(baseX + 35, y - 25, `[${hints[v.key]}]`, {
-          fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
-        }).setOrigin(0.5).setDepth(22).setAlpha(0.7);
+        this.createHotkeyHint(x + 36, y - 20, hints[v.key]);
       }
     });
   }
 
   clickVeggieBowl(key, pointer) {
     soundManager.init();
+    soundManager.robotPickup();
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
     this._justPickedUp = true;
   }
 
   createSauceBottle(key, x, y) {
-    const assetKey = key === 'sauce_mayo' ? 'sauce_mayo_bottle' : 'sauce_mustard_bottle';
-    const bottle = this.add.image(x, y, assetKey).setDepth(30).setScale(0.8);
-    bottle.setInteractive({ useHandCursor: true });
-    bottle.on('pointerover', () => bottle.setTint(0xdddddd));
-    bottle.on('pointerout', () => bottle.clearTint());
-    bottle.on('pointerdown', () => {
+    const ingredient = INGREDIENTS[key];
+    const radius = 22;
+
+    // Create container for the sauce icon
+    const container = this.add.container(x, y).setDepth(30);
+
+    const g = this.add.graphics();
+
+    // Shadow underneath
+    g.fillStyle(0x000000, 0.2);
+    g.fillEllipse(0, radius + 6, radius * 1.2, 6);
+
+    // Colored circle with border
+    g.fillStyle(ingredient.color, 1);
+    g.fillCircle(0, 0, radius);
+    g.lineStyle(3, ingredient.border, 1);
+    g.strokeCircle(0, 0, radius);
+
+    // Highlight
+    g.fillStyle(0xffffff, 0.3);
+    g.fillEllipse(-6, -8, radius * 0.4, radius * 0.25);
+
+    container.add(g);
+
+    // Label text above
+    const label = this.add.text(0, -radius - 12, ingredient.name, {
+      fontSize: '12px',
+      color: '#ccc',
+      fontStyle: 'bold',
+      fontFamily: 'Arial'
+    }).setOrigin(0.5);
+    container.add(label);
+
+    // Make interactive - generous hitbox covering label, circle, and shadow
+    const hitW = 60;
+    const hitH = 90;
+    const hitY = -50; // Start above the label
+    container.setSize(hitW, hitH);
+    container.setInteractive({
+      hitArea: new Phaser.Geom.Rectangle(-hitW / 2, hitY, hitW, hitH),
+      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
+      useHandCursor: true,
+    });
+    container.on('pointerover', () => g.setAlpha(0.8));
+    container.on('pointerout', () => g.setAlpha(1));
+    container.on('pointerdown', () => {
       if (this.isPaused || this.heldItem) return;
       soundManager.init();
       this.pickupSauce(key);
     });
 
-    // Keyboard hint
+    // Keyboard hint (hidden by default, shown with F1)
     const sauceHints = { 'sauce_mayo': 'Q', 'sauce_mustard': 'E' };
     if (sauceHints[key]) {
-      this.add.text(x + 25, y - 35, `[${sauceHints[key]}]`, {
-        fontSize: '11px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(31).setAlpha(0.7);
+      this.createHotkeyHint(x + radius + 4, y - radius - 4, sauceHints[key], 31);
     }
   }
 
   pickupSauce(key) {
+    soundManager.robotPickup();
     const pointer = this.input.activePointer;
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = {
@@ -939,8 +1593,8 @@ export class GameScene extends Phaser.Scene {
 
   createTreatmentItem(tKey, x, y) {
     const treat = TREATMENTS[tKey];
-    const hw = 45;
-    const hh = 50;
+    const hw = 38;
+    const hh = 40;
     const c = this.add.container(x, y).setDepth(30);
     c.setSize(hw * 2, hh * 2);
     c.setInteractive({
@@ -949,75 +1603,197 @@ export class GameScene extends Phaser.Scene {
       useHandCursor: true,
     });
 
-    // Background card
-    const bg = this.add.graphics();
-    bg.fillStyle(0x333344, 0.8);
-    bg.fillRoundedRect(-hw, -hh, hw * 2, hh * 2, 10);
-    bg.lineStyle(2, 0x555566, 1);
-    bg.strokeRoundedRect(-hw, -hh, hw * 2, hh * 2, 10);
-    c.add(bg);
-
     const g = this.add.graphics();
 
+    // Isometric offset for 3D effect
+    const iso = 6;
+
     if (tKey === 'toasted') {
-      g.fillStyle(0x888888, 1);
-      g.fillRoundedRect(-32, -18, 64, 52, 6);
-      g.lineStyle(2, 0x666666, 1);
-      g.strokeRoundedRect(-32, -18, 64, 52, 6);
-      g.fillStyle(0x333333, 1);
-      g.fillRect(-22, -14, 18, 7);
-      g.fillRect(4, -14, 18, 7);
-      g.fillStyle(0xAAAAAA, 1);
-      g.fillRect(24, 2, 10, 20);
+      // Isometric 4-slice deli toaster (no box)
+      // Shadow
+      g.fillStyle(0x000000, 0.2);
+      g.fillEllipse(0, 28, 50, 14);
+
+      // Main body - front face
+      g.fillStyle(0x707078, 1);
+      g.fillRect(-28, -8, 56, 36);
+      // Top face (parallelogram)
+      g.fillStyle(0x909098, 1);
+      g.beginPath();
+      g.moveTo(-28, -8);
+      g.lineTo(-28 + iso, -8 - iso);
+      g.lineTo(28 + iso, -8 - iso);
+      g.lineTo(28, -8);
+      g.closePath();
+      g.fillPath();
+      // Right face
+      g.fillStyle(0x505058, 1);
+      g.beginPath();
+      g.moveTo(28, -8);
+      g.lineTo(28 + iso, -8 - iso);
+      g.lineTo(28 + iso, 28 - iso);
+      g.lineTo(28, 28);
+      g.closePath();
+      g.fillPath();
+
+      // 4 toast slots on top
+      g.fillStyle(0x222228, 1);
+      for (let i = 0; i < 4; i++) {
+        const slotX = -22 + i * 12;
+        g.beginPath();
+        g.moveTo(slotX, -8);
+        g.lineTo(slotX + iso * 0.5, -8 - iso * 0.8);
+        g.lineTo(slotX + 8 + iso * 0.5, -8 - iso * 0.8);
+        g.lineTo(slotX + 8, -8);
+        g.closePath();
+        g.fillPath();
+      }
+
+      // Lever on right side
+      g.fillStyle(0x404048, 1);
+      g.fillRect(30, 5, 6, 18);
+      g.fillStyle(0x606068, 1);
+      g.fillRect(30, 5, 6, 4);
+
+      // Front detail - brand plate
+      g.fillStyle(0x606068, 1);
+      g.fillRect(-18, 16, 36, 8);
+
     } else if (tKey === 'togo') {
-      g.fillStyle(0xD4C4A0, 1);
-      g.fillRoundedRect(-32, -22, 64, 56, 5);
-      g.lineStyle(2, 0xB0A080, 1);
-      g.strokeRoundedRect(-32, -22, 64, 56, 5);
-      g.lineStyle(1.5, 0xB0A080, 0.5);
-      g.lineBetween(-22, -4, 22, -4);
-      g.lineBetween(-18, 14, 18, 14);
-    } else if (tKey === 'salt_pepper') {
-      g.fillStyle(0xEEEEEE, 1);
-      g.fillRoundedRect(-30, -14, 25, 42, 6);
-      g.fillStyle(0xCCCCCC, 1);
-      g.fillRect(-27, -22, 18, 10);
-      g.fillStyle(0x444444, 1);
-      g.fillRoundedRect(6, -14, 25, 42, 6);
+      // Stack of to-go boxes isometric (no box)
+      // Shadow
+      g.fillStyle(0x000000, 0.2);
+      g.fillEllipse(0, 30, 48, 12);
+
+      // Draw 3 stacked boxes
+      for (let b = 0; b < 3; b++) {
+        const by = 20 - b * 14;
+        const biso = 5;
+
+        // Front face (styrofoam white)
+        g.fillStyle(b === 0 ? 0xE8E8E8 : 0xF0F0F0, 1);
+        g.fillRect(-26, by - 10, 52, 12);
+        // Top face
+        g.fillStyle(b === 0 ? 0xF5F5F5 : 0xFAFAFA, 1);
+        g.beginPath();
+        g.moveTo(-26, by - 10);
+        g.lineTo(-26 + biso, by - 10 - biso);
+        g.lineTo(26 + biso, by - 10 - biso);
+        g.lineTo(26, by - 10);
+        g.closePath();
+        g.fillPath();
+        // Right face
+        g.fillStyle(0xD0D0D0, 1);
+        g.beginPath();
+        g.moveTo(26, by - 10);
+        g.lineTo(26 + biso, by - 10 - biso);
+        g.lineTo(26 + biso, by + 2 - biso);
+        g.lineTo(26, by + 2);
+        g.closePath();
+        g.fillPath();
+
+        // Lid line detail
+        g.lineStyle(1, 0xBBBBBB, 0.6);
+        g.lineBetween(-22, by - 6, 22, by - 6);
+      }
+
+    } else if (tKey === 'salt') {
+      // Individual salt shaker (no box)
+      // Shadow
+      g.fillStyle(0x000000, 0.2);
+      g.fillEllipse(0, 28, 28, 10);
+
+      // Body - white/clear glass
+      g.fillStyle(0xF0F0F0, 1);
+      g.fillRoundedRect(-12, -8, 24, 36, 4);
+      // Cap
+      g.fillStyle(0xC0C0C0, 1);
+      g.fillRect(-10, -18, 20, 12);
+      g.fillStyle(0xDDDDDD, 1);
+      g.fillRect(-10, -18, 20, 4);
+      // Holes on cap
+      g.fillStyle(0x666666, 1);
+      g.fillCircle(-4, -14, 1.5);
+      g.fillCircle(0, -12, 1.5);
+      g.fillCircle(4, -14, 1.5);
+      // Salt inside
+      g.fillStyle(0xFFFFFF, 0.6);
+      g.fillRect(-8, 8, 16, 16);
+      // Label
+      g.fillStyle(0x4488FF, 0.8);
+      g.fillRect(-8, 2, 16, 8);
+
+    } else if (tKey === 'pepper') {
+      // Individual pepper shaker (no box)
+      // Shadow
+      g.fillStyle(0x000000, 0.2);
+      g.fillEllipse(0, 28, 28, 10);
+
+      // Body - dark glass
       g.fillStyle(0x333333, 1);
-      g.fillRect(9, -22, 18, 10);
+      g.fillRoundedRect(-12, -8, 24, 36, 4);
+      // Cap
+      g.fillStyle(0x222222, 1);
+      g.fillRect(-10, -18, 20, 12);
+      g.fillStyle(0x444444, 1);
+      g.fillRect(-10, -18, 20, 4);
+      // Holes on cap
+      g.fillStyle(0x111111, 1);
+      g.fillCircle(-4, -14, 1.5);
+      g.fillCircle(0, -12, 1.5);
+      g.fillCircle(4, -14, 1.5);
+      // Pepper inside visible
+      g.fillStyle(0x1A1A1A, 0.6);
+      g.fillRect(-8, 8, 16, 16);
+      // Label
+      g.fillStyle(0xFF4444, 0.8);
+      g.fillRect(-8, 2, 16, 8);
+
     } else if (tKey === 'oil_vinegar') {
+      // Oil & vinegar bottles (keep card background for this one)
+      const bg = this.add.graphics();
+      bg.fillStyle(0x333344, 0.7);
+      bg.fillRoundedRect(-hw, -hh, hw * 2, hh * 2, 6);
+      c.add(bg);
+
+      // Shadow
+      g.fillStyle(0x000000, 0.15);
+      g.fillEllipse(0, 26, 45, 10);
+
+      // Oil bottle (left)
       g.fillStyle(0xCCCC44, 0.8);
-      g.fillRoundedRect(-30, -6, 25, 38, 6);
-      g.fillRect(-24, -24, 10, 20);
+      g.fillRoundedRect(-28, -2, 22, 32, 4);
+      g.fillRect(-22, -18, 10, 18);
       g.fillStyle(0xAAAA22, 1);
-      g.fillRect(-26, -30, 14, 8);
+      g.fillRect(-24, -22, 14, 6);
+
+      // Vinegar bottle (right)
       g.fillStyle(0x884422, 0.8);
-      g.fillRoundedRect(6, -6, 25, 38, 6);
-      g.fillRect(12, -24, 10, 20);
+      g.fillRoundedRect(6, -2, 22, 32, 4);
+      g.fillRect(12, -18, 10, 18);
       g.fillStyle(0x662200, 1);
-      g.fillRect(10, -30, 14, 8);
+      g.fillRect(10, -22, 14, 6);
     }
 
     c.add(g);
 
-    // Label below art
-    const label = this.add.text(0, hh - 12, treat.name, {
-      fontSize: '14px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
-    }).setOrigin(0.5);
+    // Label below art (hidden by default, shown with F1)
+    const label = this.add.text(0, hh - 6, treat.name, {
+      fontSize: '12px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 2,
+    }).setOrigin(0.5).setVisible(false);
     c.add(label);
+    this.labelHints.push(label);
 
-    // Keyboard hint
-    const treatHints = { 'toasted': 'R', 'togo': 'F', 'salt_pepper': 'G', 'oil_vinegar': 'V' };
+    // Keyboard hints - hidden by default, shown with F1
+    const treatHints = { 'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V' };
     if (treatHints[tKey]) {
-      const hint = this.add.text(hw - 4, -hh + 4, `[${treatHints[tKey]}]`, {
-        fontSize: '10px', color: '#aaa', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setOrigin(1, 0).setAlpha(0.7);
-      c.add(hint);
+      // Create hint outside container at absolute position
+      this.createHotkeyHint(x + hw - 8, y - hh + 8, treatHints[tKey], 32);
     }
 
     c.on('pointerover', () => {
-      this.tweens.add({ targets: c, scaleX: 1.05, scaleY: 1.05, duration: 100, ease: 'Sine.easeOut' });
+      this.tweens.add({ targets: c, scaleX: 1.08, scaleY: 1.08, duration: 100, ease: 'Sine.easeOut' });
     });
     c.on('pointerout', () => {
       this.tweens.add({ targets: c, scaleX: 1.0, scaleY: 1.0, duration: 100, ease: 'Sine.easeOut' });
@@ -1035,6 +1811,7 @@ export class GameScene extends Phaser.Scene {
      TREATMENT PICKUP (works like ingredients)
      ========================================= */
   pickupTreatment(tKey) {
+    soundManager.robotPickup();
     const treat = TREATMENTS[tKey];
     const pointer = this.input.activePointer;
 
@@ -1119,12 +1896,21 @@ export class GameScene extends Phaser.Scene {
       g.strokeRoundedRect(-hw, stackTop - 5, hw * 2, stackBot - stackTop + 15, 3);
       g.fillStyle(0xD4C4A0, 0.15);
       g.fillRoundedRect(-hw, stackTop - 5, hw * 2, stackBot - stackTop + 15, 3);
-    } else if (treatmentKey === 'salt_pepper') {
-      for (let i = 0; i < 12; i++) {
+    } else if (treatmentKey === 'salt') {
+      // Salt specks (white only)
+      for (let i = 0; i < 8; i++) {
         const sx = (Math.random() - 0.5) * (hw * 2 - 10);
         const sy = stackTop + Math.random() * (stackBot - stackTop + 6);
-        g.fillStyle(i % 2 === 0 ? 0xFFFFFF : 0x333333, 0.7);
-        g.fillCircle(sx, sy, 1);
+        g.fillStyle(0xFFFFFF, 0.8);
+        g.fillCircle(sx, sy, 1.2);
+      }
+    } else if (treatmentKey === 'pepper') {
+      // Pepper specks (black only)
+      for (let i = 0; i < 8; i++) {
+        const sx = (Math.random() - 0.5) * (hw * 2 - 10);
+        const sy = stackTop + Math.random() * (stackBot - stackTop + 6);
+        g.fillStyle(0x222222, 0.8);
+        g.fillCircle(sx, sy, 1.2);
       }
     } else if (treatmentKey === 'oil_vinegar') {
       const midY = (stackTop + stackBot) / 2;
@@ -1228,7 +2014,7 @@ export class GameScene extends Phaser.Scene {
       'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7',
       'cheese_american': '8', 'cheese_swiss': '9',
       'sauce_mayo': 'Q', 'sauce_mustard': 'E',
-      'toasted': 'R', 'togo': 'F', 'salt_pepper': 'G', 'oil_vinegar': 'V',
+      'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V',
     };
 
     const KC = Phaser.Input.Keyboard.KeyCodes;
@@ -1247,7 +2033,8 @@ export class GameScene extends Phaser.Scene {
       { code: KC.E,     ingredient: 'sauce_mustard' },
       { code: KC.R,     treatment: 'toasted' },
       { code: KC.F,     treatment: 'togo' },
-      { code: KC.G,     treatment: 'salt_pepper' },
+      { code: KC.G,     treatment: 'salt' },
+      { code: KC.H,     treatment: 'pepper' },
       { code: KC.V,     treatment: 'oil_vinegar' },
     ];
 
@@ -1263,6 +2050,7 @@ export class GameScene extends Phaser.Scene {
           if (ingredient.startsWith('sauce_')) {
             this.pickupSauce(ingredient);
           } else {
+            soundManager.robotPickup();
             const visual = this.createHeldVisual(ingredient, pointer.x, pointer.y);
             this.heldItem = { visual, ingredientKey: ingredient, binX: 0, binY: 0 };
             this._justPickedUp = true;
@@ -1320,7 +2108,7 @@ export class GameScene extends Phaser.Scene {
     // Adjust scale for held view
     if (key.includes('meat') || key.includes('cheese')) img.setScale(0.65);
     else if (key.includes('top')) img.setScale(0.7);
-    else if (key.includes('bread')) img.setScale(0.45);
+    else if (key.includes('bread')) img.setScale(0.75); // Pita bread is already smaller
     else if (key.includes('sauce')) img.setScale(0.4);
 
     c.add(img);
@@ -1351,6 +2139,7 @@ export class GameScene extends Phaser.Scene {
     const savedIngredientKey = this.heldItem.ingredientKey;
 
     if (tray && !tray.completed && !tray.done && !tray.passedFinish && pointer.y < landY + 40) {
+      soundManager.robotRelease();
       const fallDist = Math.max(0, landY - obj.y);
       const duration = Math.max(80, Math.min(400, fallDist * 1.8));
 
@@ -1406,6 +2195,7 @@ export class GameScene extends Phaser.Scene {
 
   cancelHeldItem() {
     if (!this.heldItem) return;
+    soundManager.robotRelease();
     soundManager.cancelSound();
     const obj = this.heldItem.visual;
 
@@ -1454,6 +2244,9 @@ export class GameScene extends Phaser.Scene {
       if (tray.container.x > 1024 - minGap) return;
     }
 
+    // Trigger tray delivery arm animation
+    this.animateTrayDelivery();
+
     const order = this.generateOrder();
     this.orderNumber++;
     const orderNum = this.orderNumber;
@@ -1466,28 +2259,28 @@ export class GameScene extends Phaser.Scene {
     // Tray container
     const container = this.add.container(startX, baseY).setDepth(10);
 
-    // Use tray sprite
-    const traySprite = this.add.image(0, 0, 'tray');
-    // Scale for footer/normal
-    traySprite.setScale(order.isFooter ? 0.9 : 0.7);
+    // Use thin tray sprite (thinner profile)
+    const traySprite = this.add.image(0, 0, 'tray_thin');
+    // Scale for footer/normal - slightly larger scale since asset is thinner
+    traySprite.setScale(order.isFooter ? 1.0 : 0.8);
     container.add(traySprite);
 
-    // Order number badge
+    // Order number badge (adjusted Y for thinner tray)
     const numBg = this.add.graphics();
     numBg.fillStyle(order.isFooter ? 0xFFEEBB : 0xFFFFC0, 1);
-    numBg.fillCircle(0, -28, 18);
+    numBg.fillCircle(0, -22, 16);
     numBg.lineStyle(2, order.isFooter ? 0xDDAA55 : 0xCCCC80, 1);
-    numBg.strokeCircle(0, -28, 18);
+    numBg.strokeCircle(0, -22, 16);
     container.add(numBg);
 
-    const numText = this.add.text(0, -28, `${orderNum}`, {
-      fontSize: '17px', color: '#333', fontFamily: 'Arial', fontStyle: 'bold',
+    const numText = this.add.text(0, -22, `${orderNum}`, {
+      fontSize: '15px', color: '#333', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5);
     container.add(numText);
 
-    // Footer label on tray
+    // Footer label on tray (adjusted Y for thinner tray)
     if (order.isFooter) {
-      const ftLabel = this.add.text(0, -45, 'FOOTER', {
+      const ftLabel = this.add.text(0, -38, 'FOOTER', {
         fontSize: '9px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
       }).setOrigin(0.5);
       container.add(ftLabel);
@@ -1597,14 +2390,20 @@ export class GameScene extends Phaser.Scene {
       list.push(bread);
     }
 
-    // Treatments based on day config
+    // Treatments based on day config (salt and pepper are now separate)
     const treatments = [];
     if (cfg.treatmentChance > 0 && Math.random() < cfg.treatmentChance) {
       const allTreatments = Object.keys(TREATMENTS);
       if (this.day <= 2) {
-        const simple = ['toasted', 'salt_pepper'];
+        // Early days: simple treatments - toasted, salt, or pepper
+        const simple = ['toasted', 'salt', 'pepper'];
         treatments.push(pick(simple));
+        // 30% chance to add the other seasoning if we picked salt or pepper
+        if ((treatments[0] === 'salt' || treatments[0] === 'pepper') && Math.random() < 0.3) {
+          treatments.push(treatments[0] === 'salt' ? 'pepper' : 'salt');
+        }
       } else {
+        // Later days: more variety, can have multiple treatments
         const count = Math.random() < 0.4 ? 2 : 1;
         const chosen = pickN(allTreatments, count);
         chosen.forEach((t) => treatments.push(t));
@@ -1977,6 +2776,432 @@ export class GameScene extends Phaser.Scene {
   }
 
   /* =========================================
+     ROBOT ARM (articulated arm from bottom center)
+     ========================================= */
+  createRobotArm() {
+    // Arm mounted at bottom center of screen
+    this.armBaseX = 512;  // Center of screen
+    this.armBaseY = 740;  // Top of turret column
+    this.armSegment1Length = 180; // Upper arm
+    this.armSegment2Length = 180; // Forearm (longer to reach far)
+    this.armSegment3Length = 100; // Wrist/hand (longer for precision)
+
+    // Work area constraints
+    this.armMinY = 280;  // Above belt for placing ingredients
+    this.armMaxY = 730;  // Above the arm base
+
+    // Current angles (will be updated via IK)
+    // Starting pointed upward
+    this.armAngle1 = -Math.PI / 2; // Point up
+    this.armAngle2 = 0;
+    this.armAngle3 = 0;
+
+    // Base rotation (the turret/body rotation)
+    this.armBaseRotation = 0;
+
+    // Target position (mouse)
+    this.armTargetX = 512;
+    this.armTargetY = 500;
+
+    // Sound throttling
+    this.lastArmSoundTime = 0;
+    this.armSoundInterval = 80;
+
+    // Create graphics layers
+    this.robotArmBaseGfx = this.add.graphics().setDepth(145); // Base platform
+    this.robotArmGfx = this.add.graphics().setDepth(150);     // Arm segments
+
+    // Claw state
+    this.clawOpen = true;
+
+    // Draw the static base platform
+    this.drawArmBase();
+
+    // Draw initial arm
+    this.drawRobotArm();
+
+    // Create tray delivery arm (separate decorative arm)
+    this.createTrayDeliveryArm();
+  }
+
+  drawArmBase() {
+    const g = this.robotArmBaseGfx;
+    g.clear();
+
+    const baseX = this.armBaseX;
+    const baseY = 768; // At screen bottom
+
+    // Platform shadow
+    g.fillStyle(0x000000, 0.3);
+    g.fillEllipse(baseX, baseY - 5, 140, 30);
+
+    // Main platform base (wide ellipse)
+    g.fillStyle(0x3a3a4a, 1);
+    g.fillEllipse(baseX, baseY, 130, 35);
+
+    // Platform top surface
+    g.fillStyle(0x5a5a6a, 1);
+    g.fillEllipse(baseX, baseY - 8, 120, 28);
+
+    // Inner ring
+    g.fillStyle(0x4a4a5a, 1);
+    g.fillEllipse(baseX, baseY - 10, 80, 20);
+
+    // Center turret base
+    g.fillStyle(0x6a6a7a, 1);
+    g.fillEllipse(baseX, baseY - 14, 50, 14);
+
+    // Highlight
+    g.fillStyle(0x8a8a9a, 0.6);
+    g.fillEllipse(baseX - 15, baseY - 18, 20, 6);
+
+    // Cyan accent ring
+    g.lineStyle(2, 0x00ddff, 0.5);
+    g.strokeEllipse(baseX, baseY - 10, 90, 22);
+
+    // Warning stripes on edges
+    g.fillStyle(0xffaa00, 0.6);
+    g.fillRect(baseX - 60, baseY - 4, 8, 8);
+    g.fillRect(baseX + 52, baseY - 4, 8, 8);
+  }
+
+  updateRobotArm(delta) {
+    const pointer = this.input.activePointer;
+
+    // Constrain target to work area
+    this.armTargetX = Phaser.Math.Clamp(pointer.x, 60, 964);
+    this.armTargetY = Phaser.Math.Clamp(pointer.y, this.armMinY, this.armMaxY);
+
+    const dx = this.armTargetX - this.armBaseX;
+    const dy = this.armTargetY - this.armBaseY;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+
+    // Limit reach
+    const maxReach = this.armSegment1Length + this.armSegment2Length + this.armSegment3Length - 40;
+    const minReach = 100;
+    const clampedDist = Phaser.Math.Clamp(dist, minReach, maxReach);
+
+    // Base rotation - the whole arm rotates to face the target
+    const targetBaseRotation = Math.atan2(dx, -dy); // Note: -dy because Y is inverted
+    const lerpSpeed = 0.12;
+    this.armBaseRotation = Phaser.Math.Linear(this.armBaseRotation, targetBaseRotation, lerpSpeed);
+
+    // Clamp base rotation to reasonable range (-70 to +70 degrees)
+    this.armBaseRotation = Phaser.Math.Clamp(this.armBaseRotation, -1.22, 1.22);
+
+    // Calculate arm angles relative to the rotated base
+    // The arm always reaches "forward" from its rotated position
+    const reachRatio = clampedDist / maxReach;
+
+    // Segment 1 angle (relative to base rotation, pointing "up" in arm's frame)
+    // When close, bend more; when far, straighter
+    const bendAmount = (1 - reachRatio) * 0.8;
+    const targetAngle1 = -Math.PI / 2 + this.armBaseRotation * 0.3 + bendAmount * 0.3;
+    this.armAngle1 = Phaser.Math.Linear(this.armAngle1, targetAngle1, lerpSpeed);
+
+    // Segment 2 bends based on distance and direction
+    const targetAngle2 = -bendAmount * Math.PI * 0.6 + this.armBaseRotation * 0.4;
+    this.armAngle2 = Phaser.Math.Linear(this.armAngle2, targetAngle2, lerpSpeed);
+
+    // Calculate intermediate positions for segment 3 aiming
+    const joint2X = this.armBaseX + Math.cos(this.armAngle1) * this.armSegment1Length;
+    const joint2Y = this.armBaseY + Math.sin(this.armAngle1) * this.armSegment1Length;
+    const angle12 = this.armAngle1 + this.armAngle2;
+    const joint3X = joint2X + Math.cos(angle12) * this.armSegment2Length;
+    const joint3Y = joint2Y + Math.sin(angle12) * this.armSegment2Length;
+
+    // Segment 3 (wrist) aims toward target
+    const wristToTarget = Math.atan2(this.armTargetY - joint3Y, this.armTargetX - joint3X);
+    const targetAngle3 = wristToTarget - angle12;
+    this.armAngle3 = Phaser.Math.Linear(this.armAngle3, targetAngle3, lerpSpeed * 1.5);
+
+    // Play movement sound occasionally
+    const now = this.time.now;
+    if (now - this.lastArmSoundTime > this.armSoundInterval) {
+      const movement = Math.abs(targetBaseRotation - this.armBaseRotation) +
+                       Math.abs(targetAngle1 - this.armAngle1);
+      if (movement > 0.015) {
+        soundManager.robotMove();
+        this.lastArmSoundTime = now;
+      }
+    }
+
+    // Update claw state
+    this.clawOpen = !this.heldItem;
+
+    this.drawRobotArm();
+  }
+
+  /* =========================================
+     TRAY DELIVERY ARM (decorative arm that places trays)
+     ========================================= */
+  createTrayDeliveryArm() {
+    // This arm comes from off-screen right to place trays on the belt
+    this.trayArmGfx = this.add.graphics().setDepth(8); // Below trays but above belt
+
+    // Arm base position (off-screen right, at belt level)
+    this.trayArmBaseX = 1080;
+    this.trayArmBaseY = 380;
+    this.trayArmSegment1 = 100;
+    this.trayArmSegment2 = 80;
+
+    // Animation state
+    this.trayArmProgress = 0; // 0 = retracted, 1 = extended
+    this.trayArmAnimating = false;
+    this.trayArmTargetProgress = 0;
+  }
+
+  animateTrayDelivery() {
+    // Called when spawning a new tray
+    if (this.trayArmAnimating) return;
+
+    this.trayArmAnimating = true;
+
+    // Extend arm
+    this.tweens.add({
+      targets: this,
+      trayArmProgress: 1,
+      duration: 300,
+      ease: 'Quad.easeOut',
+      onComplete: () => {
+        // Hold briefly then retract
+        this.time.delayedCall(150, () => {
+          this.tweens.add({
+            targets: this,
+            trayArmProgress: 0,
+            duration: 400,
+            ease: 'Quad.easeIn',
+            onComplete: () => {
+              this.trayArmAnimating = false;
+            }
+          });
+        });
+      }
+    });
+  }
+
+  updateTrayArm() {
+    const g = this.trayArmGfx;
+    g.clear();
+
+    if (this.trayArmProgress <= 0.01) return; // Don't draw if fully retracted
+
+    const metalDark = 0x4a4a5a;
+    const metalMid = 0x6a6a7a;
+    const metalLight = 0x8a8a9a;
+    const accentOrange = 0xff9955;
+
+    // Calculate arm position based on progress
+    // When extended, the claw reaches to about x=950 (where trays spawn)
+    const extendAngle = Math.PI + this.trayArmProgress * 0.4; // Swing left
+    const bendAngle = -this.trayArmProgress * 0.5;
+
+    const joint1X = this.trayArmBaseX;
+    const joint1Y = this.trayArmBaseY;
+
+    const joint2X = joint1X + Math.cos(extendAngle) * this.trayArmSegment1;
+    const joint2Y = joint1Y + Math.sin(extendAngle) * this.trayArmSegment1;
+
+    const angle2 = extendAngle + bendAngle;
+    const endX = joint2X + Math.cos(angle2) * this.trayArmSegment2;
+    const endY = joint2Y + Math.sin(angle2) * this.trayArmSegment2;
+
+    // Draw base (partially visible)
+    g.fillStyle(metalDark, 1);
+    g.fillCircle(joint1X, joint1Y, 18);
+    g.fillStyle(metalMid, 1);
+    g.fillCircle(joint1X, joint1Y, 14);
+
+    // Draw segment 1
+    this.drawArmSegment(g, joint1X, joint1Y, joint2X, joint2Y, 12, metalMid, metalLight);
+
+    // Draw joint
+    g.fillStyle(metalDark, 1);
+    g.fillCircle(joint2X, joint2Y, 8);
+    g.fillStyle(accentOrange, 0.6);
+    g.fillCircle(joint2X, joint2Y, 4);
+
+    // Draw segment 2
+    this.drawArmSegment(g, joint2X, joint2Y, endX, endY, 10, metalMid, metalLight);
+
+    // Draw simple gripper (holding tray shape)
+    g.fillStyle(metalDark, 1);
+    g.fillCircle(endX, endY, 6);
+
+    // Gripper prongs
+    const prongAngle = angle2;
+    const prongLen = 20;
+    const spread = 0.3;
+
+    g.lineStyle(4, metalMid, 1);
+    g.lineBetween(endX, endY,
+      endX + Math.cos(prongAngle - spread) * prongLen,
+      endY + Math.sin(prongAngle - spread) * prongLen);
+    g.lineBetween(endX, endY,
+      endX + Math.cos(prongAngle + spread) * prongLen,
+      endY + Math.sin(prongAngle + spread) * prongLen);
+
+    g.fillStyle(accentOrange, 0.8);
+    g.fillCircle(endX + Math.cos(prongAngle - spread) * prongLen,
+      endY + Math.sin(prongAngle - spread) * prongLen, 3);
+    g.fillCircle(endX + Math.cos(prongAngle + spread) * prongLen,
+      endY + Math.sin(prongAngle + spread) * prongLen, 3);
+  }
+
+  drawRobotArm() {
+    const g = this.robotArmGfx;
+    g.clear();
+
+    // Colors
+    const metalDark = 0x4a4a5a;
+    const metalMid = 0x6a6a7a;
+    const metalLight = 0x8a8a9a;
+    const metalHighlight = 0xaaaabc;
+    const jointColor = 0x3a3a4a;
+    const accentCyan = 0x00ddff;
+
+    // Calculate joint positions
+    const joint1X = this.armBaseX;
+    const joint1Y = this.armBaseY;
+
+    const joint2X = joint1X + Math.cos(this.armAngle1) * this.armSegment1Length;
+    const joint2Y = joint1Y + Math.sin(this.armAngle1) * this.armSegment1Length;
+
+    const angle12 = this.armAngle1 + this.armAngle2;
+    const joint3X = joint2X + Math.cos(angle12) * this.armSegment2Length;
+    const joint3Y = joint2Y + Math.sin(angle12) * this.armSegment2Length;
+
+    const angle123 = angle12 + this.armAngle3;
+    const endX = joint3X + Math.cos(angle123) * this.armSegment3Length;
+    const endY = joint3Y + Math.sin(angle123) * this.armSegment3Length;
+
+    // Draw rotating turret column (shows base rotation)
+    const turretHeight = 40;
+    const turretWidth = 24;
+    const turretX = this.armBaseX + Math.sin(this.armBaseRotation) * 5;
+    const turretTopY = 748;
+
+    // Turret body (rotates with arm)
+    g.fillStyle(metalMid, 1);
+    g.beginPath();
+    g.moveTo(turretX - turretWidth / 2, turretTopY + turretHeight);
+    g.lineTo(turretX - turretWidth / 2 + 4, turretTopY);
+    g.lineTo(turretX + turretWidth / 2 - 4, turretTopY);
+    g.lineTo(turretX + turretWidth / 2, turretTopY + turretHeight);
+    g.closePath();
+    g.fillPath();
+
+    // Turret highlight (shows rotation direction)
+    const highlightSide = this.armBaseRotation > 0 ? -1 : 1;
+    g.fillStyle(metalLight, 0.6);
+    g.beginPath();
+    g.moveTo(turretX + highlightSide * turretWidth / 2, turretTopY + turretHeight);
+    g.lineTo(turretX + highlightSide * (turretWidth / 2 - 4), turretTopY);
+    g.lineTo(turretX + highlightSide * (turretWidth / 2 - 8), turretTopY);
+    g.lineTo(turretX + highlightSide * (turretWidth / 2 - 4), turretTopY + turretHeight);
+    g.closePath();
+    g.fillPath();
+
+    // Turret top cap
+    g.fillStyle(metalDark, 1);
+    g.fillEllipse(turretX, turretTopY, turretWidth / 2 + 2, 8);
+    g.fillStyle(accentCyan, 0.4);
+    g.fillEllipse(turretX, turretTopY, turretWidth / 2 - 4, 4);
+
+    // Shoulder joint (where arm attaches to turret)
+    g.fillStyle(jointColor, 1);
+    g.fillCircle(joint1X, joint1Y, 16);
+    g.fillStyle(metalMid, 1);
+    g.fillCircle(joint1X, joint1Y, 12);
+    g.fillStyle(accentCyan, 0.6);
+    g.fillCircle(joint1X, joint1Y, 6);
+
+    // Draw segment 1 (upper arm)
+    this.drawArmSegment(g, joint1X, joint1Y, joint2X, joint2Y, 16, metalMid, metalLight);
+
+    // Draw joint 2 (elbow)
+    g.fillStyle(jointColor, 1);
+    g.fillCircle(joint2X, joint2Y, 12);
+    g.fillStyle(metalMid, 1);
+    g.fillCircle(joint2X, joint2Y, 9);
+    g.fillStyle(accentCyan, 0.6);
+    g.fillCircle(joint2X, joint2Y, 5);
+
+    // Draw segment 2 (forearm)
+    this.drawArmSegment(g, joint2X, joint2Y, joint3X, joint3Y, 12, metalMid, metalLight);
+
+    // Draw joint 3 (wrist)
+    g.fillStyle(jointColor, 1);
+    g.fillCircle(joint3X, joint3Y, 9);
+    g.fillStyle(metalMid, 1);
+    g.fillCircle(joint3X, joint3Y, 6);
+    g.fillStyle(accentCyan, 0.5);
+    g.fillCircle(joint3X, joint3Y, 3);
+
+    // Draw segment 3 (hand)
+    this.drawArmSegment(g, joint3X, joint3Y, endX, endY, 8, metalMid, metalLight);
+
+    // Draw claw/gripper
+    this.drawClaw(g, endX, endY, angle123);
+  }
+
+  drawArmSegment(g, x1, y1, x2, y2, width, colorMain, colorHighlight) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const perpX = Math.cos(angle + Math.PI / 2) * width / 2;
+    const perpY = Math.sin(angle + Math.PI / 2) * width / 2;
+
+    // Main segment body
+    g.fillStyle(colorMain, 1);
+    g.beginPath();
+    g.moveTo(x1 + perpX, y1 + perpY);
+    g.lineTo(x2 + perpX, y2 + perpY);
+    g.lineTo(x2 - perpX, y2 - perpY);
+    g.lineTo(x1 - perpX, y1 - perpY);
+    g.closePath();
+    g.fillPath();
+
+    // Highlight edge
+    g.lineStyle(2, colorHighlight, 0.6);
+    g.lineBetween(x1 + perpX, y1 + perpY, x2 + perpX, y2 + perpY);
+  }
+
+  drawClaw(g, x, y, angle) {
+    const clawLength = 25;
+    const clawSpread = this.clawOpen ? 0.4 : 0.15; // Radians
+
+    const metalDark = 0x4a4a5a;
+    const metalLight = 0x8a8a9a;
+    const accentCyan = 0x00ddff;
+
+    // Two claw fingers
+    const finger1Angle = angle - clawSpread;
+    const finger2Angle = angle + clawSpread;
+
+    const f1EndX = x + Math.cos(finger1Angle) * clawLength;
+    const f1EndY = y + Math.sin(finger1Angle) * clawLength;
+    const f2EndX = x + Math.cos(finger2Angle) * clawLength;
+    const f2EndY = y + Math.sin(finger2Angle) * clawLength;
+
+    // Draw fingers
+    g.lineStyle(6, metalDark, 1);
+    g.lineBetween(x, y, f1EndX, f1EndY);
+    g.lineBetween(x, y, f2EndX, f2EndY);
+
+    g.lineStyle(3, metalLight, 1);
+    g.lineBetween(x, y, f1EndX, f1EndY);
+    g.lineBetween(x, y, f2EndX, f2EndY);
+
+    // Finger tips
+    g.fillStyle(accentCyan, 0.8);
+    g.fillCircle(f1EndX, f1EndY, 4);
+    g.fillCircle(f2EndX, f2EndY, 4);
+
+    // Wrist joint
+    g.fillStyle(metalDark, 1);
+    g.fillCircle(x, y, 6);
+  }
+
+  /* =========================================
      GAME LOOP
      ========================================= */
   update(time, delta) {
@@ -1984,6 +3209,10 @@ export class GameScene extends Phaser.Scene {
       if (this.heldItem) this.cancelHeldItem();
       return;
     }
+
+    // Update robot arms
+    this.updateRobotArm(delta);
+    this.updateTrayArm();
 
     // Count active (non-completed, non-done) tickets for dynamic speed
     const activeTickets = this.trays.filter(t => !t.done && !t.completed).length;
@@ -2022,6 +3251,9 @@ export class GameScene extends Phaser.Scene {
     this.beltOffset -= this.conveyorSpeed * (delta / 16) * speedMult;
     if (this.beltOffset < -40) this.beltOffset += 40;
     this.drawBelt();
+
+    // Boids animation (vessels drifting across window)
+    this.updateBoids(delta);
 
     // --- spawn logic ---
     if (this.isStoreOpen && this.ordersSpawned < this.totalOrders) {

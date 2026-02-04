@@ -9,10 +9,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('floor_tile', 'assets/floor_tile.png');
     this.load.image('wall_texture', 'assets/wall_texture.png');
     this.load.svg('tray', 'assets/tray.svg', { width: 200, height: 140 });
+    this.load.svg('tray_thin', 'assets/tray_thin.svg', { width: 200, height: 100 });
 
-    this.load.svg('bread_white', 'assets/bread_white.svg', { width: 128, height: 128 });
-    this.load.svg('bread_wheat', 'assets/bread_wheat.svg', { width: 128, height: 128 });
-    this.load.svg('bread_sourdough', 'assets/bread_sourdough.svg', { width: 128, height: 128 });
+    this.load.svg('bread_white', 'assets/bread_white.svg', { width: 64, height: 64 });
+    this.load.svg('bread_wheat', 'assets/bread_wheat.svg', { width: 64, height: 64 });
+    this.load.svg('bread_sourdough', 'assets/bread_sourdough.svg', { width: 64, height: 64 });
 
     // Loaves (Counter objects)
     this.load.svg('loaf_white', 'assets/loaf_white.svg', { width: 200, height: 100 });
@@ -27,9 +28,6 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('bowl_content_lettuce', 'assets/bowl_content_lettuce.svg', { width: 100, height: 60 });
     this.load.svg('bowl_content_tomato', 'assets/bowl_content_tomato.svg', { width: 100, height: 60 });
     this.load.svg('bowl_content_onion', 'assets/bowl_content_onion.svg', { width: 100, height: 60 });
-
-    this.load.svg('sign_footers', 'assets/sign_footers.svg', { width: 256, height: 128 });
-    this.load.svg('sign_86_list', 'assets/sign_86_list.svg', { width: 140, height: 170 });
 
     this.load.svg('meat_pile_ham', 'assets/meat_pile_ham.svg', { width: 128, height: 88 });
     this.load.svg('meat_pile_turkey', 'assets/meat_pile_turkey.svg', { width: 128, height: 88 });
@@ -48,8 +46,6 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('top_tomato', 'assets/top_tomato.svg', { width: 64, height: 64 });
     this.load.svg('top_onion', 'assets/top_onion.svg', { width: 64, height: 64 });
 
-    this.load.svg('sauce_mayo_bottle', 'assets/sauce_mayo_bottle.svg', { width: 64, height: 128 });
-    this.load.svg('sauce_mustard_bottle', 'assets/sauce_mustard_bottle.svg', { width: 64, height: 128 });
   }
 
   create() {
@@ -61,10 +57,10 @@ export class BootScene extends Phaser.Scene {
       document.fonts.load('16px "Nothing You Could Do"'),
       document.fonts.load('16px "Grape Nuts"'),
     ]).then(() => {
-      this.scene.start('Menu');
+      this.scene.start('Game');
     }).catch(() => {
       // If font loading fails, proceed anyway with fallbacks
-      this.scene.start('Menu');
+      this.scene.start('Game');
     });
   }
 }
