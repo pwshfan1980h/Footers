@@ -73,10 +73,10 @@ export class BootScene extends Phaser.Scene {
       document.fonts.load('16px "Nothing You Could Do"'),
       document.fonts.load('16px "Grape Nuts"'),
     ]).then(() => {
-      this.scene.start('Game');
+      this.scene.start('Menu');
     }).catch(() => {
       // If font loading fails, proceed anyway with fallbacks
-      this.scene.start('Game');
+      this.scene.start('Menu');
     });
   }
 }

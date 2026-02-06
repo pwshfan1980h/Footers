@@ -1,14 +1,15 @@
 /**
  * RobotArm - Multi-segment articulated arm that follows cursor
  * Positioned at top center of screen near Time UI
+ * 7 segments × 62px = 434px total reach
  */
 
 export class RobotArm {
   constructor(scene) {
     this.scene = scene;
     this.segments = [];
-    this.numSegments = 4;
-    this.segmentLength = 50;
+    this.numSegments = 7;
+    this.segmentLength = 62;
     this.gfx = null;
 
     // Base position (top center near Time UI)
@@ -21,6 +22,9 @@ export class RobotArm {
 
     // Smoothing
     this.smoothingFactor = 0.15;
+
+    // Grip state
+    this.isGripping = false;
   }
 
   create() {
@@ -42,18 +46,16 @@ export class RobotArm {
     this.targetY += (y - this.targetY) * this.smoothingFactor;
   }
 
+  setGripping(bool) {
+    this.isGripping = bool;
+  }
+
   update() {
     if (!this.gfx) return;
 
     // FABRIK (Forward And Backward Reaching Inverse Kinematics)
-    // This is a simplified version for smooth arm movement
-
-    // Forward reaching - move end effector toward target
     this.forwardReach();
-
-    // Backward reaching - fix base position
     this.backwardReach();
-
     this.render();
   }
 
@@ -67,7 +69,6 @@ export class RobotArm {
     const dist = Math.sqrt(dx * dx + dy * dy);
 
     if (dist > 0) {
-      // Move toward target but constrain by segment length
       const ratio = Math.min(1, this.segmentLength / dist);
       lastSegment.x = this.targetX - dx * ratio;
       lastSegment.y = this.targetY - dy * ratio;
@@ -156,7 +157,7 @@ export class RobotArm {
       const nextSegment = this.segments[i + 1];
 
       if (nextSegment) {
-        const width = 12 - i * 2; // Taper toward end
+        const width = 14 - i * 1.5; // Taper toward end (safe for 7 segments)
 
         // Draw segment body
         this.drawSegment(
@@ -170,12 +171,12 @@ export class RobotArm {
 
         // Draw joint
         g.fillStyle(metalDark, 1);
-        g.fillCircle(nextSegment.x, nextSegment.y, 8 - i);
+        g.fillCircle(nextSegment.x, nextSegment.y, Math.max(3, 9 - i * 0.8));
 
         // Joint accent
         const accentColor = i % 2 === 0 ? accentOrange : accentCyan;
         g.fillStyle(accentColor, 0.8);
-        g.fillCircle(nextSegment.x, nextSegment.y, 4 - i * 0.5);
+        g.fillCircle(nextSegment.x, nextSegment.y, Math.max(1.5, 4.5 - i * 0.4));
       }
     }
 
@@ -184,10 +185,10 @@ export class RobotArm {
     g.fillStyle(metalDark, 1);
     g.fillCircle(endSegment.x, endSegment.y, 10);
 
-    // Gripper prongs
+    // Gripper prongs — spread changes based on grip state
     const prongAngle = endSegment.angle + Math.PI / 2;
     const prongLen = 16;
-    const spread = 0.3;
+    const spread = this.isGripping ? 0.12 : 0.35;
 
     g.lineStyle(4, metalMid, 1);
     g.lineBetween(

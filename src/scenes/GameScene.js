@@ -10,6 +10,8 @@ import { ParticleManager } from '../managers/ParticleManager.js';
 import { RobotArm } from '../managers/RobotArm.js';
 import { SettingsMenu } from '../managers/SettingsMenu.js';
 import { PrepTrack } from '../managers/PrepTrack.js';
+import { CustomerVessels } from '../managers/CustomerVessels.js';
+import { RevenueChallenges } from '../managers/RevenueChallenges.js';
 
 function darkenColor(color, factor) {
   const r = Math.floor(((color >> 16) & 0xFF) * factor);
@@ -55,8 +57,8 @@ export class GameScene extends Phaser.Scene {
     this.ISO_SKEW = 0.25;
     this.TABLE_SKEW = 50;
 
-    // === SPACE STATION COLOR PALETTE - DARKER MOODY ATMOSPHERE ===
-    // Space colors
+    // === RETRO-FUTURISTIC SPACE DINER COLOR PALETTE ===
+    // Space colors (unchanged — windows still show space)
     this.SPACE_BLACK = 0x050510;
     this.SPACE_DEEP = 0x030308;
     this.STAR_WHITE = 0xdddddd;
@@ -67,15 +69,15 @@ export class GameScene extends Phaser.Scene {
     this.SMOKED_GLASS = 0x0f1520;
     this.SMOKED_GLASS_ALPHA = 0.45;
 
-    // Station interior - DARKER METALS
-    this.HULL_DARK = 0x2a2535;      // Darker steel with purple tint
-    this.HULL_MID = 0x3a3545;       // Darker brushed metal
-    this.HULL_LIGHT = 0x4a4555;     // Muted steel
-    this.HULL_BRIGHT = 0x5a5565;    // Reduced brightness
-    this.HULL_WARM = 0x4a3838;      // Darker bronze accent
-    this.PANEL_SEAM = 0x1a1825;
+    // Diner interior — warm walnut wood tones
+    this.HULL_DARK = 0x3A2218;      // Dark walnut
+    this.HULL_MID = 0x5A3A28;       // Medium walnut
+    this.HULL_LIGHT = 0x7A5A3A;     // Light walnut
+    this.HULL_BRIGHT = 0x9A7A5A;    // Warm cream-wood
+    this.HULL_WARM = 0x8B5A3A;      // Mahogany
+    this.PANEL_SEAM = 0x2A1810;     // Dark wood seam
 
-    // Chrome/polished metal accents - DIMMED
+    // Chrome/polished metal accents (kept — fits diner aesthetic)
     this.CHROME_DARK = 0x3a3a48;
     this.CHROME_MID = 0x5a5a68;
     this.CHROME_LIGHT = 0x7a7a88;
@@ -87,24 +89,24 @@ export class GameScene extends Phaser.Scene {
     this.BEAM_LIGHT = 0x4a4a55;
     this.BEAM_HIGHLIGHT = 0x5a5a65;
 
-    // Neon accents - SLIGHTLY DIMMED
-    this.NEON_CYAN = 0x00ddee;
+    // Neon accents — diner neon pink + warm cream-yellow
+    this.NEON_CYAN = 0xFF6B8A;      // Neon pink (signature diner accent)
     this.NEON_ORANGE = 0xee9933;
     this.NEON_MAGENTA = 0xdd33cc;
-    this.NEON_GREEN = 0x33dd88;
+    this.NEON_GREEN = 0xFFEE88;     // Warm cream-yellow
 
-    // Glass colors - DARKER
+    // Glass colors — unchanged
     this.GLASS_TINT = 0x3a4a60;
     this.GLASS_HIGHLIGHT = 0x5a7090;
     this.GLASS_EDGE = 0x2a3550;
     this.FRAME_DARK = 0x2a2a35;
     this.FRAME_LIGHT = 0x3a3a45;
 
-    // Brushed steel prep table - DARKER
-    this.TABLE_TOP = 0x4a4a55;
-    this.TABLE_FRONT = 0x3a3a45;
-    this.TABLE_HIGHLIGHT = 0x9a9aaa;
-    this.TABLE_SHADOW = 0x2a2a3a;
+    // Walnut counter surface
+    this.TABLE_TOP = 0x8B6A4A;      // Walnut counter
+    this.TABLE_FRONT = 0x6B4A3A;    // Darker wood front
+    this.TABLE_HIGHLIGHT = 0xC8A878; // Wood highlight
+    this.TABLE_SHADOW = 0x3A2A1A;   // Deep wood shadow
 
     // Glass shelf
     this.SHELF_TOP = 0x6a8898;
@@ -166,6 +168,8 @@ export class GameScene extends Phaser.Scene {
     this.robotArm = new RobotArm(this);
     this.settingsMenu = new SettingsMenu(this);
     this.prepTrack = new PrepTrack(this);
+    this.customerVessels = new CustomerVessels(this);
+    this.revenueChallenges = new RevenueChallenges(this);
 
     // Space bar for speed boost, Shift for slow down
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -213,9 +217,9 @@ export class GameScene extends Phaser.Scene {
     // --- finish line ---
     this.createFinishLine();
 
-    // separator between belt and bins (neon accent)
+    // separator between belt and bins (chrome + neon pink accent)
     const sep = this.add.graphics().setDepth(3);
-    sep.fillStyle(this.HULL_LIGHT, 1);
+    sep.fillStyle(this.CHROME_MID, 1);
     sep.fillRect(0, 434, 1024, 3);
     sep.fillStyle(this.NEON_CYAN, 0.4);
     sep.fillRect(0, 435, 1024, 1);
@@ -271,10 +275,9 @@ export class GameScene extends Phaser.Scene {
     // --- PARTICLE EFFECTS ---
     this.particleManager.create();
 
-    // --- AMBIENT MUSIC ---
-    musicManager.start();
-    // Set initial intensity based on day
-    musicManager.setIntensity(0.15);
+    // --- AMBIENT MUSIC (disabled — drone oscillators are unpleasant) ---
+    // musicManager.start();
+    // musicManager.setIntensity(0.15);
 
     // --- ROBOT ARM (follows cursor) ---
     this.robotArm.create();
@@ -284,6 +287,12 @@ export class GameScene extends Phaser.Scene {
 
     // --- PREP TRACK ---
     this.prepTrack.create();
+
+    // --- CUSTOMER VESSELS ---
+    this.customerVessels.create();
+
+    // --- REVENUE CHALLENGES ---
+    this.revenueChallenges.create();
 
     // No tutorial in endless mode
   }
@@ -486,486 +495,6 @@ export class GameScene extends Phaser.Scene {
     this.createWallDecor();
   }
 
-  _BOIDS_START_MARKER() {
-    this.boids = [];
-    this.explosions = [];
-    this.laserShots = [];
-    this.boidsContainer = this.add.container(0, 0).setDepth(0.3); // Behind smoked glass
-
-    // Ship types with different shapes, sizes, and energy tech colors
-    this.shipTypes = [
-      { name: 'fighter', sizeRange: [2, 4], speedRange: [0.15, 0.35], colors: [0x88aaff, 0x99bbff, 0xaaccff], energyColors: [0xff4444, 0xff6644] }, // Red tech
-      { name: 'freighter', sizeRange: [5, 8], speedRange: [0.03, 0.08], colors: [0x888888, 0x666666, 0x777799], energyColors: [0xffaa00, 0xffcc44] }, // Orange tech
-      { name: 'cruiser', sizeRange: [6, 10], speedRange: [0.05, 0.12], colors: [0x446688, 0x335577, 0x557799], energyColors: [0x44ffff, 0x88ffff] }, // Cyan tech
-      { name: 'shuttle', sizeRange: [1.5, 3], speedRange: [0.1, 0.25], colors: [0xffffaa, 0xffeeaa, 0xffeedd], energyColors: [0xffff44, 0xffffaa] }, // Yellow tech
-      { name: 'racer', sizeRange: [2, 3], speedRange: [0.3, 0.5], colors: [0xff6666, 0xff8844, 0xffaa44], energyColors: [0x44ff44, 0x88ff44] }, // Green tech
-      { name: 'police', sizeRange: [4, 6], speedRange: [0.4, 0.6], colors: [0x4444ff, 0x0044ff], energyColors: [0x4444ff, 0x8888ff], isPolice: true }, // Blue tech
-    ];
-
-    // Spawn varied ships - mix of close and far
-    for (let i = 0; i < 25; i++) {
-      this.spawnBoid(true);
-    }
-
-    // Initialize battle system
-    this.battleCooldown = 0;
-    this.activeBattles = [];
-  }
-
-  spawnBoid(initialSpawn = false, forceType = null, forceProps = null) {
-    // Choose ship type (police are rare unless forced)
-    let shipType;
-    if (forceType) {
-      shipType = this.shipTypes.find(t => t.name === forceType) || this.shipTypes[0];
-    } else {
-      // 95% regular ships, 5% police patrol
-      const roll = Math.random();
-      if (roll < 0.05) {
-        shipType = this.shipTypes.find(t => t.name === 'police');
-      } else {
-        const regularTypes = this.shipTypes.filter(t => !t.isPolice);
-        shipType = Phaser.Utils.Array.GetRandom(regularTypes);
-      }
-    }
-
-    // Distance layer affects size, alpha, and speed
-    const distanceLayer = forceProps?.distance || Phaser.Math.FloatBetween(0, 1); // 0 = far, 1 = close
-    const distanceMult = 0.3 + distanceLayer * 0.7; // 0.3 to 1.0
-
-    const baseSize = Phaser.Math.FloatBetween(shipType.sizeRange[0], shipType.sizeRange[1]);
-    const baseSpeed = Phaser.Math.FloatBetween(shipType.speedRange[0], shipType.speedRange[1]);
-
-    const boid = {
-      x: forceProps?.x ?? (initialSpawn ? Phaser.Math.Between(0, 1024) : Phaser.Math.Between(-50, -10)),
-      y: forceProps?.y ?? Phaser.Math.Between(this.WINDOW_TOP + 20, this.WINDOW_BOTTOM - 20),
-      vx: forceProps?.vx ?? baseSpeed * distanceMult,
-      vy: forceProps?.vy ?? 0,
-      speed: baseSpeed * distanceMult,
-      size: baseSize * distanceMult,
-      baseSize: baseSize,
-      color: Phaser.Utils.Array.GetRandom(shipType.colors),
-      energyColor: Phaser.Utils.Array.GetRandom(shipType.energyColors), // Ship's consistent weapon color
-      alpha: 0.25 + distanceLayer * 0.5, // Far = dim, close = bright
-      distance: distanceLayer,
-      shipType: shipType.name,
-      isPolice: shipType.isPolice || false,
-      inBattle: false,
-      target: null,
-      arrested: false,
-      escorting: null,
-      wobbleOffset: Math.random() * Math.PI * 2,
-    };
-
-    const g = this.add.graphics();
-    this.drawBoid(g, boid);
-    boid.graphics = g;
-    this.boidsContainer.add(g);
-    this.boids.push(boid);
-    return boid;
-  }
-
-  drawBoid(g, boid) {
-    g.clear();
-    const x = boid.x;
-    const y = boid.y;
-    const s = boid.size;
-    const alpha = boid.alpha;
-
-    // Draw different ship shapes based on type
-    if (boid.shipType === 'fighter') {
-      // Triangular fighter
-      g.fillStyle(boid.color, alpha);
-      g.beginPath();
-      g.moveTo(x + s * 2, y);
-      g.lineTo(x - s, y - s);
-      g.lineTo(x - s * 0.5, y);
-      g.lineTo(x - s, y + s);
-      g.closePath();
-      g.fillPath();
-      // Engine glow
-      g.fillStyle(0xff6600, alpha * 0.7);
-      g.fillCircle(x - s, y, s * 0.4);
-    } else if (boid.shipType === 'freighter') {
-      // Boxy freighter
-      g.fillStyle(boid.color, alpha);
-      g.fillRect(x - s, y - s * 0.6, s * 2.5, s * 1.2);
-      // Cargo pods
-      g.fillStyle(boid.color, alpha * 0.7);
-      g.fillRect(x - s * 0.8, y - s, s * 0.5, s * 0.4);
-      g.fillRect(x - s * 0.8, y + s * 0.6, s * 0.5, s * 0.4);
-      // Engine
-      g.fillStyle(0xffaa44, alpha * 0.5);
-      g.fillCircle(x - s, y, s * 0.3);
-    } else if (boid.shipType === 'cruiser') {
-      // Elongated cruiser
-      g.fillStyle(boid.color, alpha);
-      g.beginPath();
-      g.moveTo(x + s * 2, y);
-      g.lineTo(x + s, y - s * 0.5);
-      g.lineTo(x - s * 1.5, y - s * 0.4);
-      g.lineTo(x - s * 1.5, y + s * 0.4);
-      g.lineTo(x + s, y + s * 0.5);
-      g.closePath();
-      g.fillPath();
-      // Bridge
-      g.fillStyle(0x88ccff, alpha * 0.6);
-      g.fillRect(x + s * 0.5, y - s * 0.2, s * 0.4, s * 0.4);
-      // Engines
-      g.fillStyle(0x44aaff, alpha * 0.6);
-      g.fillCircle(x - s * 1.5, y - s * 0.2, s * 0.25);
-      g.fillCircle(x - s * 1.5, y + s * 0.2, s * 0.25);
-    } else if (boid.shipType === 'shuttle') {
-      // Small oval shuttle
-      g.fillStyle(boid.color, alpha);
-      g.fillEllipse(x, y, s * 1.5, s * 0.8);
-      // Window
-      g.fillStyle(0x88ddff, alpha * 0.7);
-      g.fillCircle(x + s * 0.5, y, s * 0.3);
-    } else if (boid.shipType === 'racer') {
-      // Sleek racer with long trail
-      g.fillStyle(boid.color, alpha);
-      g.beginPath();
-      g.moveTo(x + s * 2.5, y);
-      g.lineTo(x, y - s * 0.4);
-      g.lineTo(x - s, y);
-      g.lineTo(x, y + s * 0.4);
-      g.closePath();
-      g.fillPath();
-      // Hot engine trail
-      g.fillStyle(0xff4400, alpha * 0.8);
-      g.fillEllipse(x - s * 1.5, y, s * 0.8, s * 0.2);
-      g.fillStyle(0xffff00, alpha * 0.5);
-      g.fillEllipse(x - s * 1.2, y, s * 0.4, s * 0.15);
-    } else if (boid.shipType === 'police') {
-      // Police cruiser with lights
-      g.fillStyle(boid.color, alpha);
-      g.beginPath();
-      g.moveTo(x + s * 1.8, y);
-      g.lineTo(x + s * 0.5, y - s * 0.6);
-      g.lineTo(x - s * 1.2, y - s * 0.5);
-      g.lineTo(x - s * 1.2, y + s * 0.5);
-      g.lineTo(x + s * 0.5, y + s * 0.6);
-      g.closePath();
-      g.fillPath();
-      // Flashing lights (alternate based on time)
-      const flashPhase = (Date.now() / 150) % 2 < 1;
-      g.fillStyle(flashPhase ? 0xff0000 : 0x0000ff, alpha);
-      g.fillCircle(x + s * 0.2, y - s * 0.5, s * 0.25);
-      g.fillStyle(flashPhase ? 0x0000ff : 0xff0000, alpha);
-      g.fillCircle(x + s * 0.2, y + s * 0.5, s * 0.25);
-    }
-
-    // If arrested, draw tow beam
-    if (boid.arrested && boid.escortedBy) {
-      g.lineStyle(1, 0x44aaff, alpha * 0.5);
-      g.lineBetween(x, y, boid.escortedBy.x, boid.escortedBy.y);
-    }
-  }
-
-  spawnExplosion(x, y, size, distance) {
-    // Varied explosion color palettes
-    const palettes = [
-      { core: 0xffff44, mid: 0xff6600, outer: 0xff2200, particle: 0xffaa00 }, // Classic orange
-      { core: 0x44ffff, mid: 0x0088ff, outer: 0x0044aa, particle: 0x44aaff }, // Blue plasma
-      { core: 0xff44ff, mid: 0xaa00ff, outer: 0x6600aa, particle: 0xdd44ff }, // Purple energy
-      { core: 0x44ff44, mid: 0x00cc00, outer: 0x008800, particle: 0x88ff44 }, // Green plasma
-      { core: 0xffffff, mid: 0xaaddff, outer: 0x4488ff, particle: 0xccffff }, // White flash
-    ];
-    const palette = Phaser.Utils.Array.GetRandom(palettes);
-
-    const explosion = {
-      x, y, size,
-      alpha: 0.6 + distance * 0.3,
-      frame: 0,
-      maxFrames: 30,
-      particles: [],
-      palette: palette,
-    };
-    // Create explosion particles
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      explosion.particles.push({
-        x: 0, y: 0,
-        vx: Math.cos(angle) * size * 0.15,
-        vy: Math.sin(angle) * size * 0.15,
-      });
-    }
-    const g = this.add.graphics();
-    explosion.graphics = g;
-    this.boidsContainer.add(g);
-    this.explosions.push(explosion);
-  }
-
-  spawnLaser(fromBoid, toBoid) {
-    // Use the ship's assigned energy color (based on ship tech)
-    const laser = {
-      x1: fromBoid.x, y1: fromBoid.y,
-      x2: toBoid.x, y2: toBoid.y,
-      alpha: 0.8,
-      life: 8,
-      color: fromBoid.energyColor,
-    };
-    const g = this.add.graphics();
-    laser.graphics = g;
-    this.boidsContainer.add(g);
-    this.laserShots.push(laser);
-  }
-
-  startBattle() {
-    // Find two fighters/racers not already in battle and not police
-    const available = this.boids.filter(b =>
-      !b.inBattle && !b.arrested && !b.isPolice &&
-      (b.shipType === 'fighter' || b.shipType === 'racer') &&
-      b.x > 100 && b.x < 900
-    );
-
-    if (available.length < 2) return;
-
-    // Pick two combatants
-    const shuffled = Phaser.Utils.Array.Shuffle([...available]);
-    const ship1 = shuffled[0];
-    const ship2 = shuffled[1];
-
-    ship1.inBattle = true;
-    ship2.inBattle = true;
-    ship1.target = ship2;
-    ship2.target = ship1;
-
-    // Store battle info - slow, dramatic battles
-    const battle = {
-      ships: [ship1, ship2],
-      duration: 0,
-      maxDuration: Phaser.Math.Between(600, 1200), // 10-20 seconds at 60fps - slow battles
-      laserCooldown: 0,
-    };
-    this.activeBattles.push(battle);
-  }
-
-  updateBoids(delta) {
-    if (!this.boids) return;
-
-    const dt = delta / 16;
-
-    // Maybe start a new battle (extremely rare - roughly once per 15 minutes)
-    this.battleCooldown -= dt;
-    if (this.battleCooldown <= 0 && this.activeBattles.length < 1) {
-      if (Math.random() < 0.00002) { // ~15 min average at 60fps
-        this.startBattle();
-        this.battleCooldown = 54000; // 15 minute cooldown minimum
-      }
-    }
-
-    // Update active battles
-    for (let i = this.activeBattles.length - 1; i >= 0; i--) {
-      const battle = this.activeBattles[i];
-      battle.duration += dt;
-      battle.laserCooldown -= dt;
-
-      const [ship1, ship2] = battle.ships;
-
-      // Ships maneuver toward each other - slow, dramatic dogfight
-      if (ship1 && ship2 && !ship1.arrested && !ship2.arrested) {
-        const dx = ship2.x - ship1.x;
-        const dy = ship2.y - ship1.y;
-        const dist = Math.sqrt(dx * dx + dy * dy);
-
-        // Slow circling maneuvers
-        if (dist > 40) {
-          ship1.vx += (dx / dist) * 0.003 * dt;
-          ship1.vy += (dy / dist) * 0.003 * dt;
-          ship2.vx -= (dx / dist) * 0.003 * dt;
-          ship2.vy -= (dy / dist) * 0.003 * dt;
-        }
-
-        // Slow laser exchanges
-        if (battle.laserCooldown <= 0) {
-          this.spawnLaser(ship1, ship2);
-          this.spawnLaser(ship2, ship1);
-          battle.laserCooldown = 45; // Much slower firing rate
-        }
-      }
-
-      // End battle after duration - create explosion and call police
-      if (battle.duration >= battle.maxDuration) {
-        const loser = Math.random() < 0.5 ? ship1 : ship2;
-        const winner = loser === ship1 ? ship2 : ship1;
-
-        // Loser explodes
-        if (loser && !loser.arrested) {
-          this.spawnExplosion(loser.x, loser.y, loser.size * 3, loser.distance);
-          // Remove loser
-          const idx = this.boids.indexOf(loser);
-          if (idx > -1) {
-            loser.graphics.destroy();
-            this.boids.splice(idx, 1);
-          }
-        }
-
-        // Winner tries to flee but police come
-        if (winner && !winner.arrested) {
-          winner.inBattle = false;
-          winner.target = null;
-          winner.vx = 0.4; // Try to escape right
-
-          // Spawn police to chase winner
-          this.time.delayedCall(500, () => {
-            if (winner && !winner.arrested && this.boids.includes(winner)) {
-              const police = this.spawnBoid(false, 'police', {
-                x: -30,
-                y: winner.y + Phaser.Math.Between(-50, 50),
-                vx: 0.5,
-                vy: 0,
-                distance: winner.distance,
-              });
-              police.chasing = winner;
-            }
-          });
-        }
-
-        this.activeBattles.splice(i, 1);
-      }
-    }
-
-    // Update all boids
-    for (const boid of this.boids) {
-      // Police chasing logic
-      if (boid.isPolice && boid.chasing) {
-        const target = boid.chasing;
-        if (!this.boids.includes(target) || target.arrested) {
-          boid.chasing = null;
-          boid.escorting = null;
-        } else {
-          const dx = target.x - boid.x;
-          const dy = target.y - boid.y;
-          const dist = Math.sqrt(dx * dx + dy * dy);
-
-          if (dist < 20 && !target.arrested) {
-            // Arrest the ship
-            target.arrested = true;
-            target.escortedBy = boid;
-            target.inBattle = false;
-            boid.escorting = target;
-            boid.vx = -0.3; // Take them away (left)
-
-            // Small flash when arrested
-            this.spawnExplosion(target.x, target.y, target.size, target.distance);
-          } else if (!target.arrested) {
-            // Chase
-            boid.vx += (dx / dist) * 0.02;
-            boid.vy += (dy / dist) * 0.02;
-            // Clamp speed
-            const speed = Math.sqrt(boid.vx * boid.vx + boid.vy * boid.vy);
-            if (speed > 0.6) {
-              boid.vx = (boid.vx / speed) * 0.6;
-              boid.vy = (boid.vy / speed) * 0.6;
-            }
-          }
-        }
-      }
-
-      // Arrested ships follow their escort
-      if (boid.arrested && boid.escortedBy) {
-        const escort = boid.escortedBy;
-        boid.x = escort.x - 25;
-        boid.y = escort.y;
-        boid.vx = escort.vx;
-        boid.vy = escort.vy;
-      } else if (!boid.inBattle) {
-        // Normal movement
-        boid.x += boid.vx * dt;
-        boid.y += boid.vy * dt;
-
-        // Gentle wobble
-        boid.y += Math.sin(boid.x * 0.015 + boid.wobbleOffset) * 0.03 * dt;
-
-        // Gradually return to base horizontal speed
-        boid.vx = Phaser.Math.Linear(boid.vx, boid.speed, 0.002);
-        boid.vy = Phaser.Math.Linear(boid.vy, 0, 0.01);
-      } else {
-        // Battle movement
-        boid.x += boid.vx * dt;
-        boid.y += boid.vy * dt;
-
-        // Keep in bounds during battle
-        boid.y = Phaser.Math.Clamp(boid.y, this.WINDOW_TOP + 30, this.WINDOW_BOTTOM - 30);
-      }
-
-      this.drawBoid(boid.graphics, boid);
-
-      // Respawn when off-screen
-      if (boid.x > 1080 || boid.x < -80) {
-        // Reset boid
-        boid.x = Phaser.Math.Between(-50, -10);
-        boid.y = Phaser.Math.Between(this.WINDOW_TOP + 20, this.WINDOW_BOTTOM - 20);
-        boid.vx = boid.speed;
-        boid.vy = 0;
-        boid.inBattle = false;
-        boid.arrested = false;
-        boid.escortedBy = null;
-        boid.escorting = null;
-        boid.chasing = null;
-        boid.target = null;
-      }
-    }
-
-    // Update explosions
-    for (let i = this.explosions.length - 1; i >= 0; i--) {
-      const exp = this.explosions[i];
-      exp.frame++;
-
-      const progress = exp.frame / exp.maxFrames;
-      const g = exp.graphics;
-      g.clear();
-
-      // Draw expanding explosion with palette colors
-      const radius = exp.size * (1 + progress * 2);
-      const alpha = exp.alpha * (1 - progress);
-      const pal = exp.palette;
-
-      // Core flash
-      g.fillStyle(pal.core, alpha);
-      g.fillCircle(exp.x, exp.y, radius * 0.5);
-      // Mid ring
-      g.fillStyle(pal.mid, alpha * 0.7);
-      g.fillCircle(exp.x, exp.y, radius * 0.8);
-      // Outer ring
-      g.fillStyle(pal.outer, alpha * 0.4);
-      g.fillCircle(exp.x, exp.y, radius);
-
-      // Particles
-      for (const p of exp.particles) {
-        p.x += p.vx;
-        p.y += p.vy;
-        g.fillStyle(pal.particle, alpha * 0.8);
-        g.fillCircle(exp.x + p.x, exp.y + p.y, exp.size * 0.2 * (1 - progress));
-      }
-
-      if (exp.frame >= exp.maxFrames) {
-        exp.graphics.destroy();
-        this.explosions.splice(i, 1);
-      }
-    }
-
-    // Update laser shots
-    for (let i = this.laserShots.length - 1; i >= 0; i--) {
-      const laser = this.laserShots[i];
-      laser.life--;
-      laser.alpha *= 0.85;
-
-      const g = laser.graphics;
-      g.clear();
-      g.lineStyle(2, laser.color, laser.alpha);
-      g.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
-      // Glow
-      g.lineStyle(4, laser.color, laser.alpha * 0.3);
-      g.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
-
-      if (laser.life <= 0) {
-        laser.graphics.destroy();
-        this.laserShots.splice(i, 1);
-      }
-    }
-  }
 
   createWallDecor() {
     // Wall decor removed for cleaner UI
@@ -1478,89 +1007,55 @@ export class GameScene extends Phaser.Scene {
     const surfaceH = 331; // To bottom of screen (768 - 437)
     const surfaceW = 1024;
 
-    // Lighter brushed steel base
-    const baseColor = 0x8a8a9a;
-    g.fillStyle(baseColor, 1);
+    // Warm walnut wood base
+    g.fillStyle(0x6B3A2A, 1);
     g.fillRect(0, surfaceY, surfaceW, surfaceH);
 
-    // Brushed metal horizontal lines (fine texture)
-    g.lineStyle(1, 0x9a9aaa, 0.12);
-    for (let y = surfaceY + 4; y < surfaceY + surfaceH; y += 6) {
+    // Horizontal wood grain lines
+    g.lineStyle(1, 0x7A4A3A, 0.15);
+    for (let y = surfaceY + 3; y < surfaceY + surfaceH; y += 5) {
       g.lineBetween(0, y, surfaceW, y);
     }
 
-    // Top edge highlight (light source from above)
-    g.fillStyle(0xb0b0c0, 0.6);
-    g.fillRect(0, surfaceY, surfaceW, 2);
+    // Chrome trim at top edge
+    g.fillStyle(this.CHROME_MID, 1);
+    g.fillRect(0, surfaceY, surfaceW, 3);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.5);
+    g.fillRect(0, surfaceY, surfaceW, 1);
+
+    // Warm wood highlight strip below chrome
+    g.fillStyle(0xC8A878, 0.3);
+    g.fillRect(0, surfaceY + 3, surfaceW, 2);
 
     // Subtle gradient darkening toward bottom
     for (let i = 0; i < 8; i++) {
-      const alpha = 0.02 * i;
+      const alpha = 0.025 * i;
       const yPos = surfaceY + surfaceH - 80 + i * 10;
       g.fillStyle(0x000000, alpha);
       g.fillRect(0, yPos, surfaceW, 10);
     }
 
-    // Panel sections (vertical dividers)
-    const panelWidth = surfaceW / 5;
-    g.lineStyle(1, 0x6a6a7a, 0.4);
-    for (let i = 1; i < 5; i++) {
-      const px = i * panelWidth;
-      g.lineBetween(px, surfaceY + 10, px, surfaceY + surfaceH - 10);
+    // Chrome buttons along top edge (replacing rivets)
+    for (let x = 50; x < surfaceW; x += 100) {
+      g.fillStyle(this.CHROME_DARK, 1);
+      g.fillCircle(x, surfaceY + 12, 4);
+      g.fillStyle(this.CHROME_HIGHLIGHT, 0.6);
+      g.fillCircle(x - 0.5, surfaceY + 11, 1.5);
     }
 
-    // Panel section highlights (left edge of each panel)
-    g.lineStyle(1, 0xaaaabc, 0.2);
-    for (let i = 1; i < 5; i++) {
-      const px = i * panelWidth + 1;
-      g.lineBetween(px, surfaceY + 10, px, surfaceY + surfaceH - 10);
+    // Chrome buttons along bottom edge
+    for (let x = 50; x < surfaceW; x += 100) {
+      g.fillStyle(this.CHROME_DARK, 1);
+      g.fillCircle(x, surfaceY + surfaceH - 12, 4);
+      g.fillStyle(this.CHROME_HIGHLIGHT, 0.6);
+      g.fillCircle(x - 0.5, surfaceY + surfaceH - 13, 1.5);
     }
 
-    // Rivet details along top edge
-    const rivetColor = 0x7a7a8a;
-    const rivetHighlight = 0xb8b8c8;
-    for (let x = 30; x < surfaceW; x += 80) {
-      // Rivet base
-      g.fillStyle(rivetColor, 1);
-      g.fillCircle(x, surfaceY + 15, 4);
-      // Rivet highlight
-      g.fillStyle(rivetHighlight, 0.6);
-      g.fillCircle(x - 1, surfaceY + 14, 1.5);
-    }
-
-    // Rivet details along bottom edge
-    for (let x = 30; x < surfaceW; x += 80) {
-      g.fillStyle(rivetColor, 1);
-      g.fillCircle(x, surfaceY + surfaceH - 15, 4);
-      g.fillStyle(rivetHighlight, 0.6);
-      g.fillCircle(x - 1, surfaceY + surfaceH - 16, 1.5);
-    }
-
-    // Corner bracket details (top-left, top-right)
-    this.drawCornerBracket(g, 8, surfaceY + 8, false);
-    this.drawCornerBracket(g, surfaceW - 8, surfaceY + 8, true);
-
-    // Subtle center highlight (reflection)
-    g.fillStyle(0xffffff, 0.04);
+    // Subtle center warm highlight (wood sheen)
+    g.fillStyle(0xC8A878, 0.04);
     g.fillRect(200, surfaceY + 60, 624, 200);
-
   }
 
-  drawCornerBracket(g, x, y, flipX) {
-    const dir = flipX ? -1 : 1;
-    g.lineStyle(2, 0x6a6a7a, 0.5);
-    g.beginPath();
-    g.moveTo(x, y + 20);
-    g.lineTo(x, y);
-    g.lineTo(x + dir * 20, y);
-    g.strokePath();
-    g.lineStyle(1, 0xaaaabc, 0.3);
-    g.beginPath();
-    g.moveTo(x + dir * 1, y + 19);
-    g.lineTo(x + dir * 1, y + 1);
-    g.lineTo(x + dir * 19, y + 1);
-    g.strokePath();
-  }
 
   /* =========================================
      FLOOR (brushed chrome strip below window)
@@ -1570,43 +1065,30 @@ export class GameScene extends Phaser.Scene {
     const floorY = this.WINDOW_BOTTOM;
     const floorH = 28;
 
-    // Brushed chrome base
-    g.fillStyle(this.CHROME_MID, 1);
+    // Warm wood baseboard
+    g.fillStyle(0x5A3A2A, 1);
     g.fillRect(0, floorY, 1024, floorH);
 
-    // Top highlight
-    g.fillStyle(this.CHROME_HIGHLIGHT, 0.5);
+    // Top chrome rail (kept — diner counter trim)
+    g.fillStyle(this.CHROME_MID, 1);
     g.fillRect(0, floorY, 1024, 3);
+    g.fillStyle(this.CHROME_HIGHLIGHT, 0.5);
+    g.fillRect(0, floorY, 1024, 1);
 
-    // Brushed metal horizontal lines
-    g.lineStyle(1, this.CHROME_LIGHT, 0.2);
+    // Wood grain lines
+    g.lineStyle(1, 0x6A4A3A, 0.15);
     for (let y = floorY + 6; y < floorY + floorH - 4; y += 4) {
       g.lineBetween(0, y, 1024, y);
     }
 
     // Bottom edge shadow
-    g.fillStyle(this.CHROME_DARK, 0.6);
+    g.fillStyle(0x2A1A10, 0.6);
     g.fillRect(0, floorY + floorH - 3, 1024, 3);
 
-    // Diamond plate texture (subtle)
-    g.fillStyle(this.CHROME_LIGHT, 0.15);
-    for (let x = 20; x < 1024; x += 40) {
-      for (let row = 0; row < 2; row++) {
-        const yOff = floorY + 8 + row * 10;
-        g.beginPath();
-        g.moveTo(x, yOff);
-        g.lineTo(x + 8, yOff - 4);
-        g.lineTo(x + 16, yOff);
-        g.lineTo(x + 8, yOff + 4);
-        g.closePath();
-        g.fillPath();
-      }
-    }
-
-    // Neon accent strips at edges
-    g.fillStyle(this.NEON_ORANGE, 0.35);
-    g.fillRect(0, floorY, 3, floorH);
-    g.fillRect(1021, floorY, 3, floorH);
+    // Warm cream edge accents
+    g.fillStyle(0xFFEE88, 0.3);
+    g.fillRect(0, floorY + 3, 3, floorH - 3);
+    g.fillRect(1021, floorY + 3, 3, floorH - 3);
   }
 
   /* =========================================
@@ -2420,6 +1902,7 @@ export class GameScene extends Phaser.Scene {
     this.input.on('pointermove', (pointer) => {
       // Update robot arm to follow cursor
       this.robotArm.setTarget(pointer.x, pointer.y);
+      this.robotArm.setGripping(!!this.heldItem);
 
       if (!this.heldItem) {
         this.trayHighlight.clear();
@@ -2862,6 +2345,10 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
+    // Max 4 unfulfilled orders at once
+    const activeOrders = this.trays.filter(t => !t.done && !t.completed).length;
+    if (activeOrders >= 4) return;
+
     // Only spawn if there's an empty prep slot
     const slot = this.prepTrack.findEmptySlot();
     if (!slot) return;
@@ -2870,11 +2357,10 @@ export class GameScene extends Phaser.Scene {
     this.orderNumber++;
     const orderNum = this.orderNumber;
 
-    // Add ticket to the slider
-    this.addTicket(order, orderNum);
-
-    // Tray container — spawn directly at prep slot position
+    // Tray container — spawn directly at prep slot position (hidden until customer arrives)
     const container = this.add.container(slot.x, slot.y).setDepth(10);
+    container.setAlpha(0);
+    container.setScale(0.85);
 
     // Use thin tray sprite (thinner profile)
     const traySprite = this.add.image(0, 0, 'tray_thin');
@@ -2920,6 +2406,7 @@ export class GameScene extends Phaser.Scene {
       onBelt: false,
       prepSlot: slot,
       draggable: true,
+      waitingForCustomer: true,
     };
 
     // Register tray in the prep slot
@@ -2928,27 +2415,38 @@ export class GameScene extends Phaser.Scene {
 
     this.trays.push(tray);
 
-    // Make tray interactive for dragging
+    // Size the container for later interactivity
     container.setSize(traySprite.width * traySprite.scaleX, traySprite.height * traySprite.scaleY);
-    container.setInteractive({ draggable: true, useHandCursor: true });
-    this.updateTrayNextHint(tray);
     this.ordersSpawned++;
+
+    // Dock a customer vessel — order appears when the customer arrives at the window
+    this.customerVessels.dockVessel(tray, () => {
+      tray.waitingForCustomer = false;
+
+      // Now add the ticket to the slider
+      this.addTicket(order, orderNum);
+
+      // Make tray interactive for dragging
+      container.setInteractive({ draggable: true, useHandCursor: true });
+      this.updateTrayNextHint(tray);
+
+      // Entrance animation: fade in + scale bounce
+      this.tweens.add({
+        targets: container,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
+      });
+
+      this.prepTrack.render();
+      this.refreshHUD();
+    });
 
     if (this.ordersSpawned === 3) {
       this.spawnTimer = this.spawnInterval * 0.5;
     }
-
-    // Subtle entrance animation: fade in + scale bounce
-    container.setAlpha(0);
-    container.setScale(0.85);
-    this.tweens.add({
-      targets: container,
-      alpha: 1,
-      scaleX: 1,
-      scaleY: 1,
-      duration: 300,
-      ease: 'Back.easeOut',
-    });
 
     this.prepTrack.render();
     this.refreshHUD();
@@ -3331,6 +2829,9 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     tray.container.add(check);
 
+    // Vessel departs on completed order
+    this.customerVessels.undockVessel(tray);
+
     this.resolveSequential();
   }
 
@@ -3391,6 +2892,9 @@ export class GameScene extends Phaser.Scene {
       onComplete: () => miss.destroy(),
     });
 
+    // Vessel departs on missed order
+    this.customerVessels.undockVessel(tray);
+
     this.resolveSequential();
     // No game over in endless mode!
   }
@@ -3421,434 +2925,6 @@ export class GameScene extends Phaser.Scene {
         totalOrders: this.totalOrders,
       });
     });
-  }
-
-  /* =========================================
-     ROBOT ARM (articulated arm from bottom center)
-     ========================================= */
-  createRobotArm() {
-    // Horizontal track for alien to slide along
-    this.trackMinX = 120;   // Left limit of track
-    this.trackMaxX = 904;   // Right limit of track
-    this.trackY = 768;      // Track is at bottom of screen
-
-    // Tentacle base at alien's side (moves along track)
-    this.armBaseX = 512;  // Current position (will slide)
-    this.armBaseY = 678;  // Tentacle base height
-    this.armSegment1Length = 130; // Upper tentacle
-    this.armSegment2Length = 110; // Mid tentacle
-    this.armSegment3MinLength = 50; // Tip minimum
-    this.armSegment3MaxLength = 90; // Tip maximum
-    this.armSegment3Length = 50; // Current length (dynamic)
-
-    // Tentacle wave animation
-    this.tentacleTime = 0;
-    this.tentacleWaveSpeed = 3;
-    this.tentacleWaveAmount = 0.15;
-
-    // Work area constraints
-    this.armMinY = 280;  // Above belt for placing ingredients
-    this.armMaxY = 665;  // Above the arm base
-
-    // Current angles (will be updated via IK)
-    this.armAngle1 = -Math.PI / 2; // Point up
-    this.armAngle2 = 0;
-    this.armAngle3 = 0;
-
-    // Base rotation
-    this.armBaseRotation = 0;
-
-    // Target position (mouse)
-    this.armTargetX = 512;
-    this.armTargetY = 500;
-
-    // Sound throttling
-    this.lastArmSoundTime = 0;
-    this.armSoundInterval = 80;
-
-    // Draw the track (subtle alien-tech rail)
-    this.trackGfx = this.add.graphics().setDepth(140);
-    this.drawTrack();
-
-    // Create alien body (moves along track)
-    // Right tentacle base at x=160 in 200-wide SVG, center is 100, offset = -60
-    this.alienBodyOffsetX = -60;
-    this.alienBody = this.add.image(this.armBaseX + this.alienBodyOffsetX, this.trackY, 'alien_body')
-      .setOrigin(0.5, 1)
-      .setDepth(144);
-
-    // Create graphics layer for tentacle
-    this.robotArmBaseGfx = this.add.graphics().setDepth(145);
-    this.robotArmGfx = this.add.graphics().setDepth(150);
-
-    // Create tentacle tip sprites
-    this.tentacleTipOpen = this.add.image(0, 0, 'tentacle_tip')
-      .setOrigin(0.5, 0.95)
-      .setDepth(155)
-      .setScale(0.8);
-    this.tentacleTipGrip = this.add.image(0, 0, 'tentacle_tip_grip')
-      .setOrigin(0.5, 0.95)
-      .setDepth(155)
-      .setScale(0.8)
-      .setVisible(false);
-
-    // Grip state
-    this.clawOpen = true;
-
-    // Draw initial state
-    this.drawArmBase();
-    this.drawRobotArm();
-  }
-
-  drawTrack() {
-    const g = this.trackGfx;
-    g.clear();
-
-    // Alien hover-rail at the bottom
-    const trackY = this.trackY - 8;
-
-    // Glow effect
-    g.fillStyle(0x6040A0, 0.15);
-    g.fillRect(this.trackMinX - 30, trackY - 4, this.trackMaxX - this.trackMinX + 60, 16);
-
-    // Main hover rail (purple/alien themed)
-    g.fillStyle(0x4a3a6a, 0.8);
-    g.fillRect(this.trackMinX - 20, trackY, this.trackMaxX - this.trackMinX + 40, 10);
-
-    // Energy line
-    g.fillStyle(0x9080D0, 0.6);
-    g.fillRect(this.trackMinX - 15, trackY + 3, this.trackMaxX - this.trackMinX + 30, 4);
-
-    // Pulsing nodes along track
-    for (let x = this.trackMinX; x <= this.trackMaxX; x += 80) {
-      g.fillStyle(0xB0A0E0, 0.5);
-      g.fillCircle(x, trackY + 5, 4);
-      g.fillStyle(0xD0C0FF, 0.7);
-      g.fillCircle(x, trackY + 5, 2);
-    }
-  }
-
-  drawArmBase() {
-    const g = this.robotArmBaseGfx;
-    g.clear();
-
-    // Draw a subtle glow/shadow under the alien
-    g.fillStyle(0x6050A0, 0.2);
-    g.fillEllipse(this.armBaseX + this.alienBodyOffsetX, this.trackY - 5, 90, 15);
-  }
-
-  updateRobotArm(delta) {
-    const pointer = this.input.activePointer;
-    const lerpSpeed = 0.12;
-
-    // Constrain target to work area
-    this.armTargetX = Phaser.Math.Clamp(pointer.x, 60, 964);
-    this.armTargetY = Phaser.Math.Clamp(pointer.y, this.armMinY, this.armMaxY);
-
-    // ===== CHEF SLIDES ALONG TRACK =====
-    // Move the chef along the track to get closer to target X
-    // The chef tries to position themselves so the arm can comfortably reach
-    const armReach = this.armSegment1Length + this.armSegment2Length + this.armSegment3Length;
-
-    // Target base position - chef moves toward target X but stays within track bounds
-    // Chef positions slightly behind target to allow natural arm extension forward
-    const idealBaseX = this.armTargetX;
-    const targetBaseX = Phaser.Math.Clamp(idealBaseX, this.trackMinX, this.trackMaxX);
-
-    // Smoothly slide along track
-    this.armBaseX = Phaser.Math.Linear(this.armBaseX, targetBaseX, lerpSpeed * 0.8);
-
-    // Update alien body position to follow
-    this.alienBody.x = this.armBaseX + this.alienBodyOffsetX;
-
-    // ===== ARM KINEMATICS =====
-    const dx = this.armTargetX - this.armBaseX;
-    const dy = this.armTargetY - this.armBaseY;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-
-    // Shoulder rotation - more freedom, wider range
-    const targetBaseRotation = Math.atan2(dx, -dy);
-    this.armBaseRotation = Phaser.Math.Linear(this.armBaseRotation, targetBaseRotation, lerpSpeed);
-    // Allow full shoulder rotation (-90 to +90 degrees)
-    this.armBaseRotation = Phaser.Math.Clamp(this.armBaseRotation, -1.57, 1.57);
-
-    // Calculate arm bend based on distance
-    const maxReach = this.armSegment1Length + this.armSegment2Length + this.armSegment3Length;
-    const minReach = 80;
-    const reachRatio = Phaser.Math.Clamp((dist - minReach) / (maxReach - minReach), 0, 1);
-
-    // Segment 1 (upper arm) - more freedom, follows shoulder rotation
-    const bendAmount = (1 - reachRatio) * 1.2;
-    const targetAngle1 = -Math.PI / 2 + this.armBaseRotation * 0.6 + bendAmount * 0.4;
-    this.armAngle1 = Phaser.Math.Linear(this.armAngle1, targetAngle1, lerpSpeed * 1.2);
-
-    // Segment 2 (forearm) - bends at elbow naturally
-    const targetAngle2 = -bendAmount * Math.PI * 0.5 + this.armBaseRotation * 0.3;
-    this.armAngle2 = Phaser.Math.Linear(this.armAngle2, targetAngle2, lerpSpeed);
-
-    // Calculate wrist position
-    const joint2X = this.armBaseX + Math.cos(this.armAngle1) * this.armSegment1Length;
-    const joint2Y = this.armBaseY + Math.sin(this.armAngle1) * this.armSegment1Length;
-    const angle12 = this.armAngle1 + this.armAngle2;
-    const joint3X = joint2X + Math.cos(angle12) * this.armSegment2Length;
-    const joint3Y = joint2Y + Math.sin(angle12) * this.armSegment2Length;
-
-    // Segment 3 (wrist/hand) - aims toward target
-    const wristToTarget = Math.atan2(this.armTargetY - joint3Y, this.armTargetX - joint3X);
-    const targetAngle3 = wristToTarget - angle12;
-    this.armAngle3 = Phaser.Math.Linear(this.armAngle3, targetAngle3, lerpSpeed * 1.5);
-
-    // Minimal telescoping - just slight extension/retraction for fine adjustment
-    const distToTarget = Math.sqrt(
-      Math.pow(this.armTargetX - joint3X, 2) +
-      Math.pow(this.armTargetY - joint3Y, 2)
-    );
-    // Much smaller extension range - chef moves instead of arm extending
-    const targetSeg3Length = Phaser.Math.Clamp(
-      distToTarget * 0.8,
-      this.armSegment3MinLength,
-      this.armSegment3MinLength + 40  // Only 40px of extension max
-    );
-    this.armSegment3Length = Phaser.Math.Linear(this.armSegment3Length, targetSeg3Length, lerpSpeed);
-
-    // Play movement sound occasionally
-    const now = this.time.now;
-    if (now - this.lastArmSoundTime > this.armSoundInterval) {
-      const movement = Math.abs(targetBaseX - this.armBaseX) * 0.01 +
-                       Math.abs(targetAngle1 - this.armAngle1);
-      if (movement > 0.015) {
-        soundManager.robotMove();
-        this.lastArmSoundTime = now;
-      }
-    }
-
-    // Update claw state
-    this.clawOpen = !this.heldItem;
-
-    // Redraw arm base (shadow) and arm
-    this.drawArmBase();
-    this.drawRobotArm();
-  }
-
-  drawRobotArm() {
-    const g = this.robotArmGfx;
-    g.clear();
-
-    // Update tentacle wave time
-    this.tentacleTime += 0.05;
-
-    // Tentacle colors
-    const tentacleMain = 0x8B78E8;
-    const tentacleShade = 0x6858B8;
-    const tentacleHighlight = 0xA898F8;
-    const suckerColor = 0xC8B8FF;
-    const suckerInner = 0x9080C0;
-
-    // Calculate joint positions with wavy motion
-    const joint1X = this.armBaseX;
-    const joint1Y = this.armBaseY;
-
-    // Add wave offset to angles
-    const wave1 = Math.sin(this.tentacleTime * this.tentacleWaveSpeed) * this.tentacleWaveAmount;
-    const wave2 = Math.sin(this.tentacleTime * this.tentacleWaveSpeed + 1) * this.tentacleWaveAmount * 0.8;
-    const wave3 = Math.sin(this.tentacleTime * this.tentacleWaveSpeed + 2) * this.tentacleWaveAmount * 0.5;
-
-    const joint2X = joint1X + Math.cos(this.armAngle1 + wave1) * this.armSegment1Length;
-    const joint2Y = joint1Y + Math.sin(this.armAngle1 + wave1) * this.armSegment1Length;
-
-    const angle12 = this.armAngle1 + this.armAngle2 + wave1;
-    const joint3X = joint2X + Math.cos(angle12 + wave2) * this.armSegment2Length;
-    const joint3Y = joint2Y + Math.sin(angle12 + wave2) * this.armSegment2Length;
-
-    const angle123 = angle12 + this.armAngle3 + wave2;
-    const endX = joint3X + Math.cos(angle123 + wave3) * this.armSegment3Length;
-    const endY = joint3Y + Math.sin(angle123 + wave3) * this.armSegment3Length;
-
-    // Draw tentacle segments with smooth curves
-    this.drawTentacleSegment(g, joint1X, joint1Y, joint2X, joint2Y, 22, 16, tentacleMain, tentacleShade, tentacleHighlight);
-    this.drawTentacleSuckers(g, joint1X, joint1Y, joint2X, joint2Y, suckerColor, suckerInner);
-
-    this.drawTentacleSegment(g, joint2X, joint2Y, joint3X, joint3Y, 16, 10, tentacleMain, tentacleShade, tentacleHighlight);
-    this.drawTentacleSuckers(g, joint2X, joint2Y, joint3X, joint3Y, suckerColor, suckerInner);
-
-    this.drawTentacleSegment(g, joint3X, joint3Y, endX, endY, 10, 6, tentacleMain, tentacleShade, tentacleHighlight);
-    this.drawTentacleSuckers(g, joint3X, joint3Y, endX, endY, suckerColor, suckerInner, true);
-
-    // Position and rotate the tentacle tip sprites
-    const tipAngle = angle123 + wave3 + Math.PI / 2;
-
-    this.tentacleTipOpen.setPosition(endX, endY);
-    this.tentacleTipOpen.setRotation(tipAngle);
-    this.tentacleTipGrip.setPosition(endX, endY);
-    this.tentacleTipGrip.setRotation(tipAngle);
-
-    // Show correct tip based on grip state
-    this.tentacleTipOpen.setVisible(this.clawOpen);
-    this.tentacleTipGrip.setVisible(!this.clawOpen);
-  }
-
-  drawTentacleSegment(g, x1, y1, x2, y2, widthStart, widthEnd, colorMain, colorShade, colorHighlight) {
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    const segments = Math.ceil(length / 8);
-
-    // Draw tapered tentacle body
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
-      const px = Phaser.Math.Linear(x1, x2, t);
-      const py = Phaser.Math.Linear(y1, y2, t);
-      const w = Phaser.Math.Linear(widthStart, widthEnd, t);
-
-      // Add subtle wave to width
-      const waveWidth = w + Math.sin(t * Math.PI * 2 + this.tentacleTime * 2) * 1.5;
-
-      // Main body
-      g.fillStyle(colorMain, 1);
-      g.fillCircle(px, py, waveWidth / 2);
-
-      // Highlight on one side
-      const highlightX = px + Math.cos(angle + Math.PI / 2) * waveWidth * 0.25;
-      const highlightY = py + Math.sin(angle + Math.PI / 2) * waveWidth * 0.25;
-      g.fillStyle(colorHighlight, 0.4);
-      g.fillCircle(highlightX, highlightY, waveWidth * 0.25);
-    }
-  }
-
-  drawTentacleSuckers(g, x1, y1, x2, y2, suckerColor, suckerInner, isSmall = false) {
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
-    const perpAngle = angle - Math.PI / 2;
-    const suckerCount = isSmall ? 3 : 4;
-    const baseSize = isSmall ? 3 : 4;
-
-    for (let i = 1; i <= suckerCount; i++) {
-      const t = i / (suckerCount + 1);
-      const px = Phaser.Math.Linear(x1, x2, t);
-      const py = Phaser.Math.Linear(y1, y2, t);
-
-      // Offset to underside of tentacle
-      const offsetDist = 6 - t * 2;
-      const sx = px + Math.cos(perpAngle) * offsetDist;
-      const sy = py + Math.sin(perpAngle) * offsetDist;
-      const size = baseSize * (1 - t * 0.3);
-
-      // Draw sucker
-      g.fillStyle(suckerColor, 0.8);
-      g.fillCircle(sx, sy, size);
-      g.fillStyle(suckerInner, 0.6);
-      g.fillCircle(sx, sy, size * 0.5);
-    }
-  }
-
-
-  drawTelescopingSegment(g, x1, y1, x2, y2, baseWidth, currentLength, minLength, maxLength) {
-    // Draw a telescoping segment with nested tubes
-    // 4 nested sections that extend progressively
-    const numSections = 4;
-    const sectionMinLength = minLength / numSections;
-    const sectionMaxExtend = (maxLength - minLength) / numSections;
-
-    const angle = Math.atan2(y2 - y1, x2 - x1);
-    const dirX = Math.cos(angle);
-    const dirY = Math.sin(angle);
-
-    // Colors for each section (outer to inner, getting slightly lighter)
-    const metalDark = 0x4a4a5a;
-    const metalMid = 0x5a5a6a;
-    const metalLight = 0x6a6a7a;
-    const metalLighter = 0x7a7a8a;
-    const sectionColors = [metalDark, metalMid, metalLight, metalLighter];
-    const highlightColors = [0x6a6a7a, 0x7a7a8a, 0x8a8a9a, 0x9a9aaa];
-
-    // Calculate how much each section needs to extend
-    const totalExtension = currentLength - minLength;
-    const extensionPerSection = totalExtension / numSections;
-
-    let sectionStartX = x1;
-    let sectionStartY = y1;
-
-    for (let i = 0; i < numSections; i++) {
-      // Each section width gets smaller (telescoping look)
-      const sectionWidth = baseWidth - i * 2;
-
-      // Each section length = base + extension
-      const sectionLength = sectionMinLength + extensionPerSection;
-
-      const sectionEndX = sectionStartX + dirX * sectionLength;
-      const sectionEndY = sectionStartY + dirY * sectionLength;
-
-      const perpX = Math.cos(angle + Math.PI / 2) * sectionWidth / 2;
-      const perpY = Math.sin(angle + Math.PI / 2) * sectionWidth / 2;
-
-      // Draw section body
-      g.fillStyle(sectionColors[i], 1);
-      g.beginPath();
-      g.moveTo(sectionStartX + perpX, sectionStartY + perpY);
-      g.lineTo(sectionEndX + perpX, sectionEndY + perpY);
-      g.lineTo(sectionEndX - perpX, sectionEndY - perpY);
-      g.lineTo(sectionStartX - perpX, sectionStartY - perpY);
-      g.closePath();
-      g.fillPath();
-
-      // Highlight edge
-      g.lineStyle(1, highlightColors[i], 0.7);
-      g.lineBetween(sectionStartX + perpX, sectionStartY + perpY, sectionEndX + perpX, sectionEndY + perpY);
-
-      // Draw ring at section joint (except for last section)
-      if (i < numSections - 1) {
-        const ringWidth = sectionWidth + 2;
-        const ringPerpX = Math.cos(angle + Math.PI / 2) * ringWidth / 2;
-        const ringPerpY = Math.sin(angle + Math.PI / 2) * ringWidth / 2;
-        g.fillStyle(0x3a3a4a, 1);
-        g.beginPath();
-        g.moveTo(sectionEndX + ringPerpX - dirX * 2, sectionEndY + ringPerpY - dirY * 2);
-        g.lineTo(sectionEndX + ringPerpX + dirX * 2, sectionEndY + ringPerpY + dirY * 2);
-        g.lineTo(sectionEndX - ringPerpX + dirX * 2, sectionEndY - ringPerpY + dirY * 2);
-        g.lineTo(sectionEndX - ringPerpX - dirX * 2, sectionEndY - ringPerpY - dirY * 2);
-        g.closePath();
-        g.fillPath();
-      }
-
-      // Next section starts where this one ends
-      sectionStartX = sectionEndX;
-      sectionStartY = sectionEndY;
-    }
-  }
-
-  drawClaw(g, x, y, angle) {
-    const clawLength = 25;
-    const clawSpread = this.clawOpen ? 0.4 : 0.15; // Radians
-
-    const metalDark = 0x4a4a5a;
-    const metalLight = 0x8a8a9a;
-    const accentCyan = 0x00ddff;
-
-    // Two claw fingers
-    const finger1Angle = angle - clawSpread;
-    const finger2Angle = angle + clawSpread;
-
-    const f1EndX = x + Math.cos(finger1Angle) * clawLength;
-    const f1EndY = y + Math.sin(finger1Angle) * clawLength;
-    const f2EndX = x + Math.cos(finger2Angle) * clawLength;
-    const f2EndY = y + Math.sin(finger2Angle) * clawLength;
-
-    // Draw fingers
-    g.lineStyle(6, metalDark, 1);
-    g.lineBetween(x, y, f1EndX, f1EndY);
-    g.lineBetween(x, y, f2EndX, f2EndY);
-
-    g.lineStyle(3, metalLight, 1);
-    g.lineBetween(x, y, f1EndX, f1EndY);
-    g.lineBetween(x, y, f2EndX, f2EndY);
-
-    // Finger tips
-    g.fillStyle(accentCyan, 0.8);
-    g.fillCircle(f1EndX, f1EndY, 4);
-    g.fillCircle(f2EndX, f2EndY, 4);
-
-    // Wrist joint
-    g.fillStyle(metalDark, 1);
-    g.fillCircle(x, y, 6);
   }
 
   /* =========================================
@@ -3909,6 +2985,12 @@ export class GameScene extends Phaser.Scene {
 
     // Boids animation (vessels drifting across window)
     this.boidManager.update(delta);
+
+    // Customer vessels
+    this.customerVessels.update(delta);
+
+    // Revenue challenges
+    this.revenueChallenges.update(delta);
 
     // --- spawn logic ---
     if (this.isStoreOpen && this.prepTrack.findEmptySlot()) {
@@ -3987,8 +3069,8 @@ export class GameScene extends Phaser.Scene {
       diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease
     );
 
-    // Update music intensity based on difficulty
-    const intensity = Math.min(1, minutesPlayed * 0.1);
-    musicManager.setIntensity(intensity);
+    // Music disabled (drone was unpleasant)
+    // const intensity = Math.min(1, minutesPlayed * 0.1);
+    // musicManager.setIntensity(intensity);
   }
 }
