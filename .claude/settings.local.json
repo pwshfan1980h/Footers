@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run dev:*)",
+      "mcp__MCP_DOCKER__browser_wait_for"
+    ]
+  }
+}

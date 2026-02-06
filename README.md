@@ -1,16 +1,16 @@
-# SammyBot
+# Footers
 
 A browser-based time-management arcade game where you control a robot arm in a space station sandwich shop. Built with Phaser 3 and Vite.
 
 ## About
 
-You control **SammyBot** - a robotic sandwich-making arm working in a bustling deli floating in the void of space. Customers place orders via tickets, and their trays roll in on a conveyor belt. Use the robot arm to pick up ingredients from bins, place them on trays in the correct order, apply treatments, and get those sandwiches out before they slide past the finish line!
+You control **Footers** - a robotic sandwich-making arm working in a bustling deli floating in the void of space. Customers place orders via tickets, and their trays roll in on a conveyor belt. Use the robot arm to pick up ingredients from bins, place them on trays in the correct order, apply treatments, and get those sandwiches out before they slide past the finish line!
 
 The game spans 5 days (Monday-Friday) with increasing difficulty. Miss 3 orders and it's game over.
 
 ## Features
 
-- **Articulated robot arm** - Control SammyBot's arm that follows your cursor
+- **Articulated robot arm** - Control Footers's arm that follows your cursor
 - **Click-to-place gameplay** - Pick up ingredients, click trays to place
 - **Order ticket system** - Match ingredients to the ticket in exact order
 - **Treatment system** - Toast, To-Go boxes, Salt & Pepper, Oil & Vinegar

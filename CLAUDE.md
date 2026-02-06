@@ -14,7 +14,7 @@ No test runner, linter, or formatter is configured.
 
 ## Project Overview
 
-**SammyBot** is a browser-based time-management arcade game built with Phaser 3 and Vite. Players control a robot arm to pick up ingredients from bins and place them on moving conveyor belt trays in strict order, applying treatments to complete orders before trays slide past the finish line. The game spans 5 days (Monday-Friday) with increasing difficulty. 3 missed orders = game over.
+**Footers** is a browser-based time-management arcade game built with Phaser 3 and Vite. Players control a robot arm to pick up ingredients from bins and place them on moving conveyor belt trays in strict order, applying treatments to complete orders before trays slide past the finish line. The game spans 5 days (Monday-Friday) with increasing difficulty. 3 missed orders = game over.
 
 ## Architecture
 

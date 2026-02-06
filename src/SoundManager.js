@@ -253,6 +253,74 @@ class SoundManager {
       now += dur + 0.02; // slight pause between syllables
     }
   }
+
+  // Whoosh sound for tray movements
+  whoosh() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Sweep from high to low with noise
+    this._noise(0.15, 0.08);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this.ctx.destination);
+    osc.frequency.setValueAtTime(800, t);
+    osc.frequency.exponentialRampToValueAtTime(200, t + 0.2);
+    gain.gain.setValueAtTime(0.12, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.start(t);
+    osc.stop(t + 0.2);
+  }
+
+  // Metallic clang for tray placement
+  clang() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Multiple metallic tones
+    this._osc('square', 380, t, 0.15, 0.15);
+    this._osc('square', 620, t, 0.12, 0.12);
+    this._osc('sine', 940, t + 0.02, 0.18, 0.1);
+    this._noise(0.05, 0.08);
+  }
+
+  // Success chime for completed orders
+  successChime() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Ascending cheerful notes
+    this._osc('sine', 523, t, 0.12, 0.18);      // C5
+    this._osc('sine', 659, t + 0.08, 0.12, 0.18);  // E5
+    this._osc('sine', 784, t + 0.16, 0.2, 0.2);   // G5
+  }
+
+  // Ambient station hum (continuous low drone)
+  stationHum(duration = 1.0) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Very low frequency drone
+    this._osc('sine', 40, t, duration, 0.02);
+    this._osc('sine', 60, t, duration, 0.015);
+  }
+
+  // Pickup variation with pitch variation
+  pickupVariation(variation = 0) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    const basePitch = 150 + variation * 50; // Vary pitch per ingredient
+    this._osc('square', basePitch, t, 0.04, 0.08);
+    this._osc('sine', basePitch * 2, t + 0.02, 0.06, 0.1);
+    this._osc('sine', basePitch * 3, t + 0.05, 0.08, 0.08);
+    this._noise(0.02, 0.15);
+  }
+
+  // Soft slide sound for magnetism
+  magnetSlide() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Smooth ascending tone
+    this._osc('sine', 400, t, 0.1, 0.08);
+    this._osc('sine', 600, t + 0.05, 0.12, 0.06);
+  }
 }
 
 export const soundManager = new SoundManager();

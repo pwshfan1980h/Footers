@@ -1,7 +1,15 @@
 import Phaser from 'phaser';
-import { INGREDIENTS, BIN_LAYOUT, TREATMENTS, DAY_CONFIG } from '../data/ingredients.js';
+import { INGREDIENTS, BIN_LAYOUT, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { musicManager } from '../MusicManager.js';
 import { DEBUG } from '../config.js';
+import { BoidManager } from '../managers/BoidManager.js';
+import { TutorialOverlay } from '../managers/TutorialOverlay.js';
+import { WarningSystem } from '../managers/WarningSystem.js';
+import { ParticleManager } from '../managers/ParticleManager.js';
+import { RobotArm } from '../managers/RobotArm.js';
+import { SettingsMenu } from '../managers/SettingsMenu.js';
+import { PrepTrack } from '../managers/PrepTrack.js';
 
 function darkenColor(color, factor) {
   const r = Math.floor(((color >> 16) & 0xFF) * factor);
@@ -16,65 +24,85 @@ export class GameScene extends Phaser.Scene {
   }
 
   init(data) {
-    this.day = data.day || 1;
-    this.totalScore = data.totalScore || 0;
+    // Endless mode - no days
+    this.currentScore = 0;
+    this.highScore = this.loadHighScore();
+    this.gameTime = 0; // Track elapsed time for difficulty progression
+  }
+
+  loadHighScore() {
+    try {
+      const stored = localStorage.getItem('footers_highscore');
+      return stored ? parseInt(stored, 10) : 0;
+    } catch (e) {
+      return 0;
+    }
+  }
+
+  saveHighScore(score) {
+    try {
+      localStorage.setItem('footers_highscore', score.toString());
+    } catch (e) {
+      // localStorage not available
+    }
   }
 
   create() {
-    const cfg = DAY_CONFIG[this.day];
+    // Endless mode - start with easy difficulty
+    const diff = DIFFICULTY_PROGRESSION;
 
     // --- isometric constants ---
     this.ISO_SKEW = 0.25;
     this.TABLE_SKEW = 50;
 
-    // === SPACE STATION COLOR PALETTE - LIGHT METALS & GLASS ===
+    // === SPACE STATION COLOR PALETTE - DARKER MOODY ATMOSPHERE ===
     // Space colors
-    this.SPACE_BLACK = 0x0a0a18;
-    this.SPACE_DEEP = 0x080814;
-    this.STAR_WHITE = 0xffffff;
-    this.STAR_BLUE = 0xaaddff;
-    this.STAR_WARM = 0xffeedd;
+    this.SPACE_BLACK = 0x050510;
+    this.SPACE_DEEP = 0x030308;
+    this.STAR_WHITE = 0xdddddd;
+    this.STAR_BLUE = 0x88bbdd;
+    this.STAR_WARM = 0xddccbb;
 
     // Smoked glass overlay for window
-    this.SMOKED_GLASS = 0x1a2030;
-    this.SMOKED_GLASS_ALPHA = 0.35;
+    this.SMOKED_GLASS = 0x0f1520;
+    this.SMOKED_GLASS_ALPHA = 0.45;
 
-    // Station interior - WARM LIGHT METALS (no flat gray!)
-    this.HULL_DARK = 0x4a4a58;      // Warm dark steel
-    this.HULL_MID = 0x6a6a78;       // Mid brushed metal
-    this.HULL_LIGHT = 0x8a8a98;     // Light steel
-    this.HULL_BRIGHT = 0xa8a8b8;    // Bright highlight
-    this.HULL_WARM = 0x7a7068;      // Warm bronze accent
-    this.PANEL_SEAM = 0x3a3a48;
+    // Station interior - DARKER METALS
+    this.HULL_DARK = 0x2a2535;      // Darker steel with purple tint
+    this.HULL_MID = 0x3a3545;       // Darker brushed metal
+    this.HULL_LIGHT = 0x4a4555;     // Muted steel
+    this.HULL_BRIGHT = 0x5a5565;    // Reduced brightness
+    this.HULL_WARM = 0x4a3838;      // Darker bronze accent
+    this.PANEL_SEAM = 0x1a1825;
 
-    // Chrome/polished metal accents
-    this.CHROME_DARK = 0x5a5a6a;
-    this.CHROME_MID = 0x8a8a9a;
-    this.CHROME_LIGHT = 0xb8b8c8;
-    this.CHROME_HIGHLIGHT = 0xd8d8e8;
+    // Chrome/polished metal accents - DIMMED
+    this.CHROME_DARK = 0x3a3a48;
+    this.CHROME_MID = 0x5a5a68;
+    this.CHROME_LIGHT = 0x7a7a88;
+    this.CHROME_HIGHLIGHT = 0x9a9aaa;
 
     // Beam colors (brushed aluminum)
-    this.BEAM_DARK = 0x3a3a4a;
-    this.BEAM_MID = 0x5a5a6a;
-    this.BEAM_LIGHT = 0x7a7a8a;
-    this.BEAM_HIGHLIGHT = 0x9a9aaa;
+    this.BEAM_DARK = 0x2a2a35;
+    this.BEAM_MID = 0x3a3a45;
+    this.BEAM_LIGHT = 0x4a4a55;
+    this.BEAM_HIGHLIGHT = 0x5a5a65;
 
-    // Neon accents
-    this.NEON_CYAN = 0x00ddff;
-    this.NEON_ORANGE = 0xff9955;
-    this.NEON_MAGENTA = 0xff66bb;
-    this.NEON_GREEN = 0x66ff99;
+    // Neon accents - SLIGHTLY DIMMED
+    this.NEON_CYAN = 0x00ddee;
+    this.NEON_ORANGE = 0xee9933;
+    this.NEON_MAGENTA = 0xdd33cc;
+    this.NEON_GREEN = 0x33dd88;
 
-    // Glass colors
-    this.GLASS_TINT = 0x4a6080;
-    this.GLASS_HIGHLIGHT = 0x8ab0d0;
-    this.GLASS_EDGE = 0x2a4060;
-    this.FRAME_DARK = 0x3a3a4a;
-    this.FRAME_LIGHT = 0x6a6a7a;
+    // Glass colors - DARKER
+    this.GLASS_TINT = 0x3a4a60;
+    this.GLASS_HIGHLIGHT = 0x5a7090;
+    this.GLASS_EDGE = 0x2a3550;
+    this.FRAME_DARK = 0x2a2a35;
+    this.FRAME_LIGHT = 0x3a3a45;
 
-    // Brushed steel prep table
-    this.TABLE_TOP = 0x7a7a8a;
-    this.TABLE_FRONT = 0x5a5a6a;
+    // Brushed steel prep table - DARKER
+    this.TABLE_TOP = 0x4a4a55;
+    this.TABLE_FRONT = 0x3a3a45;
     this.TABLE_HIGHLIGHT = 0x9a9aaa;
     this.TABLE_SHADOW = 0x2a2a3a;
 
@@ -98,39 +126,46 @@ export class GameScene extends Phaser.Scene {
     this.BEAM_WIDTH = 45;
     this.BEAM_POSITIONS = [0, 230, 512 - 22, 794 - 45, 1024 - 45];
 
-    // --- scoring ---
-    this.dayScore = 0;
-    this.strikes = 0;
-    this.maxStrikes = 3;
+    // --- scoring (endless mode) ---
+    // currentScore and highScore already set in init()
     this.gameMoney = 0;
 
-    // --- orders ---
+    // --- orders (endless mode) ---
     this.trays = [];
     this.tickets = [];
-    this.totalOrders = cfg.orders;
-    this.ordersSpawned = 0;
     this.ordersCompleted = 0;
     this.ordersMissed = 0;
     this.orderNumber = 0;
+    this.ordersSpawned = 0;
 
-    // --- conveyor ---
-    this.conveyorSpeed = cfg.speed;
+    // --- conveyor (starts easy, gets harder) ---
+    this.conveyorSpeed = diff.initialSpeed;
     this.beltOffset = 0;
     this.finishLineX = 80;
     this.isPaused = false;
 
-    // --- spawning ---
-    this.spawnInterval = cfg.spawnInterval;
+    // --- spawning (starts slow, speeds up) ---
+    this.spawnInterval = diff.initialSpawnInterval;
     this.waitingForNext = true;
     this.sequentialDelay = 0;
     this.spawnTimer = 0;
     this.isStoreOpen = false;
     this._dayEnding = false;
 
-    // --- interaction ---
+    // --- drag & drop ---
     this.heldItem = null;
-    this._justPickedUp = false;
+    this.isDragging = false;
     this.treatmentItems = {};
+    this.glowGraphics = null; // initialized after scene builds
+
+    // --- managers ---
+    this.boidManager = new BoidManager(this);
+    this.tutorialOverlay = new TutorialOverlay(this);
+    this.warningSystem = new WarningSystem(this);
+    this.particleManager = new ParticleManager(this);
+    this.robotArm = new RobotArm(this);
+    this.settingsMenu = new SettingsMenu(this);
+    this.prepTrack = new PrepTrack(this);
 
     // Space bar for speed boost, Shift for slow down
     this.spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
@@ -159,7 +194,7 @@ export class GameScene extends Phaser.Scene {
     this.createSpaceWindows();
 
     // --- HUD ---
-    this.createHUD(cfg);
+    this.createHUD();
 
     // --- ticket bar ---
     this.createTicketBar();
@@ -200,11 +235,11 @@ export class GameScene extends Phaser.Scene {
 
     // --- speed indicators ---
     this.speedText = this.add.text(975, 142, '\u25b6\u25b6 FAST', {
-      fontSize: '11px', color: '#ff0', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '14px', color: '#ffee00', fontFamily: 'Bungee, Arial', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(50).setAlpha(0);
 
     this.slowText = this.add.text(975, 142, '\u25c0\u25c0 SLOW', {
-      fontSize: '11px', color: '#88f', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '14px', color: '#88aaff', fontFamily: 'Bungee, Arial', fontStyle: 'bold',
     }).setOrigin(1, 0).setDepth(50).setAlpha(0);
 
     // --- OPEN FOR BUSINESS BUTTON ---
@@ -213,8 +248,14 @@ export class GameScene extends Phaser.Scene {
     // --- LOAVES (Standalone bread sources) ---
     this.createLoaves();
 
-    // --- SETUP INPUT ---
-    this.setupClickToPlace();
+    // --- glow graphics for drag ---
+    this.glowGraphics = this.add.graphics().setDepth(99);
+
+    // --- speed bonus indicator on belt ---
+    this.createSpeedBonusIndicator();
+
+    // --- SETUP INPUT (drag & drop) ---
+    this.setupDragAndDrop();
 
     // --- KEYBOARD SHORTCUTS ---
     this.setupKeyboardShortcuts();
@@ -225,10 +266,38 @@ export class GameScene extends Phaser.Scene {
     }
 
     // --- BOIDS (passing vessels in space window) ---
-    this.createBoids();
+    this.boidManager.create();
 
-    // --- ROBOT ARM ---
-    this.createRobotArm();
+    // --- PARTICLE EFFECTS ---
+    this.particleManager.create();
+
+    // --- AMBIENT MUSIC ---
+    musicManager.start();
+    // Set initial intensity based on day
+    musicManager.setIntensity(0.15);
+
+    // --- ROBOT ARM (follows cursor) ---
+    this.robotArm.create();
+
+    // --- SETTINGS MENU ---
+    this.settingsMenu.create();
+
+    // --- PREP TRACK ---
+    this.prepTrack.create();
+
+    // No tutorial in endless mode
+  }
+
+  onTutorialDismissed() { /* tutorial complete */ }
+
+  createSpeedBonusIndicator() {
+    const x = this.SPEED_BONUS_X;
+    const g = this.add.graphics().setDepth(5);
+    g.lineStyle(2, 0x00ff88, 0.3);
+    for (let y = 395; y < 435; y += 8) g.lineBetween(x, y, x, y + 5);
+    this.add.text(x, 390, 'BONUS', {
+      fontSize: '10px', color: '#00ff88', fontFamily: 'Arial', fontStyle: 'bold',
+    }).setOrigin(0.5, 1).setDepth(5).setAlpha(0.5);
   }
 
   /* =========================================
@@ -417,27 +486,74 @@ export class GameScene extends Phaser.Scene {
     this.createWallDecor();
   }
 
-  /* =========================================
-     BOIDS (single pixels drifting slowly - distant ships/debris)
-     ========================================= */
-  createBoids() {
+  _BOIDS_START_MARKER() {
     this.boids = [];
+    this.explosions = [];
+    this.laserShots = [];
     this.boidsContainer = this.add.container(0, 0).setDepth(0.3); // Behind smoked glass
 
-    // Spawn 12 single-pixel boids spread across
-    for (let i = 0; i < 12; i++) {
+    // Ship types with different shapes, sizes, and energy tech colors
+    this.shipTypes = [
+      { name: 'fighter', sizeRange: [2, 4], speedRange: [0.15, 0.35], colors: [0x88aaff, 0x99bbff, 0xaaccff], energyColors: [0xff4444, 0xff6644] }, // Red tech
+      { name: 'freighter', sizeRange: [5, 8], speedRange: [0.03, 0.08], colors: [0x888888, 0x666666, 0x777799], energyColors: [0xffaa00, 0xffcc44] }, // Orange tech
+      { name: 'cruiser', sizeRange: [6, 10], speedRange: [0.05, 0.12], colors: [0x446688, 0x335577, 0x557799], energyColors: [0x44ffff, 0x88ffff] }, // Cyan tech
+      { name: 'shuttle', sizeRange: [1.5, 3], speedRange: [0.1, 0.25], colors: [0xffffaa, 0xffeeaa, 0xffeedd], energyColors: [0xffff44, 0xffffaa] }, // Yellow tech
+      { name: 'racer', sizeRange: [2, 3], speedRange: [0.3, 0.5], colors: [0xff6666, 0xff8844, 0xffaa44], energyColors: [0x44ff44, 0x88ff44] }, // Green tech
+      { name: 'police', sizeRange: [4, 6], speedRange: [0.4, 0.6], colors: [0x4444ff, 0x0044ff], energyColors: [0x4444ff, 0x8888ff], isPolice: true }, // Blue tech
+    ];
+
+    // Spawn varied ships - mix of close and far
+    for (let i = 0; i < 25; i++) {
       this.spawnBoid(true);
     }
+
+    // Initialize battle system
+    this.battleCooldown = 0;
+    this.activeBattles = [];
   }
 
-  spawnBoid(initialSpawn = false) {
+  spawnBoid(initialSpawn = false, forceType = null, forceProps = null) {
+    // Choose ship type (police are rare unless forced)
+    let shipType;
+    if (forceType) {
+      shipType = this.shipTypes.find(t => t.name === forceType) || this.shipTypes[0];
+    } else {
+      // 95% regular ships, 5% police patrol
+      const roll = Math.random();
+      if (roll < 0.05) {
+        shipType = this.shipTypes.find(t => t.name === 'police');
+      } else {
+        const regularTypes = this.shipTypes.filter(t => !t.isPolice);
+        shipType = Phaser.Utils.Array.GetRandom(regularTypes);
+      }
+    }
+
+    // Distance layer affects size, alpha, and speed
+    const distanceLayer = forceProps?.distance || Phaser.Math.FloatBetween(0, 1); // 0 = far, 1 = close
+    const distanceMult = 0.3 + distanceLayer * 0.7; // 0.3 to 1.0
+
+    const baseSize = Phaser.Math.FloatBetween(shipType.sizeRange[0], shipType.sizeRange[1]);
+    const baseSpeed = Phaser.Math.FloatBetween(shipType.speedRange[0], shipType.speedRange[1]);
+
     const boid = {
-      x: initialSpawn ? Phaser.Math.Between(0, 1024) : Phaser.Math.Between(-30, -5),
-      y: Phaser.Math.Between(this.WINDOW_TOP + 25, this.WINDOW_BOTTOM - 25),
-      speed: Phaser.Math.FloatBetween(0.05, 0.2), // Very slow drift
-      size: 1, // Single pixel
-      color: Phaser.Utils.Array.GetRandom([0xffffff, 0xccddff, 0xffeedd, 0xaaccee]),
-      alpha: Phaser.Math.FloatBetween(0.3, 0.6), // Dim, distant
+      x: forceProps?.x ?? (initialSpawn ? Phaser.Math.Between(0, 1024) : Phaser.Math.Between(-50, -10)),
+      y: forceProps?.y ?? Phaser.Math.Between(this.WINDOW_TOP + 20, this.WINDOW_BOTTOM - 20),
+      vx: forceProps?.vx ?? baseSpeed * distanceMult,
+      vy: forceProps?.vy ?? 0,
+      speed: baseSpeed * distanceMult,
+      size: baseSize * distanceMult,
+      baseSize: baseSize,
+      color: Phaser.Utils.Array.GetRandom(shipType.colors),
+      energyColor: Phaser.Utils.Array.GetRandom(shipType.energyColors), // Ship's consistent weapon color
+      alpha: 0.25 + distanceLayer * 0.5, // Far = dim, close = bright
+      distance: distanceLayer,
+      shipType: shipType.name,
+      isPolice: shipType.isPolice || false,
+      inBattle: false,
+      target: null,
+      arrested: false,
+      escorting: null,
+      wobbleOffset: Math.random() * Math.PI * 2,
     };
 
     const g = this.add.graphics();
@@ -445,33 +561,408 @@ export class GameScene extends Phaser.Scene {
     boid.graphics = g;
     this.boidsContainer.add(g);
     this.boids.push(boid);
+    return boid;
   }
 
   drawBoid(g, boid) {
     g.clear();
-    g.fillStyle(boid.color, boid.alpha);
-    g.fillCircle(boid.x, boid.y, boid.size);
+    const x = boid.x;
+    const y = boid.y;
+    const s = boid.size;
+    const alpha = boid.alpha;
+
+    // Draw different ship shapes based on type
+    if (boid.shipType === 'fighter') {
+      // Triangular fighter
+      g.fillStyle(boid.color, alpha);
+      g.beginPath();
+      g.moveTo(x + s * 2, y);
+      g.lineTo(x - s, y - s);
+      g.lineTo(x - s * 0.5, y);
+      g.lineTo(x - s, y + s);
+      g.closePath();
+      g.fillPath();
+      // Engine glow
+      g.fillStyle(0xff6600, alpha * 0.7);
+      g.fillCircle(x - s, y, s * 0.4);
+    } else if (boid.shipType === 'freighter') {
+      // Boxy freighter
+      g.fillStyle(boid.color, alpha);
+      g.fillRect(x - s, y - s * 0.6, s * 2.5, s * 1.2);
+      // Cargo pods
+      g.fillStyle(boid.color, alpha * 0.7);
+      g.fillRect(x - s * 0.8, y - s, s * 0.5, s * 0.4);
+      g.fillRect(x - s * 0.8, y + s * 0.6, s * 0.5, s * 0.4);
+      // Engine
+      g.fillStyle(0xffaa44, alpha * 0.5);
+      g.fillCircle(x - s, y, s * 0.3);
+    } else if (boid.shipType === 'cruiser') {
+      // Elongated cruiser
+      g.fillStyle(boid.color, alpha);
+      g.beginPath();
+      g.moveTo(x + s * 2, y);
+      g.lineTo(x + s, y - s * 0.5);
+      g.lineTo(x - s * 1.5, y - s * 0.4);
+      g.lineTo(x - s * 1.5, y + s * 0.4);
+      g.lineTo(x + s, y + s * 0.5);
+      g.closePath();
+      g.fillPath();
+      // Bridge
+      g.fillStyle(0x88ccff, alpha * 0.6);
+      g.fillRect(x + s * 0.5, y - s * 0.2, s * 0.4, s * 0.4);
+      // Engines
+      g.fillStyle(0x44aaff, alpha * 0.6);
+      g.fillCircle(x - s * 1.5, y - s * 0.2, s * 0.25);
+      g.fillCircle(x - s * 1.5, y + s * 0.2, s * 0.25);
+    } else if (boid.shipType === 'shuttle') {
+      // Small oval shuttle
+      g.fillStyle(boid.color, alpha);
+      g.fillEllipse(x, y, s * 1.5, s * 0.8);
+      // Window
+      g.fillStyle(0x88ddff, alpha * 0.7);
+      g.fillCircle(x + s * 0.5, y, s * 0.3);
+    } else if (boid.shipType === 'racer') {
+      // Sleek racer with long trail
+      g.fillStyle(boid.color, alpha);
+      g.beginPath();
+      g.moveTo(x + s * 2.5, y);
+      g.lineTo(x, y - s * 0.4);
+      g.lineTo(x - s, y);
+      g.lineTo(x, y + s * 0.4);
+      g.closePath();
+      g.fillPath();
+      // Hot engine trail
+      g.fillStyle(0xff4400, alpha * 0.8);
+      g.fillEllipse(x - s * 1.5, y, s * 0.8, s * 0.2);
+      g.fillStyle(0xffff00, alpha * 0.5);
+      g.fillEllipse(x - s * 1.2, y, s * 0.4, s * 0.15);
+    } else if (boid.shipType === 'police') {
+      // Police cruiser with lights
+      g.fillStyle(boid.color, alpha);
+      g.beginPath();
+      g.moveTo(x + s * 1.8, y);
+      g.lineTo(x + s * 0.5, y - s * 0.6);
+      g.lineTo(x - s * 1.2, y - s * 0.5);
+      g.lineTo(x - s * 1.2, y + s * 0.5);
+      g.lineTo(x + s * 0.5, y + s * 0.6);
+      g.closePath();
+      g.fillPath();
+      // Flashing lights (alternate based on time)
+      const flashPhase = (Date.now() / 150) % 2 < 1;
+      g.fillStyle(flashPhase ? 0xff0000 : 0x0000ff, alpha);
+      g.fillCircle(x + s * 0.2, y - s * 0.5, s * 0.25);
+      g.fillStyle(flashPhase ? 0x0000ff : 0xff0000, alpha);
+      g.fillCircle(x + s * 0.2, y + s * 0.5, s * 0.25);
+    }
+
+    // If arrested, draw tow beam
+    if (boid.arrested && boid.escortedBy) {
+      g.lineStyle(1, 0x44aaff, alpha * 0.5);
+      g.lineBetween(x, y, boid.escortedBy.x, boid.escortedBy.y);
+    }
+  }
+
+  spawnExplosion(x, y, size, distance) {
+    // Varied explosion color palettes
+    const palettes = [
+      { core: 0xffff44, mid: 0xff6600, outer: 0xff2200, particle: 0xffaa00 }, // Classic orange
+      { core: 0x44ffff, mid: 0x0088ff, outer: 0x0044aa, particle: 0x44aaff }, // Blue plasma
+      { core: 0xff44ff, mid: 0xaa00ff, outer: 0x6600aa, particle: 0xdd44ff }, // Purple energy
+      { core: 0x44ff44, mid: 0x00cc00, outer: 0x008800, particle: 0x88ff44 }, // Green plasma
+      { core: 0xffffff, mid: 0xaaddff, outer: 0x4488ff, particle: 0xccffff }, // White flash
+    ];
+    const palette = Phaser.Utils.Array.GetRandom(palettes);
+
+    const explosion = {
+      x, y, size,
+      alpha: 0.6 + distance * 0.3,
+      frame: 0,
+      maxFrames: 30,
+      particles: [],
+      palette: palette,
+    };
+    // Create explosion particles
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      explosion.particles.push({
+        x: 0, y: 0,
+        vx: Math.cos(angle) * size * 0.15,
+        vy: Math.sin(angle) * size * 0.15,
+      });
+    }
+    const g = this.add.graphics();
+    explosion.graphics = g;
+    this.boidsContainer.add(g);
+    this.explosions.push(explosion);
+  }
+
+  spawnLaser(fromBoid, toBoid) {
+    // Use the ship's assigned energy color (based on ship tech)
+    const laser = {
+      x1: fromBoid.x, y1: fromBoid.y,
+      x2: toBoid.x, y2: toBoid.y,
+      alpha: 0.8,
+      life: 8,
+      color: fromBoid.energyColor,
+    };
+    const g = this.add.graphics();
+    laser.graphics = g;
+    this.boidsContainer.add(g);
+    this.laserShots.push(laser);
+  }
+
+  startBattle() {
+    // Find two fighters/racers not already in battle and not police
+    const available = this.boids.filter(b =>
+      !b.inBattle && !b.arrested && !b.isPolice &&
+      (b.shipType === 'fighter' || b.shipType === 'racer') &&
+      b.x > 100 && b.x < 900
+    );
+
+    if (available.length < 2) return;
+
+    // Pick two combatants
+    const shuffled = Phaser.Utils.Array.Shuffle([...available]);
+    const ship1 = shuffled[0];
+    const ship2 = shuffled[1];
+
+    ship1.inBattle = true;
+    ship2.inBattle = true;
+    ship1.target = ship2;
+    ship2.target = ship1;
+
+    // Store battle info - slow, dramatic battles
+    const battle = {
+      ships: [ship1, ship2],
+      duration: 0,
+      maxDuration: Phaser.Math.Between(600, 1200), // 10-20 seconds at 60fps - slow battles
+      laserCooldown: 0,
+    };
+    this.activeBattles.push(battle);
   }
 
   updateBoids(delta) {
     if (!this.boids) return;
 
-    for (const boid of this.boids) {
-      // Very slow rightward drift
-      boid.x += boid.speed * (delta / 16);
+    const dt = delta / 16;
 
-      // Slight vertical wobble for realism
-      boid.y += Math.sin(boid.x * 0.02) * 0.02;
+    // Maybe start a new battle (extremely rare - roughly once per 15 minutes)
+    this.battleCooldown -= dt;
+    if (this.battleCooldown <= 0 && this.activeBattles.length < 1) {
+      if (Math.random() < 0.00002) { // ~15 min average at 60fps
+        this.startBattle();
+        this.battleCooldown = 54000; // 15 minute cooldown minimum
+      }
+    }
+
+    // Update active battles
+    for (let i = this.activeBattles.length - 1; i >= 0; i--) {
+      const battle = this.activeBattles[i];
+      battle.duration += dt;
+      battle.laserCooldown -= dt;
+
+      const [ship1, ship2] = battle.ships;
+
+      // Ships maneuver toward each other - slow, dramatic dogfight
+      if (ship1 && ship2 && !ship1.arrested && !ship2.arrested) {
+        const dx = ship2.x - ship1.x;
+        const dy = ship2.y - ship1.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+
+        // Slow circling maneuvers
+        if (dist > 40) {
+          ship1.vx += (dx / dist) * 0.003 * dt;
+          ship1.vy += (dy / dist) * 0.003 * dt;
+          ship2.vx -= (dx / dist) * 0.003 * dt;
+          ship2.vy -= (dy / dist) * 0.003 * dt;
+        }
+
+        // Slow laser exchanges
+        if (battle.laserCooldown <= 0) {
+          this.spawnLaser(ship1, ship2);
+          this.spawnLaser(ship2, ship1);
+          battle.laserCooldown = 45; // Much slower firing rate
+        }
+      }
+
+      // End battle after duration - create explosion and call police
+      if (battle.duration >= battle.maxDuration) {
+        const loser = Math.random() < 0.5 ? ship1 : ship2;
+        const winner = loser === ship1 ? ship2 : ship1;
+
+        // Loser explodes
+        if (loser && !loser.arrested) {
+          this.spawnExplosion(loser.x, loser.y, loser.size * 3, loser.distance);
+          // Remove loser
+          const idx = this.boids.indexOf(loser);
+          if (idx > -1) {
+            loser.graphics.destroy();
+            this.boids.splice(idx, 1);
+          }
+        }
+
+        // Winner tries to flee but police come
+        if (winner && !winner.arrested) {
+          winner.inBattle = false;
+          winner.target = null;
+          winner.vx = 0.4; // Try to escape right
+
+          // Spawn police to chase winner
+          this.time.delayedCall(500, () => {
+            if (winner && !winner.arrested && this.boids.includes(winner)) {
+              const police = this.spawnBoid(false, 'police', {
+                x: -30,
+                y: winner.y + Phaser.Math.Between(-50, 50),
+                vx: 0.5,
+                vy: 0,
+                distance: winner.distance,
+              });
+              police.chasing = winner;
+            }
+          });
+        }
+
+        this.activeBattles.splice(i, 1);
+      }
+    }
+
+    // Update all boids
+    for (const boid of this.boids) {
+      // Police chasing logic
+      if (boid.isPolice && boid.chasing) {
+        const target = boid.chasing;
+        if (!this.boids.includes(target) || target.arrested) {
+          boid.chasing = null;
+          boid.escorting = null;
+        } else {
+          const dx = target.x - boid.x;
+          const dy = target.y - boid.y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < 20 && !target.arrested) {
+            // Arrest the ship
+            target.arrested = true;
+            target.escortedBy = boid;
+            target.inBattle = false;
+            boid.escorting = target;
+            boid.vx = -0.3; // Take them away (left)
+
+            // Small flash when arrested
+            this.spawnExplosion(target.x, target.y, target.size, target.distance);
+          } else if (!target.arrested) {
+            // Chase
+            boid.vx += (dx / dist) * 0.02;
+            boid.vy += (dy / dist) * 0.02;
+            // Clamp speed
+            const speed = Math.sqrt(boid.vx * boid.vx + boid.vy * boid.vy);
+            if (speed > 0.6) {
+              boid.vx = (boid.vx / speed) * 0.6;
+              boid.vy = (boid.vy / speed) * 0.6;
+            }
+          }
+        }
+      }
+
+      // Arrested ships follow their escort
+      if (boid.arrested && boid.escortedBy) {
+        const escort = boid.escortedBy;
+        boid.x = escort.x - 25;
+        boid.y = escort.y;
+        boid.vx = escort.vx;
+        boid.vy = escort.vy;
+      } else if (!boid.inBattle) {
+        // Normal movement
+        boid.x += boid.vx * dt;
+        boid.y += boid.vy * dt;
+
+        // Gentle wobble
+        boid.y += Math.sin(boid.x * 0.015 + boid.wobbleOffset) * 0.03 * dt;
+
+        // Gradually return to base horizontal speed
+        boid.vx = Phaser.Math.Linear(boid.vx, boid.speed, 0.002);
+        boid.vy = Phaser.Math.Linear(boid.vy, 0, 0.01);
+      } else {
+        // Battle movement
+        boid.x += boid.vx * dt;
+        boid.y += boid.vy * dt;
+
+        // Keep in bounds during battle
+        boid.y = Phaser.Math.Clamp(boid.y, this.WINDOW_TOP + 30, this.WINDOW_BOTTOM - 30);
+      }
 
       this.drawBoid(boid.graphics, boid);
 
       // Respawn when off-screen
-      if (boid.x > 1030) {
-        boid.x = Phaser.Math.Between(-30, -5);
-        boid.y = Phaser.Math.Between(this.WINDOW_TOP + 25, this.WINDOW_BOTTOM - 25);
-        boid.speed = Phaser.Math.FloatBetween(0.05, 0.2);
-        boid.color = Phaser.Utils.Array.GetRandom([0xffffff, 0xccddff, 0xffeedd, 0xaaccee]);
-        boid.alpha = Phaser.Math.FloatBetween(0.3, 0.6);
+      if (boid.x > 1080 || boid.x < -80) {
+        // Reset boid
+        boid.x = Phaser.Math.Between(-50, -10);
+        boid.y = Phaser.Math.Between(this.WINDOW_TOP + 20, this.WINDOW_BOTTOM - 20);
+        boid.vx = boid.speed;
+        boid.vy = 0;
+        boid.inBattle = false;
+        boid.arrested = false;
+        boid.escortedBy = null;
+        boid.escorting = null;
+        boid.chasing = null;
+        boid.target = null;
+      }
+    }
+
+    // Update explosions
+    for (let i = this.explosions.length - 1; i >= 0; i--) {
+      const exp = this.explosions[i];
+      exp.frame++;
+
+      const progress = exp.frame / exp.maxFrames;
+      const g = exp.graphics;
+      g.clear();
+
+      // Draw expanding explosion with palette colors
+      const radius = exp.size * (1 + progress * 2);
+      const alpha = exp.alpha * (1 - progress);
+      const pal = exp.palette;
+
+      // Core flash
+      g.fillStyle(pal.core, alpha);
+      g.fillCircle(exp.x, exp.y, radius * 0.5);
+      // Mid ring
+      g.fillStyle(pal.mid, alpha * 0.7);
+      g.fillCircle(exp.x, exp.y, radius * 0.8);
+      // Outer ring
+      g.fillStyle(pal.outer, alpha * 0.4);
+      g.fillCircle(exp.x, exp.y, radius);
+
+      // Particles
+      for (const p of exp.particles) {
+        p.x += p.vx;
+        p.y += p.vy;
+        g.fillStyle(pal.particle, alpha * 0.8);
+        g.fillCircle(exp.x + p.x, exp.y + p.y, exp.size * 0.2 * (1 - progress));
+      }
+
+      if (exp.frame >= exp.maxFrames) {
+        exp.graphics.destroy();
+        this.explosions.splice(i, 1);
+      }
+    }
+
+    // Update laser shots
+    for (let i = this.laserShots.length - 1; i >= 0; i--) {
+      const laser = this.laserShots[i];
+      laser.life--;
+      laser.alpha *= 0.85;
+
+      const g = laser.graphics;
+      g.clear();
+      g.lineStyle(2, laser.color, laser.alpha);
+      g.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
+      // Glow
+      g.lineStyle(4, laser.color, laser.alpha * 0.3);
+      g.lineBetween(laser.x1, laser.y1, laser.x2, laser.y2);
+
+      if (laser.life <= 0) {
+        laser.graphics.destroy();
+        this.laserShots.splice(i, 1);
       }
     }
   }
@@ -483,7 +974,7 @@ export class GameScene extends Phaser.Scene {
   /* =========================================
      HUD
      ========================================= */
-  createHUD(cfg) {
+  createHUD() {
     // Space station HUD background strip
     const hudBg = this.add.graphics().setDepth(4);
     hudBg.fillStyle(this.HULL_DARK, 0.85);
@@ -492,14 +983,15 @@ export class GameScene extends Phaser.Scene {
     hudBg.fillStyle(this.NEON_CYAN, 0.4);
     hudBg.fillRect(0, 48, 1024, 2);
 
-    this.dayText = this.add.text(12, 15,
-      `Day ${this.day}: ${cfg.name}`, {
-      fontSize: '16px', color: '#00ddff', fontFamily: 'Bungee, Arial',
+    // Endless mode HUD
+    this.scoreText = this.add.text(12, 15,
+      `Score: ${this.currentScore}`, {
+      fontSize: '18px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
-    this.scoreText = this.add.text(260, 15,
-      `Score: ${this.totalScore}`, {
-      fontSize: '16px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+    this.highScoreText = this.add.text(200, 15,
+      `High Score: ${this.highScore}`, {
+      fontSize: '16px', color: '#00ddff', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
 
     this.ordersText = this.add.text(700, 17,
@@ -508,20 +1000,9 @@ export class GameScene extends Phaser.Scene {
     }).setDepth(5);
 
     // Money Display
-    this.moneyText = this.add.text(450, 15, '$0.00', {
+    this.moneyText = this.add.text(480, 15, '$0.00', {
       fontSize: '16px', color: '#44ff88', fontFamily: 'Bungee, Arial',
     }).setDepth(5);
-
-    // Colored strike indicators
-    this.strikeContainer = this.add.container(920, 15).setDepth(5);
-    this.strikeIcons = [];
-    for (let i = 0; i < this.maxStrikes; i++) {
-      const icon = this.add.text(i * 24, 2, '\u25cb', {
-        fontSize: '16px', color: '#44ffaa', fontFamily: 'Arial', fontStyle: 'bold',
-      });
-      this.strikeContainer.add(icon);
-      this.strikeIcons.push(icon);
-    }
 
     // F1=Hotkeys memo indicator
     this.createHotkeyMemo();
@@ -657,7 +1138,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   ordersDisplay() {
-    return `Orders: ${this.ordersCompleted}/${this.totalOrders}`;
+    return `Orders: ${this.ordersCompleted}`;
   }
 
   updateStrikeIndicators() {
@@ -673,10 +1154,10 @@ export class GameScene extends Phaser.Scene {
   }
 
   refreshHUD() {
-    this.scoreText.setText(`Score: ${this.totalScore + this.dayScore}`);
+    this.scoreText.setText(`Score: ${this.currentScore}`);
+    this.highScoreText.setText(`High Score: ${this.highScore}`);
     this.ordersText.setText(this.ordersDisplay());
     this.moneyText.setText(`$${this.gameMoney.toFixed(2)}`);
-    this.updateStrikeIndicators();
   }
 
   createStartButton() {
@@ -688,7 +1169,7 @@ export class GameScene extends Phaser.Scene {
     overlay.add(backdrop);
 
     // Title text
-    const title = this.add.text(512, 340, 'SammyBot', {
+    const title = this.add.text(512, 340, 'Footers', {
       fontSize: '64px',
       color: '#00ddff',
       fontFamily: 'Bungee, Arial',
@@ -698,7 +1179,7 @@ export class GameScene extends Phaser.Scene {
     overlay.add(title);
 
     // Subtitle
-    const subtitle = this.add.text(512, 410, `Day ${this.day}`, {
+    const subtitle = this.add.text(512, 410, 'Endless Mode', {
       fontSize: '24px',
       color: '#aaddff',
       fontFamily: 'Arial'
@@ -777,7 +1258,7 @@ export class GameScene extends Phaser.Scene {
     const lineH = 13;
     const ingLines = order.ingredients.length;
     const treatLines = order.treatments ? order.treatments.length : 0;
-    const footerLine = order.isFooter ? 14 : 0;
+    const footerLine = false ? 14 : 0;
     const contentH = 22 + footerLine + ingLines * lineH + (treatLines > 0 ? 10 + treatLines * lineH : 0);
     const cardH = Math.max(90, contentH + 8);
     // Overlap cards: each card shifts only partially so they stack
@@ -795,9 +1276,9 @@ export class GameScene extends Phaser.Scene {
 
     // Background — footer tickets have a distinct tint
     const bg = this.add.graphics();
-    bg.fillStyle(order.isFooter ? 0xFFEEBB : 0xFFFFC0, 1);
+    bg.fillStyle(false ? 0xFFEEBB : 0xFFFFC0, 1);
     bg.fillRoundedRect(0, 0, cardW, cardH, 5);
-    bg.lineStyle(2, order.isFooter ? 0xDDAA55 : 0xDDCC80, 1);
+    bg.lineStyle(2, false ? 0xDDAA55 : 0xDDCC80, 1);
     bg.strokeRoundedRect(0, 0, cardW, cardH, 5);
     card.add(bg);
 
@@ -809,7 +1290,7 @@ export class GameScene extends Phaser.Scene {
 
     // Footer label
     let yOff = 20;
-    if (order.isFooter) {
+    if (false) {
       const footerLabel = this.add.text(cardW / 2, 19, '\u2b50 FOOTER', {
         fontSize: '10px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
       }).setOrigin(0.5, 0);
@@ -1063,28 +1544,6 @@ export class GameScene extends Phaser.Scene {
     g.fillStyle(0xffffff, 0.04);
     g.fillRect(200, surfaceY + 60, 624, 200);
 
-    // Robot arm base slot (center bottom)
-    const slotX = 512;
-    const slotY = surfaceY + surfaceH - 40;
-    const slotW = 100;
-    const slotH = 50;
-
-    // Dark recessed area for arm
-    g.fillStyle(0x2a2a3a, 1);
-    g.fillRoundedRect(slotX - slotW / 2, slotY, slotW, slotH, 8);
-
-    // Inner shadow
-    g.fillStyle(0x1a1a2a, 1);
-    g.fillRoundedRect(slotX - slotW / 2 + 4, slotY + 4, slotW - 8, slotH - 4, 6);
-
-    // Edge highlights
-    g.lineStyle(1, 0x5a5a6a, 0.6);
-    g.strokeRoundedRect(slotX - slotW / 2, slotY, slotW, slotH, 8);
-
-    // Warning chevrons around slot
-    g.fillStyle(0xffaa00, 0.4);
-    g.fillTriangle(slotX - slotW / 2 - 15, slotY + 10, slotX - slotW / 2 - 5, slotY + 5, slotX - slotW / 2 - 5, slotY + 15);
-    g.fillTriangle(slotX + slotW / 2 + 15, slotY + 10, slotX + slotW / 2 + 5, slotY + 5, slotX + slotW / 2 + 5, slotY + 15);
   }
 
   drawCornerBracket(g, x, y, flipX) {
@@ -1285,43 +1744,55 @@ export class GameScene extends Phaser.Scene {
      ========================================= */
   createBins() {
     const keys = BIN_LAYOUT[0];
+    this.meatPileItems = []; // Track for day-based unlocking
 
-    // Isometric grid layout - tighter spacing
-    const baseX = 100;
-    const baseY = 495;
-    const spacingX = 110;
-    const spacingY = 80;
+    // Isometric grid layout - tighter spacing for 5 meats
+    const baseX = 95;
+    const baseY = 480;
+    const spacingX = 100;
+    const spacingY = 70;
+
+    const hints = { 'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4', 'meat_prosciutto': 'Q' };
 
     keys.forEach((key, i) => {
+      const ing = INGREDIENTS[key];
+      const isLocked = ing.unlockDay && this.day < ing.unlockDay;
+
       const row = Math.floor(i / 2);
       const col = i % 2;
-      const pos = this.getIsoPosition(col, row, baseX, baseY, spacingX, spacingY);
+      // Center the odd item (prosciutto) if it's the 5th
+      const pos = (i === 4)
+        ? { x: baseX + spacingX * 0.5, y: baseY + spacingY * 2 }
+        : this.getIsoPosition(col, row, baseX, baseY, spacingX, spacingY);
       const x = pos.x;
       const y = pos.y;
 
       const pileKey = key.replace('meat_', 'meat_pile_');
-      const pile = this.add.image(x, y, pileKey).setDepth(20);
+      const pile = this.add.image(x, y, pileKey).setDepth(20).setScale(0.9);
 
-      pile.setInteractive({ useHandCursor: true });
-      pile.on('pointerover', () => pile.setTint(0xdddddd));
-      pile.on('pointerout', () => pile.clearTint());
-      pile.on('pointerdown', () => {
-        if (this.isPaused || this.heldItem) return;
-        this.createMeatPileLogic(key, x, y, pile);
-      });
+      if (isLocked) {
+        pile.setAlpha(0.3).setTint(0x444444);
+      } else {
+        pile.setInteractive({ useHandCursor: true });
+        pile.on('pointerover', () => pile.setTint(0xdddddd));
+        pile.on('pointerout', () => pile.clearTint());
+        pile.on('pointerdown', () => {
+          if (this.isPaused || this.heldItem) return;
+          this.createMeatPileLogic(key, x, y, pile);
+        });
+      }
 
-      // Name label (hidden by default, shown with F1)
-      const ing = INGREDIENTS[key];
-      const label = this.add.text(x, y + 48, ing.name, {
-        fontSize: '11px', color: '#ccc', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(21).setVisible(false);
-      this.labelHints.push(label);
+      // Name label (always visible)
+      const label = this.add.text(x, y + 44, ing.name, {
+        fontSize: '13px', color: isLocked ? '#666' : '#ddd', fontFamily: 'Arial', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(21);
 
       // Keyboard hint (hidden by default, shown with F1)
-      const hints = { 'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4' };
-      if (hints[key]) {
-        this.createHotkeyHint(x + 38, y - 28, hints[key]);
+      if (hints[key] && !isLocked) {
+        this.createHotkeyHint(x + 34, y - 24, hints[key]);
       }
+
+      this.meatPileItems.push({ img: pile, label, key, isLocked });
     });
   }
 
@@ -1335,7 +1806,9 @@ export class GameScene extends Phaser.Scene {
       ingredientKey: key,
       binX: x, binY: y
     };
-    this._justPickedUp = true;
+    // Particle puff when picking up
+    const ing = INGREDIENTS[key];
+    this.particleManager.ingredientPickup(x, y, ing.color);
   }
 
 
@@ -1344,9 +1817,9 @@ export class GameScene extends Phaser.Scene {
      LOAVES (Standalone - Isometric Grid with Shadows)
      ========================================= */
   createLoaves() {
-    const baseX = 850;
+    const baseX = 820; // Moved left
     const baseY = 490;
-    const spacingY = 78;
+    const spacingY = 70; // Tighter spacing
 
     const breads = [
       { key: 'bread_white', label: 'White', asset: 'loaf_white' },
@@ -1363,9 +1836,10 @@ export class GameScene extends Phaser.Scene {
       const y = pos.y;
 
       // Draw shadow under the loaf (no bin)
-      this.drawItemShadow(shadowGfx, x, y + 18, 40, 12);
+      this.drawItemShadow(shadowGfx, x, y + 16, 35, 10);
 
       const loaf = this.add.image(x, y, b.asset).setDepth(20);
+      loaf.setScale(0.85); // Make bread smaller
       loaf.setInteractive({ useHandCursor: true });
       loaf.on('pointerover', () => loaf.setTint(0xdddddd));
       loaf.on('pointerout', () => loaf.clearTint());
@@ -1374,11 +1848,10 @@ export class GameScene extends Phaser.Scene {
         this.clickLoaf(b.key, pointer);
       });
 
-      // Label (hidden by default, shown with F1)
-      const label = this.add.text(x, y + 42, b.label, {
-        fontSize: '13px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-      }).setOrigin(0.5).setDepth(21).setVisible(false);
-      this.labelHints.push(label);
+      // Label (always visible)
+      const label = this.add.text(x, y + 38, b.label, {
+        fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21);
     });
   }
 
@@ -1393,7 +1866,6 @@ export class GameScene extends Phaser.Scene {
       binX: 0, // Not applicable for loaves
       binY: 0,
     };
-    this._justPickedUp = true;
   }
 
   /* =========================================
@@ -1450,12 +1922,11 @@ export class GameScene extends Phaser.Scene {
 
       // Label (hidden by default, shown with F1)
       const label = this.add.text(x, y + 52, c.label, {
-        fontSize: '14px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-      }).setOrigin(0.5).setDepth(21).setVisible(false);
-      this.labelHints.push(label);
+        fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21);
 
       // Keyboard hint (hidden by default, shown with F1)
-      const hints = { 'cheese_american': '8', 'cheese_swiss': '9' };
+      const hints = { 'cheese_american': 'W', 'cheese_swiss': 'E' };
       if (hints[c.key]) {
         this.createHotkeyHint(x + 42, y - 26, hints[c.key]);
       }
@@ -1467,48 +1938,68 @@ export class GameScene extends Phaser.Scene {
     soundManager.robotPickup();
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
-    this._justPickedUp = true;
   }
 
   /* =========================================
-     VEGGIE BOWLS - CENTER (Isometric Grid)
+     VEGGIE BOWLS - CENTER (Two Rows)
      ========================================= */
   createVeggieBowls() {
-    const baseX = 420;
-    const baseY = 495;
-    const spacingY = 75;
+    this.veggieBowlItems = []; // Track for day-based unlocking
 
-    const veggies = [
-      { key: 'top_lettuce', label: 'Lettuce', asset: 'bowl_content_lettuce' },
-      { key: 'top_tomato', label: 'Tomato', asset: 'bowl_content_tomato' },
-      { key: 'top_onion', label: 'Onion', asset: 'bowl_content_onion' }
+    // Row 1: Always available (Lettuce, Tomato, Onion)
+    const row1Y = 510;
+    const row1StartX = 340;
+    const spacingX = 75;
+
+    const row1Veggies = [
+      { key: 'top_lettuce', label: 'Lettuce', asset: 'bowl_content_lettuce', hotkey: '5' },
+      { key: 'top_tomato', label: 'Tomato', asset: 'bowl_content_tomato', hotkey: '6' },
+      { key: 'top_onion', label: 'Onion', asset: 'bowl_content_onion', hotkey: '7' }
     ];
 
-    veggies.forEach((v, i) => {
-      const pos = this.getIsoPosition(0, i, baseX, baseY, 0, spacingY);
-      const x = pos.x;
-      const y = pos.y;
+    // Row 2: Unlockable (Pickles Day 2, Arugula Day 2, Olives Day 4)
+    const row2Y = 575;
+    const row2StartX = 340;
 
-      const vegImg = this.add.image(x, y, v.asset).setDepth(20).setScale(0.75);
-      vegImg.setInteractive({ useHandCursor: true });
-      vegImg.on('pointerover', () => vegImg.setTint(0xdddddd));
-      vegImg.on('pointerout', () => vegImg.clearTint());
-      vegImg.on('pointerdown', (pointer) => {
-        if (this.isPaused || this.heldItem) return;
-        this.clickVeggieBowl(v.key, pointer);
-      });
+    const row2Veggies = [
+      { key: 'top_pickles', label: 'Pickles', asset: 'bowl_content_pickles', hotkey: '8', unlockDay: 2 },
+      { key: 'top_arugula', label: 'Arugula', asset: 'bowl_content_arugula', hotkey: '9', unlockDay: 2 },
+      { key: 'top_olives', label: 'Olives', asset: 'bowl_content_olives', hotkey: '0', unlockDay: 4 }
+    ];
+
+    const allVeggies = [
+      ...row1Veggies.map((v, i) => ({ ...v, x: row1StartX + i * spacingX, y: row1Y })),
+      ...row2Veggies.map((v, i) => ({ ...v, x: row2StartX + i * spacingX, y: row2Y }))
+    ];
+
+    allVeggies.forEach((v) => {
+      const isLocked = v.unlockDay && this.day < v.unlockDay;
+
+      const vegImg = this.add.image(v.x, v.y, v.asset).setDepth(20).setScale(0.55);
+
+      if (isLocked) {
+        vegImg.setAlpha(0.3).setTint(0x444444);
+      } else {
+        vegImg.setInteractive({ useHandCursor: true });
+        vegImg.on('pointerover', () => vegImg.setTint(0xdddddd));
+        vegImg.on('pointerout', () => vegImg.clearTint());
+        vegImg.on('pointerdown', (pointer) => {
+          if (this.isPaused || this.heldItem) return;
+          this.clickVeggieBowl(v.key, pointer);
+        });
+      }
 
       // Label (hidden by default, shown with F1)
-      const label = this.add.text(x, y + 42, v.label, {
-        fontSize: '13px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
-      }).setOrigin(0.5).setDepth(21).setVisible(false);
-      this.labelHints.push(label);
+      const label = this.add.text(v.x, v.y + 32, v.label, {
+        fontSize: '14px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
+      }).setOrigin(0.5).setDepth(21);
 
-      // Keyboard hint (hidden by default, shown with F1)
-      const hints = { 'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7' };
-      if (hints[v.key]) {
-        this.createHotkeyHint(x + 36, y - 20, hints[v.key]);
+      // Keyboard hint
+      if (!isLocked) {
+        this.createHotkeyHint(v.x + 28, v.y - 20, v.hotkey);
       }
+
+      this.veggieBowlItems.push({ img: vegImg, label, ...v });
     });
   }
 
@@ -1517,7 +2008,6 @@ export class GameScene extends Phaser.Scene {
     soundManager.robotPickup();
     const visual = this.createHeldVisual(key, pointer.x, pointer.y);
     this.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
-    this._justPickedUp = true;
   }
 
   createSauceBottle(key, x, y) {
@@ -1527,23 +2017,10 @@ export class GameScene extends Phaser.Scene {
     // Create container for the sauce icon
     const container = this.add.container(x, y).setDepth(30);
 
-    const g = this.add.graphics();
-
-    // Shadow underneath
-    g.fillStyle(0x000000, 0.2);
-    g.fillEllipse(0, radius + 6, radius * 1.2, 6);
-
-    // Colored circle with border
-    g.fillStyle(ingredient.color, 1);
-    g.fillCircle(0, 0, radius);
-    g.lineStyle(3, ingredient.border, 1);
-    g.strokeCircle(0, 0, radius);
-
-    // Highlight
-    g.fillStyle(0xffffff, 0.3);
-    g.fillEllipse(-6, -8, radius * 0.4, radius * 0.25);
-
-    container.add(g);
+    // Use bottle SVG instead of procedural circle
+    const bottleKey = key + '_bottle';
+    const bottleImg = this.add.image(0, 0, bottleKey).setScale(0.25);
+    container.add(bottleImg);
 
     // Label text above
     const label = this.add.text(0, -radius - 12, ingredient.name, {
@@ -1554,7 +2031,7 @@ export class GameScene extends Phaser.Scene {
     }).setOrigin(0.5);
     container.add(label);
 
-    // Make interactive - generous hitbox covering label, circle, and shadow
+    // Make interactive - generous hitbox covering label, bottle, and below
     const hitW = 60;
     const hitH = 90;
     const hitY = -50; // Start above the label
@@ -1564,8 +2041,8 @@ export class GameScene extends Phaser.Scene {
       hitAreaCallback: Phaser.Geom.Rectangle.Contains,
       useHandCursor: true,
     });
-    container.on('pointerover', () => g.setAlpha(0.8));
-    container.on('pointerout', () => g.setAlpha(1));
+    container.on('pointerover', () => bottleImg.setAlpha(0.8));
+    container.on('pointerout', () => bottleImg.setAlpha(1));
     container.on('pointerdown', () => {
       if (this.isPaused || this.heldItem) return;
       soundManager.init();
@@ -1573,7 +2050,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     // Keyboard hint (hidden by default, shown with F1)
-    const sauceHints = { 'sauce_mayo': 'Q', 'sauce_mustard': 'E' };
+    const sauceHints = { 'sauce_mayo': 'A', 'sauce_mustard': 'S' };
     if (sauceHints[key]) {
       this.createHotkeyHint(x + radius + 4, y - radius - 4, sauceHints[key], 31);
     }
@@ -1588,36 +2065,91 @@ export class GameScene extends Phaser.Scene {
       ingredientKey: key,
       isSauce: true,
     };
-    this._justPickedUp = true;
   }
 
   createTreatmentItem(tKey, x, y) {
     const treat = TREATMENTS[tKey];
-    const hw = 38;
-    const hh = 40;
     const c = this.add.container(x, y).setDepth(30);
-    c.setSize(hw * 2, hh * 2);
-    c.setInteractive({
-      hitArea: new Phaser.Geom.Rectangle(-hw, -hh, hw * 2, hh * 2),
-      hitAreaCallback: Phaser.Geom.Rectangle.Contains,
-      useHandCursor: true,
-    });
-
     const g = this.add.graphics();
 
-    // Isometric offset for 3D effect
+    // Draw the treatment using shared function
+    const bounds = this.drawTreatmentGraphics(g, tKey);
+    c.add(g);
+
+    // Endless mode: treatments are always available
+    const isLocked = false;
+
+    // Create an invisible interactive zone that covers the visual
+    // Using a Phaser Zone for reliable hit detection
+    const zone = this.add.zone(0, 0, bounds.w + 10, bounds.h + 10);
+    c.add(zone);
+
+    if (isLocked) {
+      // Grey out treatment - not available on this day
+      g.setAlpha(0.3);
+      // Apply grey tint effect by drawing a grey overlay
+      const overlay = this.add.graphics();
+      overlay.fillStyle(0x444444, 0.5);
+      overlay.fillRect(-bounds.w/2 - 5, -bounds.h/2 - 5, bounds.w + 10, bounds.h + 10);
+      c.add(overlay);
+    } else {
+      // Only make interactive if not locked
+      zone.setInteractive({ useHandCursor: true });
+
+      // Forward zone events to container behavior
+      zone.on('pointerover', () => {
+        this.tweens.add({ targets: c, scaleX: 1.08, scaleY: 1.08, duration: 100, ease: 'Sine.easeOut' });
+      });
+      zone.on('pointerout', () => {
+        this.tweens.add({ targets: c, scaleX: 1.0, scaleY: 1.0, duration: 100, ease: 'Sine.easeOut' });
+      });
+      zone.on('pointerdown', () => {
+        if (this.isPaused || this.heldItem) return;
+        soundManager.init();
+        this.pickupTreatment(tKey);
+      });
+    }
+
+    // Label below art (hidden by default, shown with F1)
+    // Position label based on treatment type
+    const labelY = (tKey === 'togo') ? 38 : (tKey === 'toasted') ? 36 : 34;
+    const label = this.add.text(0, labelY, treat.name, {
+      fontSize: '12px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 2,
+    }).setOrigin(0.5);
+    c.add(label);
+
+    // Keyboard hints - hidden by default, shown with F1
+    const treatHints = { 'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V' };
+    const hintOffsets = {
+      'toasted': { x: 32, y: -12 },
+      'togo': { x: 28, y: -30 },
+      'salt': { x: 12, y: -18 },
+      'pepper': { x: 12, y: -18 },
+      'oil_vinegar': { x: 26, y: -20 },
+    };
+    if (treatHints[tKey]) {
+      const off = hintOffsets[tKey] || { x: 30, y: -30 };
+      this.createHotkeyHint(x + off.x, y + off.y, treatHints[tKey], 32);
+    }
+
+    this.treatmentItems[tKey] = c;
+  }
+
+  /* =========================================
+     TREATMENT PICKUP (works like ingredients)
+     ========================================= */
+  drawTreatmentGraphics(g, tKey) {
+    // Shared drawing code for both station display and pickup
+    // Returns the bounding size {w, h}
     const iso = 6;
 
     if (tKey === 'toasted') {
-      // Isometric 4-slice deli toaster (no box)
-      // Shadow
+      // Isometric 4-slice deli toaster
       g.fillStyle(0x000000, 0.2);
       g.fillEllipse(0, 28, 50, 14);
-
-      // Main body - front face
       g.fillStyle(0x707078, 1);
       g.fillRect(-28, -8, 56, 36);
-      // Top face (parallelogram)
       g.fillStyle(0x909098, 1);
       g.beginPath();
       g.moveTo(-28, -8);
@@ -1626,7 +2158,6 @@ export class GameScene extends Phaser.Scene {
       g.lineTo(28, -8);
       g.closePath();
       g.fillPath();
-      // Right face
       g.fillStyle(0x505058, 1);
       g.beginPath();
       g.moveTo(28, -8);
@@ -1635,8 +2166,6 @@ export class GameScene extends Phaser.Scene {
       g.lineTo(28, 28);
       g.closePath();
       g.fillPath();
-
-      // 4 toast slots on top
       g.fillStyle(0x222228, 1);
       for (let i = 0; i < 4; i++) {
         const slotX = -22 + i * 12;
@@ -1648,32 +2177,23 @@ export class GameScene extends Phaser.Scene {
         g.closePath();
         g.fillPath();
       }
-
-      // Lever on right side
       g.fillStyle(0x404048, 1);
       g.fillRect(30, 5, 6, 18);
       g.fillStyle(0x606068, 1);
       g.fillRect(30, 5, 6, 4);
-
-      // Front detail - brand plate
       g.fillStyle(0x606068, 1);
       g.fillRect(-18, 16, 36, 8);
+      return { w: 70, h: 50 };
 
     } else if (tKey === 'togo') {
-      // Stack of to-go boxes isometric (no box)
-      // Shadow
+      // Stack of to-go boxes isometric
       g.fillStyle(0x000000, 0.2);
       g.fillEllipse(0, 30, 48, 12);
-
-      // Draw 3 stacked boxes
       for (let b = 0; b < 3; b++) {
         const by = 20 - b * 14;
         const biso = 5;
-
-        // Front face (styrofoam white)
         g.fillStyle(b === 0 ? 0xE8E8E8 : 0xF0F0F0, 1);
         g.fillRect(-26, by - 10, 52, 12);
-        // Top face
         g.fillStyle(b === 0 ? 0xF5F5F5 : 0xFAFAFA, 1);
         g.beginPath();
         g.moveTo(-26, by - 10);
@@ -1682,7 +2202,6 @@ export class GameScene extends Phaser.Scene {
         g.lineTo(26, by - 10);
         g.closePath();
         g.fillPath();
-        // Right face
         g.fillStyle(0xD0D0D0, 1);
         g.beginPath();
         g.moveTo(26, by - 10);
@@ -1691,145 +2210,81 @@ export class GameScene extends Phaser.Scene {
         g.lineTo(26, by + 2);
         g.closePath();
         g.fillPath();
-
-        // Lid line detail
         g.lineStyle(1, 0xBBBBBB, 0.6);
         g.lineBetween(-22, by - 6, 22, by - 6);
       }
+      return { w: 65, h: 70 };
 
     } else if (tKey === 'salt') {
-      // Individual salt shaker (no box)
-      // Shadow
+      // Salt shaker
       g.fillStyle(0x000000, 0.2);
       g.fillEllipse(0, 28, 28, 10);
-
-      // Body - white/clear glass
       g.fillStyle(0xF0F0F0, 1);
       g.fillRoundedRect(-12, -8, 24, 36, 4);
-      // Cap
       g.fillStyle(0xC0C0C0, 1);
       g.fillRect(-10, -18, 20, 12);
       g.fillStyle(0xDDDDDD, 1);
       g.fillRect(-10, -18, 20, 4);
-      // Holes on cap
       g.fillStyle(0x666666, 1);
       g.fillCircle(-4, -14, 1.5);
       g.fillCircle(0, -12, 1.5);
       g.fillCircle(4, -14, 1.5);
-      // Salt inside
       g.fillStyle(0xFFFFFF, 0.6);
       g.fillRect(-8, 8, 16, 16);
-      // Label
       g.fillStyle(0x4488FF, 0.8);
       g.fillRect(-8, 2, 16, 8);
+      return { w: 32, h: 54 };
 
     } else if (tKey === 'pepper') {
-      // Individual pepper shaker (no box)
-      // Shadow
+      // Pepper shaker
       g.fillStyle(0x000000, 0.2);
       g.fillEllipse(0, 28, 28, 10);
-
-      // Body - dark glass
       g.fillStyle(0x333333, 1);
       g.fillRoundedRect(-12, -8, 24, 36, 4);
-      // Cap
       g.fillStyle(0x222222, 1);
       g.fillRect(-10, -18, 20, 12);
       g.fillStyle(0x444444, 1);
       g.fillRect(-10, -18, 20, 4);
-      // Holes on cap
       g.fillStyle(0x111111, 1);
       g.fillCircle(-4, -14, 1.5);
       g.fillCircle(0, -12, 1.5);
       g.fillCircle(4, -14, 1.5);
-      // Pepper inside visible
       g.fillStyle(0x1A1A1A, 0.6);
       g.fillRect(-8, 8, 16, 16);
-      // Label
       g.fillStyle(0xFF4444, 0.8);
       g.fillRect(-8, 2, 16, 8);
+      return { w: 32, h: 54 };
 
     } else if (tKey === 'oil_vinegar') {
-      // Oil & vinegar bottles (keep card background for this one)
-      const bg = this.add.graphics();
-      bg.fillStyle(0x333344, 0.7);
-      bg.fillRoundedRect(-hw, -hh, hw * 2, hh * 2, 6);
-      c.add(bg);
-
-      // Shadow
+      // Oil & vinegar bottles
       g.fillStyle(0x000000, 0.15);
       g.fillEllipse(0, 26, 45, 10);
-
-      // Oil bottle (left)
       g.fillStyle(0xCCCC44, 0.8);
       g.fillRoundedRect(-28, -2, 22, 32, 4);
       g.fillRect(-22, -18, 10, 18);
       g.fillStyle(0xAAAA22, 1);
       g.fillRect(-24, -22, 14, 6);
-
-      // Vinegar bottle (right)
       g.fillStyle(0x884422, 0.8);
       g.fillRoundedRect(6, -2, 22, 32, 4);
       g.fillRect(12, -18, 10, 18);
       g.fillStyle(0x662200, 1);
       g.fillRect(10, -22, 14, 6);
+      return { w: 60, h: 58 };
     }
 
-    c.add(g);
-
-    // Label below art (hidden by default, shown with F1)
-    const label = this.add.text(0, hh - 6, treat.name, {
-      fontSize: '12px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
-      stroke: '#000', strokeThickness: 2,
-    }).setOrigin(0.5).setVisible(false);
-    c.add(label);
-    this.labelHints.push(label);
-
-    // Keyboard hints - hidden by default, shown with F1
-    const treatHints = { 'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V' };
-    if (treatHints[tKey]) {
-      // Create hint outside container at absolute position
-      this.createHotkeyHint(x + hw - 8, y - hh + 8, treatHints[tKey], 32);
-    }
-
-    c.on('pointerover', () => {
-      this.tweens.add({ targets: c, scaleX: 1.08, scaleY: 1.08, duration: 100, ease: 'Sine.easeOut' });
-    });
-    c.on('pointerout', () => {
-      this.tweens.add({ targets: c, scaleX: 1.0, scaleY: 1.0, duration: 100, ease: 'Sine.easeOut' });
-    });
-    c.on('pointerdown', () => {
-      if (this.isPaused || this.heldItem) return;
-      soundManager.init();
-      this.pickupTreatment(tKey);
-    });
-
-    this.treatmentItems[tKey] = c;
+    return { w: 50, h: 50 };
   }
 
-  /* =========================================
-     TREATMENT PICKUP (works like ingredients)
-     ========================================= */
   pickupTreatment(tKey) {
     soundManager.robotPickup();
-    const treat = TREATMENTS[tKey];
     const pointer = this.input.activePointer;
 
-    // Create a held visual for the treatment
+    // Create a held visual using the same art as station display
     const c = this.add.container(pointer.x, pointer.y).setDepth(100);
-    c.setSize(80, 40);
-
-    const bg = this.add.graphics();
-    bg.fillStyle(0x333344, 0.9);
-    bg.fillRoundedRect(-40, -20, 80, 40, 8);
-    bg.lineStyle(2, 0xFFAA00, 1);
-    bg.strokeRoundedRect(-40, -20, 80, 40, 8);
-    c.add(bg);
-
-    const label = this.add.text(0, 0, treat.name, {
-      fontSize: '14px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
-    }).setOrigin(0.5);
-    c.add(label);
+    const g = this.add.graphics();
+    const size = this.drawTreatmentGraphics(g, tKey);
+    c.setSize(size.w, size.h);
+    c.add(g);
 
     c.setAlpha(0.9);
     c.setScale(0.4);
@@ -1842,7 +2297,6 @@ export class GameScene extends Phaser.Scene {
       visual: c,
       treatmentKey: tKey,
     };
-    this._justPickedUp = true;
 
     soundManager.treatmentSound();
   }
@@ -1877,20 +2331,44 @@ export class GameScene extends Phaser.Scene {
     // Top of the topmost layer and bottom of the stack
     const stackTop = -16 - (tray.stackHeight || 0);
     const stackBot = -16 + 9;
-    const hw = tray.isFooter ? 80 : 55;
+    const hw = false ? 80 : 55;
 
     if (treatmentKey === 'toasted') {
-      // Toast marks across the whole sandwich body
-      const midY = (stackTop + stackBot) / 2;
-      const halfH = (stackBot - stackTop) / 2 + 4;
-      g.lineStyle(2, 0x8B4513, 0.6);
-      for (let sx = -(hw - 15); sx <= (hw - 15); sx += 12) {
-        g.lineBetween(sx, midY - halfH, sx + 6, midY + halfH);
+      // Redraw bread layers with toasted colors and grill marks
+      if (tray.breadLayers) {
+        tray.breadLayers.forEach(bread => {
+          const ing = INGREDIENTS[bread.key];
+          const toastedColor = ing.toastedColor || 0xC4943D;
+          const toastedBorder = ing.toastedBorder || 0x8B6914;
+
+          // Clear and redraw the bread graphics
+          bread.graphics.clear();
+          bread.graphics.fillStyle(toastedColor, 1);
+          bread.graphics.lineStyle(1.5, toastedBorder, 0.8);
+
+          if (bread.isBottom) {
+            bread.graphics.fillRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 4, bread.w, 10, 3);
+            bread.graphics.strokeRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 4, bread.w, 10, 3);
+            // Grill marks on bottom bread
+            bread.graphics.lineStyle(2, 0x6B4010, 0.5);
+            for (let i = 0; i < 3; i++) {
+              const markX = bread.rX - bread.hw + 8 + i * (bread.w - 16) / 2;
+              bread.graphics.lineBetween(markX, bread.ly + bread.rY - 3, markX + 4, bread.ly + bread.rY + 4);
+            }
+          } else {
+            // Top bread dome
+            bread.graphics.fillRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 3, bread.w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
+            bread.graphics.strokeRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 3, bread.w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
+            // Grill marks on top bread
+            bread.graphics.lineStyle(2, 0x6B4010, 0.5);
+            for (let i = 0; i < 3; i++) {
+              const markX = bread.rX - bread.hw + 10 + i * (bread.w - 20) / 2;
+              bread.graphics.lineBetween(markX, bread.ly + bread.rY - 2, markX + 3, bread.ly + bread.rY + 3);
+            }
+          }
+        });
       }
-      g.lineStyle(1.5, 0xFF8C00, 0.4);
-      for (let sx = -(hw - 21); sx <= (hw - 21); sx += 12) {
-        g.lineBetween(sx, midY - halfH + 2, sx + 4, midY + halfH - 2);
-      }
+      // No additional overlay needed - bread is now toasted
     } else if (treatmentKey === 'togo') {
       g.lineStyle(2, 0xD4C4A0, 0.7);
       g.strokeRoundedRect(-hw, stackTop - 5, hw * 2, stackBot - stackTop + 15, 3);
@@ -1936,47 +2414,166 @@ export class GameScene extends Phaser.Scene {
   /* =========================================
      CLICK TO PLACE (replaces drag & drop)
      ========================================= */
-  setupClickToPlace() {
+  setupDragAndDrop() {
     this.trayHighlight = this.add.graphics().setDepth(9);
 
     this.input.on('pointermove', (pointer) => {
+      // Update robot arm to follow cursor
+      this.robotArm.setTarget(pointer.x, pointer.y);
+
       if (!this.heldItem) {
         this.trayHighlight.clear();
+        this.glowGraphics.clear();
+        this.magnetActive = false;
         return;
       }
-      this.heldItem.visual.x = pointer.x;
-      this.heldItem.visual.y = pointer.y;
 
-      this.trayHighlight.clear();
+      // INGREDIENT MAGNETISM - snap toward target tray
+      let targetX = pointer.x;
+      let targetY = pointer.y;
+      let magnetStrength = 0;
+      let targetTray = null;
+
       if (pointer.y < this.BELT_TOP) {
         const tray = this.findTrayAtX(pointer.x);
         if (tray && !tray.completed && !tray.done && !tray.passedFinish) {
-          const hw = tray.isFooter ? 105 : 72;
-          this.trayHighlight.lineStyle(2, 0x44ff44, 0.35);
-          this.trayHighlight.strokeRoundedRect(
-            tray.container.x - hw, 270, hw * 2, 155, 8,
-          );
+          targetTray = tray;
+          const trayX = tray.container.x;
+          const trayY = this.LAND_Y;
+          const distX = Math.abs(pointer.x - trayX);
+          const distY = Math.abs(pointer.y - trayY);
+          const magnetRadius = false ? 120 : 100;
+
+          if (distX < magnetRadius && distY < 80) {
+            // Calculate magnet pull (stronger when closer)
+            const dist = Math.sqrt(distX * distX + distY * distY);
+            magnetStrength = Math.max(0, 1 - dist / magnetRadius);
+
+            // Apply magnetic pull
+            targetX = pointer.x + (trayX - pointer.x) * magnetStrength * 0.4;
+            targetY = pointer.y + (trayY - pointer.y) * magnetStrength * 0.3;
+
+            // Play magnet sound on first engagement
+            if (!this.magnetActive && magnetStrength > 0.3) {
+              soundManager.magnetSlide();
+              this.magnetActive = true;
+            }
+          } else {
+            this.magnetActive = false;
+          }
         }
+      }
+
+      this.heldItem.visual.x = targetX;
+      this.heldItem.visual.y = targetY;
+
+      // Draw glow effect around dragged item (enhanced when magnetized)
+      this.glowGraphics.clear();
+      const glowSize = 70 + magnetStrength * 30;
+      const glowAlpha = (0.15 + Math.sin(Date.now() * 0.008) * 0.1) * (1 + magnetStrength);
+      const glowColor = magnetStrength > 0.3 ? 0x44ff88 : 0x00ddff;
+      this.glowGraphics.fillStyle(glowColor, glowAlpha);
+      this.glowGraphics.fillCircle(targetX, targetY, glowSize);
+      this.glowGraphics.fillStyle(glowColor, glowAlpha * 0.5);
+      this.glowGraphics.fillCircle(targetX, targetY, glowSize * 1.4);
+
+      // Drag trail particles
+      if (this.heldItem.ingredientKey) {
+        const ing = INGREDIENTS[this.heldItem.ingredientKey];
+        this.particleManager.dragTrail(targetX, targetY, ing.color);
+      }
+
+      // Highlight target tray
+      this.trayHighlight.clear();
+      if (targetTray) {
+        const hw = targetTray.isFooter ? 105 : 72;
+        const pulseAlpha = 0.4 + Math.sin(Date.now() * 0.01) * 0.15 + magnetStrength * 0.3;
+        this.trayHighlight.lineStyle(3 + magnetStrength * 2, 0x44ff88, pulseAlpha);
+        this.trayHighlight.strokeRoundedRect(
+          targetTray.container.x - hw, 270, hw * 2, 155, 8,
+        );
       }
     });
 
-    this.input.on('pointerdown', (pointer) => {
-      if (this.isPaused) return;
-
-      if (!this.heldItem) return;
-
-      if (this._justPickedUp) {
-        this._justPickedUp = false;
-        return;
-      }
-
+    this.input.on('pointerup', (pointer) => {
+      if (this.isPaused || !this.heldItem) return;
       this.placeHeldItem(pointer);
+      this.glowGraphics.clear();
     });
 
     this.escKey.on('down', () => {
-      if (this.heldItem) {
+      // Toggle settings menu, or cancel held item
+      if (this.settingsMenu.isOpen) {
+        this.settingsMenu.close();
+      } else if (this.heldItem) {
         this.cancelHeldItem();
+        this.glowGraphics.clear();
+      } else {
+        this.settingsMenu.open();
       }
+    });
+
+    // === TRAY DRAGGING ===
+    this.draggedTray = null;
+    this.trayDragStartPos = { x: 0, y: 0 };
+
+    this.input.on('dragstart', (pointer, gameObject) => {
+      // Find tray associated with this container
+      const tray = this.trays.find(t => t.container === gameObject);
+      if (tray && tray.draggable) {
+        this.draggedTray = tray;
+        this.trayDragStartPos.x = tray.container.x;
+        this.trayDragStartPos.y = tray.container.y;
+        soundManager.robotPickup();
+      }
+    });
+
+    this.input.on('drag', (pointer, gameObject, dragX, dragY) => {
+      if (this.draggedTray && this.draggedTray.container === gameObject) {
+        gameObject.x = dragX;
+        gameObject.y = dragY;
+      }
+    });
+
+    this.input.on('dragend', (pointer, gameObject) => {
+      const tray = this.draggedTray;
+      if (!tray || tray.container !== gameObject) return;
+
+      const x = gameObject.x;
+      const y = gameObject.y;
+
+      // Try to place on belt
+      if (tray.onPrepTrack && tray.completed) {
+        // Check if near belt area
+        if (y < 450 && x > 200 && x < 900) {
+          // Remove from prep track
+          if (tray.prepSlot) {
+            this.prepTrack.removeTray(tray.prepSlot);
+          }
+          tray.onBelt = true;
+          tray.onPrepTrack = false;
+          tray.draggable = false;
+          gameObject.x = x;
+          gameObject.y = this.BELT_Y;
+          gameObject.disableInteractive();
+          soundManager.whoosh();
+          this.particleManager.trayPlaced(x, this.BELT_Y);
+          this.draggedTray = null;
+          return;
+        }
+      }
+
+      // Invalid drop - return to start position
+      soundManager.cancelSound();
+      this.tweens.add({
+        targets: gameObject,
+        x: this.trayDragStartPos.x,
+        y: this.trayDragStartPos.y,
+        duration: 200,
+        ease: 'Back.easeOut'
+      });
+
+      this.draggedTray = null;
     });
   }
 
@@ -2009,28 +2606,43 @@ export class GameScene extends Phaser.Scene {
      ========================================= */
   setupKeyboardShortcuts() {
     // Map of keyboard shortcut key -> ingredient/action
+    // Meats: 1-4 + Q for prosciutto
+    // Veggies: 5-7 (base) + 8-0 (unlockable)
+    // Cheeses: W, E
+    // Sauces: A, S
+    // Treatments: R, F, G, H, V
     this.shortcutMap = {
-      'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4',
+      'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4', 'meat_prosciutto': 'Q',
       'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7',
-      'cheese_american': '8', 'cheese_swiss': '9',
-      'sauce_mayo': 'Q', 'sauce_mustard': 'E',
+      'top_pickles': '8', 'top_arugula': '9', 'top_olives': '0',
+      'cheese_american': 'W', 'cheese_swiss': 'E',
+      'sauce_mayo': 'A', 'sauce_mustard': 'S',
       'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V',
     };
 
     const KC = Phaser.Input.Keyboard.KeyCodes;
 
     const bindings = [
+      // Meats
       { code: KC.ONE,   ingredient: 'meat_ham' },
       { code: KC.TWO,   ingredient: 'meat_turkey' },
       { code: KC.THREE, ingredient: 'meat_roastbeef' },
       { code: KC.FOUR,  ingredient: 'meat_bacon' },
+      { code: KC.Q,     ingredient: 'meat_prosciutto' },
+      // Veggies
       { code: KC.FIVE,  ingredient: 'top_lettuce' },
       { code: KC.SIX,   ingredient: 'top_tomato' },
       { code: KC.SEVEN, ingredient: 'top_onion' },
-      { code: KC.EIGHT, ingredient: 'cheese_american' },
-      { code: KC.NINE,  ingredient: 'cheese_swiss' },
-      { code: KC.Q,     ingredient: 'sauce_mayo' },
-      { code: KC.E,     ingredient: 'sauce_mustard' },
+      { code: KC.EIGHT, ingredient: 'top_pickles' },
+      { code: KC.NINE,  ingredient: 'top_arugula' },
+      { code: KC.ZERO,  ingredient: 'top_olives' },
+      // Cheeses
+      { code: KC.W,     ingredient: 'cheese_american' },
+      { code: KC.E,     ingredient: 'cheese_swiss' },
+      // Sauces
+      { code: KC.A,     ingredient: 'sauce_mayo' },
+      { code: KC.S,     ingredient: 'sauce_mustard' },
+      // Treatments
       { code: KC.R,     treatment: 'toasted' },
       { code: KC.F,     treatment: 'togo' },
       { code: KC.G,     treatment: 'salt' },
@@ -2042,6 +2654,15 @@ export class GameScene extends Phaser.Scene {
       const key = this.input.keyboard.addKey(code);
       key.on('down', () => {
         if (this.isPaused || this.heldItem || !this.isStoreOpen) return;
+
+        // Check if ingredient is unlocked
+        if (ingredient) {
+          const ing = INGREDIENTS[ingredient];
+          if (ing && ing.unlockDay && this.day < ing.unlockDay) {
+            return; // Ingredient not unlocked yet
+          }
+        }
+
         soundManager.init();
         if (treatment) {
           this.pickupTreatment(treatment);
@@ -2053,8 +2674,7 @@ export class GameScene extends Phaser.Scene {
             soundManager.robotPickup();
             const visual = this.createHeldVisual(ingredient, pointer.x, pointer.y);
             this.heldItem = { visual, ingredientKey: ingredient, binX: 0, binY: 0 };
-            this._justPickedUp = true;
-          }
+                  }
         }
       });
     });
@@ -2138,7 +2758,8 @@ export class GameScene extends Phaser.Scene {
     const savedTreatmentKey = this.heldItem.treatmentKey;
     const savedIngredientKey = this.heldItem.ingredientKey;
 
-    if (tray && !tray.completed && !tray.done && !tray.passedFinish && pointer.y < landY + 40) {
+    // Only allow placing on trays that are on prep track
+    if (tray && tray.onPrepTrack && !tray.completed && !tray.done && !tray.passedFinish && pointer.y < landY + 40) {
       soundManager.robotRelease();
       const fallDist = Math.max(0, landY - obj.y);
       const duration = Math.max(80, Math.min(400, fallDist * 1.8));
@@ -2162,11 +2783,15 @@ export class GameScene extends Phaser.Scene {
             if (result === 'valid') {
               const ing = INGREDIENTS[key];
               soundManager.plopCategory(ing.category);
+              // Particle effect for successful placement
+              this.particleManager.ingredientPlaced(tray.container.x, landY, ing.color);
             } else if (result === 'wrong') {
               soundManager.buzz();
-              this.dayScore = Math.max(0, this.dayScore - 25);
+              this.currentScore = Math.max(0, this.currentScore - 25);
               this.refreshHUD();
               this.flashTray(tray, 0xff0000);
+              // Particle effect for error
+              this.particleManager.errorSparks(tray.container.x, landY);
 
               // Show what ingredient is expected
               const expectedKey = tray.order.ingredients[tray.placed.length];
@@ -2218,7 +2843,7 @@ export class GameScene extends Phaser.Scene {
 
     for (const tray of this.trays) {
       if (tray.done || tray.passedFinish || tray.completed) continue;
-      const tolerance = tray.isFooter ? 110 : 80;
+      const tolerance = false ? 110 : 80;
       const dist = Math.abs(tray.container.x - x);
       if (dist < tolerance && dist < closestDist) {
         closest = tray;
@@ -2237,39 +2862,30 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Anti-bunching: don't spawn if the rightmost tray is still too close
-    const minGap = 200;
-    for (const tray of this.trays) {
-      if (tray.done) continue;
-      if (tray.container.x > 1024 - minGap) return;
-    }
-
-    // Trigger tray delivery arm animation
-    this.animateTrayDelivery();
+    // Only spawn if there's an empty prep slot
+    const slot = this.prepTrack.findEmptySlot();
+    if (!slot) return;
 
     const order = this.generateOrder();
     this.orderNumber++;
     const orderNum = this.orderNumber;
-    const startX = order.isFooter ? 1200 : 1120;
-    const baseY = this.BELT_Y;
 
     // Add ticket to the slider
     this.addTicket(order, orderNum);
 
-    // Tray container
-    const container = this.add.container(startX, baseY).setDepth(10);
+    // Tray container — spawn directly at prep slot position
+    const container = this.add.container(slot.x, slot.y).setDepth(10);
 
     // Use thin tray sprite (thinner profile)
     const traySprite = this.add.image(0, 0, 'tray_thin');
-    // Scale for footer/normal - slightly larger scale since asset is thinner
-    traySprite.setScale(order.isFooter ? 1.0 : 0.8);
+    traySprite.setScale(0.8);
     container.add(traySprite);
 
     // Order number badge (adjusted Y for thinner tray)
     const numBg = this.add.graphics();
-    numBg.fillStyle(order.isFooter ? 0xFFEEBB : 0xFFFFC0, 1);
+    numBg.fillStyle(0xFFFFC0, 1);
     numBg.fillCircle(0, -22, 16);
-    numBg.lineStyle(2, order.isFooter ? 0xDDAA55 : 0xCCCC80, 1);
+    numBg.lineStyle(2, 0xDDCC80, 1);
     numBg.strokeCircle(0, -22, 16);
     container.add(numBg);
 
@@ -2277,14 +2893,6 @@ export class GameScene extends Phaser.Scene {
       fontSize: '15px', color: '#333', fontFamily: 'Arial', fontStyle: 'bold',
     }).setOrigin(0.5);
     container.add(numText);
-
-    // Footer label on tray (adjusted Y for thinner tray)
-    if (order.isFooter) {
-      const ftLabel = this.add.text(0, -38, 'FOOTER', {
-        fontSize: '9px', color: '#AA6600', fontFamily: 'Arial', fontStyle: 'bold',
-      }).setOrigin(0.5);
-      container.add(ftLabel);
-    }
 
     // Next-ingredient shortcut hint
     const hintText = this.add.text(0, -50, '', {
@@ -2298,7 +2906,6 @@ export class GameScene extends Phaser.Scene {
       container,
       order,
       orderNum,
-      isFooter: order.isFooter || false,
       placed: [],
       stackLayers: [],
       stackHeight: 0,
@@ -2308,9 +2915,22 @@ export class GameScene extends Phaser.Scene {
       passedFinish: false,
       scored: false,
       hintText,
+      inHolding: false,
+      onPrepTrack: true,
+      onBelt: false,
+      prepSlot: slot,
+      draggable: true,
     };
 
+    // Register tray in the prep slot
+    slot.occupied = true;
+    slot.tray = tray;
+
     this.trays.push(tray);
+
+    // Make tray interactive for dragging
+    container.setSize(traySprite.width * traySprite.scaleX, traySprite.height * traySprite.scaleY);
+    container.setInteractive({ draggable: true, useHandCursor: true });
     this.updateTrayNextHint(tray);
     this.ordersSpawned++;
 
@@ -2318,6 +2938,19 @@ export class GameScene extends Phaser.Scene {
       this.spawnTimer = this.spawnInterval * 0.5;
     }
 
+    // Subtle entrance animation: fade in + scale bounce
+    container.setAlpha(0);
+    container.setScale(0.85);
+    this.tweens.add({
+      targets: container,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 300,
+      ease: 'Back.easeOut',
+    });
+
+    this.prepTrack.render();
     this.refreshHUD();
   }
 
@@ -2333,89 +2966,65 @@ export class GameScene extends Phaser.Scene {
       return out;
     };
 
+    // All ingredients available from start
     const breads = ['bread_white', 'bread_wheat', 'bread_sourdough'];
-    const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon'];
+    const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon', 'meat_prosciutto'];
     const cheeses = ['cheese_american', 'cheese_swiss'];
-    const toppings = ['top_lettuce', 'top_tomato', 'top_onion'];
+    const toppings = ['top_lettuce', 'top_tomato', 'top_onion', 'top_pickles', 'top_arugula', 'top_olives'];
     const sauces = ['sauce_mayo', 'sauce_mustard'];
 
-    const cfg = DAY_CONFIG[this.day];
-    const isFooter = Math.random() < (cfg.footerChance || 0);
+    // Calculate difficulty based on game time
+    const minutesPlayed = this.gameTime / 60;
+    const diff = DIFFICULTY_PROGRESSION;
+    const maxToppings = Math.min(
+      diff.maxMaxToppings,
+      Math.floor(diff.initialMaxToppings + minutesPlayed * diff.maxToppingsIncrease)
+    );
+    const treatmentChance = Math.min(
+      diff.maxTreatmentChance,
+      diff.initialTreatmentChance + minutesPlayed * diff.treatmentChanceIncrease
+    );
 
     const list = [];
     const bread = pick(breads);
 
-    if (isFooter) {
-      // FOOTER: ~2x ingredients
-      list.push(bread);
-      // 2 meats
-      list.push(pick(meats));
-      list.push(pick(meats));
-      // Always 1 cheese, 50% chance of 2nd
+    // Build sandwich (no footer concept)
+    list.push(bread);
+    list.push(pick(meats));
+
+    // 70% chance of cheese (starts at 70%, doesn't change)
+    if (Math.random() < 0.7) {
       list.push(pick(cheeses));
-      if (Math.random() > 0.5) {
-        list.push(pick(cheeses));
-      }
-      // 2-3 toppings
-      const topCount = 2 + (Math.random() < 0.5 ? 1 : 0);
+    }
+
+    // Toppings based on difficulty (starts with 0-1, eventually 0-4)
+    const topCount = Math.floor(Math.random() * (maxToppings + 1));
+    if (topCount > 0) {
       pickN(toppings, topCount).forEach((t) => list.push(t));
-      // Always 1 sauce, 50% chance of 2nd
+    }
+
+    // 60% chance of sauce
+    if (Math.random() < 0.6) {
       list.push(pick(sauces));
-      if (Math.random() > 0.5) {
-        list.push(pick(sauces));
-      }
-      // Top bread
-      list.push(bread);
-    } else {
-      // Normal order
-      list.push(bread);
-      list.push(pick(meats));
-
-      if (this.day >= 2 || Math.random() > 0.5) {
-        list.push(pick(cheeses));
-      }
-
-      const topCount = Math.min(
-        Math.floor(Math.random() * (1 + Math.min(this.day, 3))),
-        2,
-      );
-      if (topCount > 0) {
-        pickN(toppings, topCount).forEach((t) => list.push(t));
-      }
-
-      if (this.day >= 2 || Math.random() > 0.4) {
-        list.push(pick(sauces));
-      }
-
-      list.push(bread);
     }
 
-    // Treatments based on day config (salt and pepper are now separate)
+    list.push(bread);
+
+    // Treatments based on difficulty
     const treatments = [];
-    if (cfg.treatmentChance > 0 && Math.random() < cfg.treatmentChance) {
+    if (Math.random() < treatmentChance) {
       const allTreatments = Object.keys(TREATMENTS);
-      if (this.day <= 2) {
-        // Early days: simple treatments - toasted, salt, or pepper
-        const simple = ['toasted', 'salt', 'pepper'];
-        treatments.push(pick(simple));
-        // 30% chance to add the other seasoning if we picked salt or pepper
-        if ((treatments[0] === 'salt' || treatments[0] === 'pepper') && Math.random() < 0.3) {
-          treatments.push(treatments[0] === 'salt' ? 'pepper' : 'salt');
-        }
-      } else {
-        // Later days: more variety, can have multiple treatments
-        const count = Math.random() < 0.4 ? 2 : 1;
-        const chosen = pickN(allTreatments, count);
-        chosen.forEach((t) => treatments.push(t));
-      }
+      const count = Math.random() < 0.3 ? 2 : 1; // 30% chance of 2 treatments
+      const chosen = pickN(allTreatments, count);
+      chosen.forEach((t) => treatments.push(t));
     }
 
-    const totalPrice = this.calculateOrderPrice(list, treatments, isFooter);
-    return { ingredients: list, treatments, isFooter, totalPrice };
+    const totalPrice = this.calculateOrderPrice(list, treatments);
+    return { ingredients: list, treatments, totalPrice };
   }
 
-  calculateOrderPrice(ingredients, treatments, isFooter) {
-    let price = isFooter ? 3.00 : 1.50;
+  calculateOrderPrice(ingredients, treatments) {
+    let price = 1.50; // Base price
     ingredients.forEach(key => {
       const ing = INGREDIENTS[key];
       price += (ing.price || 0.50);
@@ -2469,7 +3078,7 @@ export class GameScene extends Phaser.Scene {
 
     const rX = (Math.random() - 0.5) * 4;
     const rY = (Math.random() - 0.5) * 2;
-    const w = tray.isFooter ? 80 : 55;
+    const w = false ? 80 : 55;
     const hw = w / 2;
 
     const g = this.add.graphics();
@@ -2487,6 +3096,9 @@ export class GameScene extends Phaser.Scene {
         g.fillRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
         g.strokeRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
       }
+      // Store bread layer info for toasting
+      if (!tray.breadLayers) tray.breadLayers = [];
+      tray.breadLayers.push({ graphics: g, key: ingredientKey, isBottom, rX, rY, ly, w, hw });
     } else if (cat === 'meat') {
       // Folded deli meat — wavy oval
       const mw = hw - 2;
@@ -2587,6 +3199,12 @@ export class GameScene extends Phaser.Scene {
     if (tray.hintText) tray.hintText.setText('');
     this.flashTray(tray, 0x00ff00);
 
+    // Success sound
+    soundManager.successChime();
+
+    // Particle burst for completion
+    this.particleManager.orderCompleted(tray.container.x, tray.container.y - 20);
+
     const c = tray.container;
     this.animateCompletionHop(c, c.y);
     this.animateCompletionDance(c);
@@ -2628,6 +3246,7 @@ export class GameScene extends Phaser.Scene {
   }
 
   animateChefPress(container) {
+    // Animate sandwich squish
     this.time.delayedCall(700, () => {
       if (!container || !container.scene) return;
       this.tweens.add({
@@ -2647,11 +3266,12 @@ export class GameScene extends Phaser.Scene {
         },
       });
     });
+
   }
 
   flashTray(tray, color) {
     const flash = this.add.graphics();
-    const hw = tray.isFooter ? 105 : 70;
+    const hw = false ? 105 : 70;
     flash.fillStyle(color, 0.25);
     flash.fillRoundedRect(-hw, -130, hw * 2, 145, 8);
     tray.container.add(flash);
@@ -2673,11 +3293,23 @@ export class GameScene extends Phaser.Scene {
     this.gameMoney += orderValue;
 
     const baseScore = Math.floor(orderValue * 10);
-    const speedBonus = (tray.completedAtX || 0) > this.SPEED_BONUS_X ? (tray.isFooter ? 100 : 50) : 0;
-    this.dayScore += baseScore + speedBonus;
-    this.refreshHUD();
+    const speedBonus = (tray.completedAtX || 0) > this.SPEED_BONUS_X ? 50 : 0;
+    const scoreGain = baseScore + speedBonus;
+    this.currentScore += scoreGain;
 
-    soundManager.score();
+    // Check for new high score!
+    const wasHighScore = this.currentScore > this.highScore;
+    if (wasHighScore) {
+      this.highScore = this.currentScore;
+      this.saveHighScore(this.highScore);
+      // Fanfare for new high score!
+      soundManager.fanfare();
+      this.showHighScoreFanfare();
+    } else {
+      soundManager.score();
+    }
+
+    this.refreshHUD();
     this.markTicketCompleted(tray.orderNum);
 
     const popupText = speedBonus > 0
@@ -2702,12 +3334,37 @@ export class GameScene extends Phaser.Scene {
     this.resolveSequential();
   }
 
+  showHighScoreFanfare() {
+    // Big celebration for new high score!
+    const fanfare = this.add.text(512, 200, 'NEW HIGH SCORE!', {
+      fontSize: '48px',
+      color: '#FFD700',
+      fontFamily: 'Bungee, Arial',
+      fontStyle: 'bold',
+      stroke: '#000000',
+      strokeThickness: 6
+    }).setOrigin(0.5).setDepth(150);
+
+    // Pulsing animation
+    this.tweens.add({
+      targets: fanfare,
+      scale: { from: 0.5, to: 1.2 },
+      alpha: { from: 1, to: 0 },
+      y: fanfare.y - 100,
+      duration: 2000,
+      ease: 'Power2.easeOut',
+      onComplete: () => fanfare.destroy()
+    });
+
+    // Particle burst
+    this.particleManager.orderCompleted(512, 200);
+  }
+
   /* =========================================
-     MISSES / STRIKES
+     MISSES (no more strikes/game over)
      ========================================= */
   handleMiss(tray) {
     if (this.isPaused) return;
-    this.strikes++;
     this.ordersMissed++;
     this.refreshHUD();
     soundManager.buzz();
@@ -2735,16 +3392,7 @@ export class GameScene extends Phaser.Scene {
     });
 
     this.resolveSequential();
-
-    if (this.strikes >= this.maxStrikes) {
-      this.isPaused = true;
-      this.time.delayedCall(800, () => {
-        this.scene.start('GameOver', {
-          day: this.day,
-          totalScore: this.totalScore + this.dayScore,
-        });
-      });
-    }
+    // No game over in endless mode!
   }
 
   resolveSequential() {
@@ -2779,24 +3427,35 @@ export class GameScene extends Phaser.Scene {
      ROBOT ARM (articulated arm from bottom center)
      ========================================= */
   createRobotArm() {
-    // Arm mounted at bottom center of screen
-    this.armBaseX = 512;  // Center of screen
-    this.armBaseY = 740;  // Top of turret column
-    this.armSegment1Length = 180; // Upper arm
-    this.armSegment2Length = 180; // Forearm (longer to reach far)
-    this.armSegment3Length = 100; // Wrist/hand (longer for precision)
+    // Horizontal track for alien to slide along
+    this.trackMinX = 120;   // Left limit of track
+    this.trackMaxX = 904;   // Right limit of track
+    this.trackY = 768;      // Track is at bottom of screen
+
+    // Tentacle base at alien's side (moves along track)
+    this.armBaseX = 512;  // Current position (will slide)
+    this.armBaseY = 678;  // Tentacle base height
+    this.armSegment1Length = 130; // Upper tentacle
+    this.armSegment2Length = 110; // Mid tentacle
+    this.armSegment3MinLength = 50; // Tip minimum
+    this.armSegment3MaxLength = 90; // Tip maximum
+    this.armSegment3Length = 50; // Current length (dynamic)
+
+    // Tentacle wave animation
+    this.tentacleTime = 0;
+    this.tentacleWaveSpeed = 3;
+    this.tentacleWaveAmount = 0.15;
 
     // Work area constraints
     this.armMinY = 280;  // Above belt for placing ingredients
-    this.armMaxY = 730;  // Above the arm base
+    this.armMaxY = 665;  // Above the arm base
 
     // Current angles (will be updated via IK)
-    // Starting pointed upward
     this.armAngle1 = -Math.PI / 2; // Point up
     this.armAngle2 = 0;
     this.armAngle3 = 0;
 
-    // Base rotation (the turret/body rotation)
+    // Base rotation
     this.armBaseRotation = 0;
 
     // Target position (mouse)
@@ -2807,118 +3466,155 @@ export class GameScene extends Phaser.Scene {
     this.lastArmSoundTime = 0;
     this.armSoundInterval = 80;
 
-    // Create graphics layers
-    this.robotArmBaseGfx = this.add.graphics().setDepth(145); // Base platform
-    this.robotArmGfx = this.add.graphics().setDepth(150);     // Arm segments
+    // Draw the track (subtle alien-tech rail)
+    this.trackGfx = this.add.graphics().setDepth(140);
+    this.drawTrack();
 
-    // Claw state
+    // Create alien body (moves along track)
+    // Right tentacle base at x=160 in 200-wide SVG, center is 100, offset = -60
+    this.alienBodyOffsetX = -60;
+    this.alienBody = this.add.image(this.armBaseX + this.alienBodyOffsetX, this.trackY, 'alien_body')
+      .setOrigin(0.5, 1)
+      .setDepth(144);
+
+    // Create graphics layer for tentacle
+    this.robotArmBaseGfx = this.add.graphics().setDepth(145);
+    this.robotArmGfx = this.add.graphics().setDepth(150);
+
+    // Create tentacle tip sprites
+    this.tentacleTipOpen = this.add.image(0, 0, 'tentacle_tip')
+      .setOrigin(0.5, 0.95)
+      .setDepth(155)
+      .setScale(0.8);
+    this.tentacleTipGrip = this.add.image(0, 0, 'tentacle_tip_grip')
+      .setOrigin(0.5, 0.95)
+      .setDepth(155)
+      .setScale(0.8)
+      .setVisible(false);
+
+    // Grip state
     this.clawOpen = true;
 
-    // Draw the static base platform
+    // Draw initial state
     this.drawArmBase();
-
-    // Draw initial arm
     this.drawRobotArm();
+  }
 
-    // Create tray delivery arm (separate decorative arm)
-    this.createTrayDeliveryArm();
+  drawTrack() {
+    const g = this.trackGfx;
+    g.clear();
+
+    // Alien hover-rail at the bottom
+    const trackY = this.trackY - 8;
+
+    // Glow effect
+    g.fillStyle(0x6040A0, 0.15);
+    g.fillRect(this.trackMinX - 30, trackY - 4, this.trackMaxX - this.trackMinX + 60, 16);
+
+    // Main hover rail (purple/alien themed)
+    g.fillStyle(0x4a3a6a, 0.8);
+    g.fillRect(this.trackMinX - 20, trackY, this.trackMaxX - this.trackMinX + 40, 10);
+
+    // Energy line
+    g.fillStyle(0x9080D0, 0.6);
+    g.fillRect(this.trackMinX - 15, trackY + 3, this.trackMaxX - this.trackMinX + 30, 4);
+
+    // Pulsing nodes along track
+    for (let x = this.trackMinX; x <= this.trackMaxX; x += 80) {
+      g.fillStyle(0xB0A0E0, 0.5);
+      g.fillCircle(x, trackY + 5, 4);
+      g.fillStyle(0xD0C0FF, 0.7);
+      g.fillCircle(x, trackY + 5, 2);
+    }
   }
 
   drawArmBase() {
     const g = this.robotArmBaseGfx;
     g.clear();
 
-    const baseX = this.armBaseX;
-    const baseY = 768; // At screen bottom
-
-    // Platform shadow
-    g.fillStyle(0x000000, 0.3);
-    g.fillEllipse(baseX, baseY - 5, 140, 30);
-
-    // Main platform base (wide ellipse)
-    g.fillStyle(0x3a3a4a, 1);
-    g.fillEllipse(baseX, baseY, 130, 35);
-
-    // Platform top surface
-    g.fillStyle(0x5a5a6a, 1);
-    g.fillEllipse(baseX, baseY - 8, 120, 28);
-
-    // Inner ring
-    g.fillStyle(0x4a4a5a, 1);
-    g.fillEllipse(baseX, baseY - 10, 80, 20);
-
-    // Center turret base
-    g.fillStyle(0x6a6a7a, 1);
-    g.fillEllipse(baseX, baseY - 14, 50, 14);
-
-    // Highlight
-    g.fillStyle(0x8a8a9a, 0.6);
-    g.fillEllipse(baseX - 15, baseY - 18, 20, 6);
-
-    // Cyan accent ring
-    g.lineStyle(2, 0x00ddff, 0.5);
-    g.strokeEllipse(baseX, baseY - 10, 90, 22);
-
-    // Warning stripes on edges
-    g.fillStyle(0xffaa00, 0.6);
-    g.fillRect(baseX - 60, baseY - 4, 8, 8);
-    g.fillRect(baseX + 52, baseY - 4, 8, 8);
+    // Draw a subtle glow/shadow under the alien
+    g.fillStyle(0x6050A0, 0.2);
+    g.fillEllipse(this.armBaseX + this.alienBodyOffsetX, this.trackY - 5, 90, 15);
   }
 
   updateRobotArm(delta) {
     const pointer = this.input.activePointer;
+    const lerpSpeed = 0.12;
 
     // Constrain target to work area
     this.armTargetX = Phaser.Math.Clamp(pointer.x, 60, 964);
     this.armTargetY = Phaser.Math.Clamp(pointer.y, this.armMinY, this.armMaxY);
 
+    // ===== CHEF SLIDES ALONG TRACK =====
+    // Move the chef along the track to get closer to target X
+    // The chef tries to position themselves so the arm can comfortably reach
+    const armReach = this.armSegment1Length + this.armSegment2Length + this.armSegment3Length;
+
+    // Target base position - chef moves toward target X but stays within track bounds
+    // Chef positions slightly behind target to allow natural arm extension forward
+    const idealBaseX = this.armTargetX;
+    const targetBaseX = Phaser.Math.Clamp(idealBaseX, this.trackMinX, this.trackMaxX);
+
+    // Smoothly slide along track
+    this.armBaseX = Phaser.Math.Linear(this.armBaseX, targetBaseX, lerpSpeed * 0.8);
+
+    // Update alien body position to follow
+    this.alienBody.x = this.armBaseX + this.alienBodyOffsetX;
+
+    // ===== ARM KINEMATICS =====
     const dx = this.armTargetX - this.armBaseX;
     const dy = this.armTargetY - this.armBaseY;
     const dist = Math.sqrt(dx * dx + dy * dy);
 
-    // Limit reach
-    const maxReach = this.armSegment1Length + this.armSegment2Length + this.armSegment3Length - 40;
-    const minReach = 100;
-    const clampedDist = Phaser.Math.Clamp(dist, minReach, maxReach);
-
-    // Base rotation - the whole arm rotates to face the target
-    const targetBaseRotation = Math.atan2(dx, -dy); // Note: -dy because Y is inverted
-    const lerpSpeed = 0.12;
+    // Shoulder rotation - more freedom, wider range
+    const targetBaseRotation = Math.atan2(dx, -dy);
     this.armBaseRotation = Phaser.Math.Linear(this.armBaseRotation, targetBaseRotation, lerpSpeed);
+    // Allow full shoulder rotation (-90 to +90 degrees)
+    this.armBaseRotation = Phaser.Math.Clamp(this.armBaseRotation, -1.57, 1.57);
 
-    // Clamp base rotation to reasonable range (-70 to +70 degrees)
-    this.armBaseRotation = Phaser.Math.Clamp(this.armBaseRotation, -1.22, 1.22);
+    // Calculate arm bend based on distance
+    const maxReach = this.armSegment1Length + this.armSegment2Length + this.armSegment3Length;
+    const minReach = 80;
+    const reachRatio = Phaser.Math.Clamp((dist - minReach) / (maxReach - minReach), 0, 1);
 
-    // Calculate arm angles relative to the rotated base
-    // The arm always reaches "forward" from its rotated position
-    const reachRatio = clampedDist / maxReach;
+    // Segment 1 (upper arm) - more freedom, follows shoulder rotation
+    const bendAmount = (1 - reachRatio) * 1.2;
+    const targetAngle1 = -Math.PI / 2 + this.armBaseRotation * 0.6 + bendAmount * 0.4;
+    this.armAngle1 = Phaser.Math.Linear(this.armAngle1, targetAngle1, lerpSpeed * 1.2);
 
-    // Segment 1 angle (relative to base rotation, pointing "up" in arm's frame)
-    // When close, bend more; when far, straighter
-    const bendAmount = (1 - reachRatio) * 0.8;
-    const targetAngle1 = -Math.PI / 2 + this.armBaseRotation * 0.3 + bendAmount * 0.3;
-    this.armAngle1 = Phaser.Math.Linear(this.armAngle1, targetAngle1, lerpSpeed);
-
-    // Segment 2 bends based on distance and direction
-    const targetAngle2 = -bendAmount * Math.PI * 0.6 + this.armBaseRotation * 0.4;
+    // Segment 2 (forearm) - bends at elbow naturally
+    const targetAngle2 = -bendAmount * Math.PI * 0.5 + this.armBaseRotation * 0.3;
     this.armAngle2 = Phaser.Math.Linear(this.armAngle2, targetAngle2, lerpSpeed);
 
-    // Calculate intermediate positions for segment 3 aiming
+    // Calculate wrist position
     const joint2X = this.armBaseX + Math.cos(this.armAngle1) * this.armSegment1Length;
     const joint2Y = this.armBaseY + Math.sin(this.armAngle1) * this.armSegment1Length;
     const angle12 = this.armAngle1 + this.armAngle2;
     const joint3X = joint2X + Math.cos(angle12) * this.armSegment2Length;
     const joint3Y = joint2Y + Math.sin(angle12) * this.armSegment2Length;
 
-    // Segment 3 (wrist) aims toward target
+    // Segment 3 (wrist/hand) - aims toward target
     const wristToTarget = Math.atan2(this.armTargetY - joint3Y, this.armTargetX - joint3X);
     const targetAngle3 = wristToTarget - angle12;
     this.armAngle3 = Phaser.Math.Linear(this.armAngle3, targetAngle3, lerpSpeed * 1.5);
 
+    // Minimal telescoping - just slight extension/retraction for fine adjustment
+    const distToTarget = Math.sqrt(
+      Math.pow(this.armTargetX - joint3X, 2) +
+      Math.pow(this.armTargetY - joint3Y, 2)
+    );
+    // Much smaller extension range - chef moves instead of arm extending
+    const targetSeg3Length = Phaser.Math.Clamp(
+      distToTarget * 0.8,
+      this.armSegment3MinLength,
+      this.armSegment3MinLength + 40  // Only 40px of extension max
+    );
+    this.armSegment3Length = Phaser.Math.Linear(this.armSegment3Length, targetSeg3Length, lerpSpeed);
+
     // Play movement sound occasionally
     const now = this.time.now;
     if (now - this.lastArmSoundTime > this.armSoundInterval) {
-      const movement = Math.abs(targetBaseRotation - this.armBaseRotation) +
+      const movement = Math.abs(targetBaseX - this.armBaseX) * 0.01 +
                        Math.abs(targetAngle1 - this.armAngle1);
       if (movement > 0.015) {
         soundManager.robotMove();
@@ -2929,240 +3625,194 @@ export class GameScene extends Phaser.Scene {
     // Update claw state
     this.clawOpen = !this.heldItem;
 
+    // Redraw arm base (shadow) and arm
+    this.drawArmBase();
     this.drawRobotArm();
-  }
-
-  /* =========================================
-     TRAY DELIVERY ARM (decorative arm that places trays)
-     ========================================= */
-  createTrayDeliveryArm() {
-    // This arm comes from off-screen right to place trays on the belt
-    this.trayArmGfx = this.add.graphics().setDepth(8); // Below trays but above belt
-
-    // Arm base position (off-screen right, at belt level)
-    this.trayArmBaseX = 1080;
-    this.trayArmBaseY = 380;
-    this.trayArmSegment1 = 100;
-    this.trayArmSegment2 = 80;
-
-    // Animation state
-    this.trayArmProgress = 0; // 0 = retracted, 1 = extended
-    this.trayArmAnimating = false;
-    this.trayArmTargetProgress = 0;
-  }
-
-  animateTrayDelivery() {
-    // Called when spawning a new tray
-    if (this.trayArmAnimating) return;
-
-    this.trayArmAnimating = true;
-
-    // Extend arm
-    this.tweens.add({
-      targets: this,
-      trayArmProgress: 1,
-      duration: 300,
-      ease: 'Quad.easeOut',
-      onComplete: () => {
-        // Hold briefly then retract
-        this.time.delayedCall(150, () => {
-          this.tweens.add({
-            targets: this,
-            trayArmProgress: 0,
-            duration: 400,
-            ease: 'Quad.easeIn',
-            onComplete: () => {
-              this.trayArmAnimating = false;
-            }
-          });
-        });
-      }
-    });
-  }
-
-  updateTrayArm() {
-    const g = this.trayArmGfx;
-    g.clear();
-
-    if (this.trayArmProgress <= 0.01) return; // Don't draw if fully retracted
-
-    const metalDark = 0x4a4a5a;
-    const metalMid = 0x6a6a7a;
-    const metalLight = 0x8a8a9a;
-    const accentOrange = 0xff9955;
-
-    // Calculate arm position based on progress
-    // When extended, the claw reaches to about x=950 (where trays spawn)
-    const extendAngle = Math.PI + this.trayArmProgress * 0.4; // Swing left
-    const bendAngle = -this.trayArmProgress * 0.5;
-
-    const joint1X = this.trayArmBaseX;
-    const joint1Y = this.trayArmBaseY;
-
-    const joint2X = joint1X + Math.cos(extendAngle) * this.trayArmSegment1;
-    const joint2Y = joint1Y + Math.sin(extendAngle) * this.trayArmSegment1;
-
-    const angle2 = extendAngle + bendAngle;
-    const endX = joint2X + Math.cos(angle2) * this.trayArmSegment2;
-    const endY = joint2Y + Math.sin(angle2) * this.trayArmSegment2;
-
-    // Draw base (partially visible)
-    g.fillStyle(metalDark, 1);
-    g.fillCircle(joint1X, joint1Y, 18);
-    g.fillStyle(metalMid, 1);
-    g.fillCircle(joint1X, joint1Y, 14);
-
-    // Draw segment 1
-    this.drawArmSegment(g, joint1X, joint1Y, joint2X, joint2Y, 12, metalMid, metalLight);
-
-    // Draw joint
-    g.fillStyle(metalDark, 1);
-    g.fillCircle(joint2X, joint2Y, 8);
-    g.fillStyle(accentOrange, 0.6);
-    g.fillCircle(joint2X, joint2Y, 4);
-
-    // Draw segment 2
-    this.drawArmSegment(g, joint2X, joint2Y, endX, endY, 10, metalMid, metalLight);
-
-    // Draw simple gripper (holding tray shape)
-    g.fillStyle(metalDark, 1);
-    g.fillCircle(endX, endY, 6);
-
-    // Gripper prongs
-    const prongAngle = angle2;
-    const prongLen = 20;
-    const spread = 0.3;
-
-    g.lineStyle(4, metalMid, 1);
-    g.lineBetween(endX, endY,
-      endX + Math.cos(prongAngle - spread) * prongLen,
-      endY + Math.sin(prongAngle - spread) * prongLen);
-    g.lineBetween(endX, endY,
-      endX + Math.cos(prongAngle + spread) * prongLen,
-      endY + Math.sin(prongAngle + spread) * prongLen);
-
-    g.fillStyle(accentOrange, 0.8);
-    g.fillCircle(endX + Math.cos(prongAngle - spread) * prongLen,
-      endY + Math.sin(prongAngle - spread) * prongLen, 3);
-    g.fillCircle(endX + Math.cos(prongAngle + spread) * prongLen,
-      endY + Math.sin(prongAngle + spread) * prongLen, 3);
   }
 
   drawRobotArm() {
     const g = this.robotArmGfx;
     g.clear();
 
-    // Colors
-    const metalDark = 0x4a4a5a;
-    const metalMid = 0x6a6a7a;
-    const metalLight = 0x8a8a9a;
-    const metalHighlight = 0xaaaabc;
-    const jointColor = 0x3a3a4a;
-    const accentCyan = 0x00ddff;
+    // Update tentacle wave time
+    this.tentacleTime += 0.05;
 
-    // Calculate joint positions
+    // Tentacle colors
+    const tentacleMain = 0x8B78E8;
+    const tentacleShade = 0x6858B8;
+    const tentacleHighlight = 0xA898F8;
+    const suckerColor = 0xC8B8FF;
+    const suckerInner = 0x9080C0;
+
+    // Calculate joint positions with wavy motion
     const joint1X = this.armBaseX;
     const joint1Y = this.armBaseY;
 
-    const joint2X = joint1X + Math.cos(this.armAngle1) * this.armSegment1Length;
-    const joint2Y = joint1Y + Math.sin(this.armAngle1) * this.armSegment1Length;
+    // Add wave offset to angles
+    const wave1 = Math.sin(this.tentacleTime * this.tentacleWaveSpeed) * this.tentacleWaveAmount;
+    const wave2 = Math.sin(this.tentacleTime * this.tentacleWaveSpeed + 1) * this.tentacleWaveAmount * 0.8;
+    const wave3 = Math.sin(this.tentacleTime * this.tentacleWaveSpeed + 2) * this.tentacleWaveAmount * 0.5;
 
-    const angle12 = this.armAngle1 + this.armAngle2;
-    const joint3X = joint2X + Math.cos(angle12) * this.armSegment2Length;
-    const joint3Y = joint2Y + Math.sin(angle12) * this.armSegment2Length;
+    const joint2X = joint1X + Math.cos(this.armAngle1 + wave1) * this.armSegment1Length;
+    const joint2Y = joint1Y + Math.sin(this.armAngle1 + wave1) * this.armSegment1Length;
 
-    const angle123 = angle12 + this.armAngle3;
-    const endX = joint3X + Math.cos(angle123) * this.armSegment3Length;
-    const endY = joint3Y + Math.sin(angle123) * this.armSegment3Length;
+    const angle12 = this.armAngle1 + this.armAngle2 + wave1;
+    const joint3X = joint2X + Math.cos(angle12 + wave2) * this.armSegment2Length;
+    const joint3Y = joint2Y + Math.sin(angle12 + wave2) * this.armSegment2Length;
 
-    // Draw rotating turret column (shows base rotation)
-    const turretHeight = 40;
-    const turretWidth = 24;
-    const turretX = this.armBaseX + Math.sin(this.armBaseRotation) * 5;
-    const turretTopY = 748;
+    const angle123 = angle12 + this.armAngle3 + wave2;
+    const endX = joint3X + Math.cos(angle123 + wave3) * this.armSegment3Length;
+    const endY = joint3Y + Math.sin(angle123 + wave3) * this.armSegment3Length;
 
-    // Turret body (rotates with arm)
-    g.fillStyle(metalMid, 1);
-    g.beginPath();
-    g.moveTo(turretX - turretWidth / 2, turretTopY + turretHeight);
-    g.lineTo(turretX - turretWidth / 2 + 4, turretTopY);
-    g.lineTo(turretX + turretWidth / 2 - 4, turretTopY);
-    g.lineTo(turretX + turretWidth / 2, turretTopY + turretHeight);
-    g.closePath();
-    g.fillPath();
+    // Draw tentacle segments with smooth curves
+    this.drawTentacleSegment(g, joint1X, joint1Y, joint2X, joint2Y, 22, 16, tentacleMain, tentacleShade, tentacleHighlight);
+    this.drawTentacleSuckers(g, joint1X, joint1Y, joint2X, joint2Y, suckerColor, suckerInner);
 
-    // Turret highlight (shows rotation direction)
-    const highlightSide = this.armBaseRotation > 0 ? -1 : 1;
-    g.fillStyle(metalLight, 0.6);
-    g.beginPath();
-    g.moveTo(turretX + highlightSide * turretWidth / 2, turretTopY + turretHeight);
-    g.lineTo(turretX + highlightSide * (turretWidth / 2 - 4), turretTopY);
-    g.lineTo(turretX + highlightSide * (turretWidth / 2 - 8), turretTopY);
-    g.lineTo(turretX + highlightSide * (turretWidth / 2 - 4), turretTopY + turretHeight);
-    g.closePath();
-    g.fillPath();
+    this.drawTentacleSegment(g, joint2X, joint2Y, joint3X, joint3Y, 16, 10, tentacleMain, tentacleShade, tentacleHighlight);
+    this.drawTentacleSuckers(g, joint2X, joint2Y, joint3X, joint3Y, suckerColor, suckerInner);
 
-    // Turret top cap
-    g.fillStyle(metalDark, 1);
-    g.fillEllipse(turretX, turretTopY, turretWidth / 2 + 2, 8);
-    g.fillStyle(accentCyan, 0.4);
-    g.fillEllipse(turretX, turretTopY, turretWidth / 2 - 4, 4);
+    this.drawTentacleSegment(g, joint3X, joint3Y, endX, endY, 10, 6, tentacleMain, tentacleShade, tentacleHighlight);
+    this.drawTentacleSuckers(g, joint3X, joint3Y, endX, endY, suckerColor, suckerInner, true);
 
-    // Shoulder joint (where arm attaches to turret)
-    g.fillStyle(jointColor, 1);
-    g.fillCircle(joint1X, joint1Y, 16);
-    g.fillStyle(metalMid, 1);
-    g.fillCircle(joint1X, joint1Y, 12);
-    g.fillStyle(accentCyan, 0.6);
-    g.fillCircle(joint1X, joint1Y, 6);
+    // Position and rotate the tentacle tip sprites
+    const tipAngle = angle123 + wave3 + Math.PI / 2;
 
-    // Draw segment 1 (upper arm)
-    this.drawArmSegment(g, joint1X, joint1Y, joint2X, joint2Y, 16, metalMid, metalLight);
+    this.tentacleTipOpen.setPosition(endX, endY);
+    this.tentacleTipOpen.setRotation(tipAngle);
+    this.tentacleTipGrip.setPosition(endX, endY);
+    this.tentacleTipGrip.setRotation(tipAngle);
 
-    // Draw joint 2 (elbow)
-    g.fillStyle(jointColor, 1);
-    g.fillCircle(joint2X, joint2Y, 12);
-    g.fillStyle(metalMid, 1);
-    g.fillCircle(joint2X, joint2Y, 9);
-    g.fillStyle(accentCyan, 0.6);
-    g.fillCircle(joint2X, joint2Y, 5);
-
-    // Draw segment 2 (forearm)
-    this.drawArmSegment(g, joint2X, joint2Y, joint3X, joint3Y, 12, metalMid, metalLight);
-
-    // Draw joint 3 (wrist)
-    g.fillStyle(jointColor, 1);
-    g.fillCircle(joint3X, joint3Y, 9);
-    g.fillStyle(metalMid, 1);
-    g.fillCircle(joint3X, joint3Y, 6);
-    g.fillStyle(accentCyan, 0.5);
-    g.fillCircle(joint3X, joint3Y, 3);
-
-    // Draw segment 3 (hand)
-    this.drawArmSegment(g, joint3X, joint3Y, endX, endY, 8, metalMid, metalLight);
-
-    // Draw claw/gripper
-    this.drawClaw(g, endX, endY, angle123);
+    // Show correct tip based on grip state
+    this.tentacleTipOpen.setVisible(this.clawOpen);
+    this.tentacleTipGrip.setVisible(!this.clawOpen);
   }
 
-  drawArmSegment(g, x1, y1, x2, y2, width, colorMain, colorHighlight) {
+  drawTentacleSegment(g, x1, y1, x2, y2, widthStart, widthEnd, colorMain, colorShade, colorHighlight) {
     const angle = Math.atan2(y2 - y1, x2 - x1);
-    const perpX = Math.cos(angle + Math.PI / 2) * width / 2;
-    const perpY = Math.sin(angle + Math.PI / 2) * width / 2;
+    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const segments = Math.ceil(length / 8);
 
-    // Main segment body
-    g.fillStyle(colorMain, 1);
-    g.beginPath();
-    g.moveTo(x1 + perpX, y1 + perpY);
-    g.lineTo(x2 + perpX, y2 + perpY);
-    g.lineTo(x2 - perpX, y2 - perpY);
-    g.lineTo(x1 - perpX, y1 - perpY);
-    g.closePath();
-    g.fillPath();
+    // Draw tapered tentacle body
+    for (let i = 0; i <= segments; i++) {
+      const t = i / segments;
+      const px = Phaser.Math.Linear(x1, x2, t);
+      const py = Phaser.Math.Linear(y1, y2, t);
+      const w = Phaser.Math.Linear(widthStart, widthEnd, t);
 
-    // Highlight edge
-    g.lineStyle(2, colorHighlight, 0.6);
-    g.lineBetween(x1 + perpX, y1 + perpY, x2 + perpX, y2 + perpY);
+      // Add subtle wave to width
+      const waveWidth = w + Math.sin(t * Math.PI * 2 + this.tentacleTime * 2) * 1.5;
+
+      // Main body
+      g.fillStyle(colorMain, 1);
+      g.fillCircle(px, py, waveWidth / 2);
+
+      // Highlight on one side
+      const highlightX = px + Math.cos(angle + Math.PI / 2) * waveWidth * 0.25;
+      const highlightY = py + Math.sin(angle + Math.PI / 2) * waveWidth * 0.25;
+      g.fillStyle(colorHighlight, 0.4);
+      g.fillCircle(highlightX, highlightY, waveWidth * 0.25);
+    }
+  }
+
+  drawTentacleSuckers(g, x1, y1, x2, y2, suckerColor, suckerInner, isSmall = false) {
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const length = Math.sqrt(Math.pow(x2 - x1, 2) + Math.pow(y2 - y1, 2));
+    const perpAngle = angle - Math.PI / 2;
+    const suckerCount = isSmall ? 3 : 4;
+    const baseSize = isSmall ? 3 : 4;
+
+    for (let i = 1; i <= suckerCount; i++) {
+      const t = i / (suckerCount + 1);
+      const px = Phaser.Math.Linear(x1, x2, t);
+      const py = Phaser.Math.Linear(y1, y2, t);
+
+      // Offset to underside of tentacle
+      const offsetDist = 6 - t * 2;
+      const sx = px + Math.cos(perpAngle) * offsetDist;
+      const sy = py + Math.sin(perpAngle) * offsetDist;
+      const size = baseSize * (1 - t * 0.3);
+
+      // Draw sucker
+      g.fillStyle(suckerColor, 0.8);
+      g.fillCircle(sx, sy, size);
+      g.fillStyle(suckerInner, 0.6);
+      g.fillCircle(sx, sy, size * 0.5);
+    }
+  }
+
+
+  drawTelescopingSegment(g, x1, y1, x2, y2, baseWidth, currentLength, minLength, maxLength) {
+    // Draw a telescoping segment with nested tubes
+    // 4 nested sections that extend progressively
+    const numSections = 4;
+    const sectionMinLength = minLength / numSections;
+    const sectionMaxExtend = (maxLength - minLength) / numSections;
+
+    const angle = Math.atan2(y2 - y1, x2 - x1);
+    const dirX = Math.cos(angle);
+    const dirY = Math.sin(angle);
+
+    // Colors for each section (outer to inner, getting slightly lighter)
+    const metalDark = 0x4a4a5a;
+    const metalMid = 0x5a5a6a;
+    const metalLight = 0x6a6a7a;
+    const metalLighter = 0x7a7a8a;
+    const sectionColors = [metalDark, metalMid, metalLight, metalLighter];
+    const highlightColors = [0x6a6a7a, 0x7a7a8a, 0x8a8a9a, 0x9a9aaa];
+
+    // Calculate how much each section needs to extend
+    const totalExtension = currentLength - minLength;
+    const extensionPerSection = totalExtension / numSections;
+
+    let sectionStartX = x1;
+    let sectionStartY = y1;
+
+    for (let i = 0; i < numSections; i++) {
+      // Each section width gets smaller (telescoping look)
+      const sectionWidth = baseWidth - i * 2;
+
+      // Each section length = base + extension
+      const sectionLength = sectionMinLength + extensionPerSection;
+
+      const sectionEndX = sectionStartX + dirX * sectionLength;
+      const sectionEndY = sectionStartY + dirY * sectionLength;
+
+      const perpX = Math.cos(angle + Math.PI / 2) * sectionWidth / 2;
+      const perpY = Math.sin(angle + Math.PI / 2) * sectionWidth / 2;
+
+      // Draw section body
+      g.fillStyle(sectionColors[i], 1);
+      g.beginPath();
+      g.moveTo(sectionStartX + perpX, sectionStartY + perpY);
+      g.lineTo(sectionEndX + perpX, sectionEndY + perpY);
+      g.lineTo(sectionEndX - perpX, sectionEndY - perpY);
+      g.lineTo(sectionStartX - perpX, sectionStartY - perpY);
+      g.closePath();
+      g.fillPath();
+
+      // Highlight edge
+      g.lineStyle(1, highlightColors[i], 0.7);
+      g.lineBetween(sectionStartX + perpX, sectionStartY + perpY, sectionEndX + perpX, sectionEndY + perpY);
+
+      // Draw ring at section joint (except for last section)
+      if (i < numSections - 1) {
+        const ringWidth = sectionWidth + 2;
+        const ringPerpX = Math.cos(angle + Math.PI / 2) * ringWidth / 2;
+        const ringPerpY = Math.sin(angle + Math.PI / 2) * ringWidth / 2;
+        g.fillStyle(0x3a3a4a, 1);
+        g.beginPath();
+        g.moveTo(sectionEndX + ringPerpX - dirX * 2, sectionEndY + ringPerpY - dirY * 2);
+        g.lineTo(sectionEndX + ringPerpX + dirX * 2, sectionEndY + ringPerpY + dirY * 2);
+        g.lineTo(sectionEndX - ringPerpX + dirX * 2, sectionEndY - ringPerpY + dirY * 2);
+        g.lineTo(sectionEndX - ringPerpX - dirX * 2, sectionEndY - ringPerpY - dirY * 2);
+        g.closePath();
+        g.fillPath();
+      }
+
+      // Next section starts where this one ends
+      sectionStartX = sectionEndX;
+      sectionStartY = sectionEndY;
+    }
   }
 
   drawClaw(g, x, y, angle) {
@@ -3210,9 +3860,14 @@ export class GameScene extends Phaser.Scene {
       return;
     }
 
-    // Update robot arms
-    this.updateRobotArm(delta);
-    this.updateTrayArm();
+    // Track game time for difficulty progression (delta is in ms, convert to seconds)
+    this.gameTime += (delta / 1000);
+
+    // Update managers
+    this.warningSystem.update();
+    this.particleManager.update(delta);
+    this.robotArm.update();
+    this.prepTrack.update();
 
     // Count active (non-completed, non-done) tickets for dynamic speed
     const activeTickets = this.trays.filter(t => !t.done && !t.completed).length;
@@ -3253,10 +3908,10 @@ export class GameScene extends Phaser.Scene {
     this.drawBelt();
 
     // Boids animation (vessels drifting across window)
-    this.updateBoids(delta);
+    this.boidManager.update(delta);
 
     // --- spawn logic ---
-    if (this.isStoreOpen && this.ordersSpawned < this.totalOrders) {
+    if (this.isStoreOpen && this.prepTrack.findEmptySlot()) {
       if (this.ordersSpawned < 3) {
         if (this.waitingForNext) {
           this.sequentialDelay += delta * speedMult;
@@ -3280,6 +3935,9 @@ export class GameScene extends Phaser.Scene {
     const speed = this.conveyorSpeed * (delta / 16) * speedMult;
     for (const tray of this.trays) {
       if (tray.done) continue;
+
+      // Only move trays that are on the belt
+      if (!tray.onBelt) continue;
 
       let moveSpeed = speed;
       if (tray.completed) moveSpeed *= this.spaceKey.isDown ? this.COMPLETED_FAST_MULT : this.COMPLETED_SPEED_MULT;
@@ -3307,14 +3965,30 @@ export class GameScene extends Phaser.Scene {
     // Prune done trays
     this.trays = this.trays.filter((t) => !t.done);
 
-    // Day complete?
-    if (
-      this.ordersSpawned >= this.totalOrders
-      && this.trays.length === 0
-      && !this._dayEnding
-    ) {
-      this._dayEnding = true;
-      this.endDay();
-    }
+    // Endless mode - never ends!
+    // Update difficulty based on game time
+    this.updateDifficulty();
+  }
+
+  updateDifficulty() {
+    // Adjust difficulty based on game time
+    const minutesPlayed = this.gameTime / 60;
+    const diff = DIFFICULTY_PROGRESSION;
+
+    // Increase belt speed
+    this.conveyorSpeed = Math.min(
+      diff.maxSpeed,
+      diff.initialSpeed + minutesPlayed * diff.speedIncrease
+    );
+
+    // Decrease spawn interval (orders come faster)
+    this.spawnInterval = Math.max(
+      diff.minSpawnInterval,
+      diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease
+    );
+
+    // Update music intensity based on difficulty
+    const intensity = Math.min(1, minutesPlayed * 0.1);
+    musicManager.setIntensity(intensity);
   }
 }

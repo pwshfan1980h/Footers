@@ -1,0 +1,59 @@
+<svg width="64" height="64" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur in="SourceAlpha" stdDeviation="1"/>
+      <feOffset dx="1" dy="1" result="offsetblur"/>
+      <feComponentTransfer>
+        <feFuncA type="linear" slope="0.25"/>
+      </feComponentTransfer>
+      <feMerge>
+        <feMergeNode/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <linearGradient id="skinGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#F5D0B5"/>
+      <stop offset="100%" style="stop-color:#E8B89A"/>
+    </linearGradient>
+  </defs>
+
+  <g filter="url(#shadow)">
+    <!-- Closed fist/grip - palm curled -->
+    <ellipse cx="32" cy="32" rx="16" ry="14" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+
+    <!-- Thumb wrapping around (on top) -->
+    <path d="M16,28 Q12,24 14,18 Q18,14 24,16 Q28,20 24,28 Q20,32 16,28"
+          fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+    <!-- Thumb joint line -->
+    <path d="M18,22 Q21,20 24,22" fill="none" stroke="#D4A088" stroke-width="0.5" opacity="0.6"/>
+
+    <!-- Curled index finger (knuckle visible) -->
+    <ellipse cx="24" cy="20" rx="6" ry="5" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+    <path d="M20,18 Q24,14 28,18" fill="none" stroke="#D4A088" stroke-width="0.5" opacity="0.5"/>
+
+    <!-- Curled middle finger knuckle -->
+    <ellipse cx="32" cy="18" rx="6" ry="5" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+    <path d="M28,16 Q32,12 36,16" fill="none" stroke="#D4A088" stroke-width="0.5" opacity="0.5"/>
+
+    <!-- Curled ring finger knuckle -->
+    <ellipse cx="40" cy="20" rx="6" ry="5" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+    <path d="M36,18 Q40,14 44,18" fill="none" stroke="#D4A088" stroke-width="0.5" opacity="0.5"/>
+
+    <!-- Curled pinky knuckle -->
+    <ellipse cx="46" cy="24" rx="5" ry="4" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+    <path d="M43,22 Q46,19 49,22" fill="none" stroke="#D4A088" stroke-width="0.5" opacity="0.5"/>
+
+    <!-- Finger curls below (the bent parts) -->
+    <path d="M20,24 Q18,30 22,34 Q28,36 32,34 Q38,36 42,34 Q46,30 48,26"
+          fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+
+    <!-- Bottom of palm -->
+    <ellipse cx="32" cy="42" rx="14" ry="8" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+
+    <!-- Wrist area (connects to arm) -->
+    <rect x="24" y="48" width="16" height="16" rx="4" fill="url(#skinGrad)" stroke="#D4A088" stroke-width="1"/>
+
+    <!-- Palm crease -->
+    <path d="M22,38 Q32,34 42,38" fill="none" stroke="#D4A088" stroke-width="0.8" opacity="0.4"/>
+  </g>
+</svg>

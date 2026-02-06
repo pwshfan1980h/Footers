@@ -1,0 +1,22 @@
+<svg width="128" height="88" viewBox="0 0 128 88" xmlns="http://www.w3.org/2000/svg">
+  <!-- Prosciutto Pile - thin pink slices with white marbling -->
+  <!-- Base shadow -->
+  <ellipse cx="64" cy="68" rx="55" ry="18" fill="#000" opacity="0.25"/>
+
+  <!-- Layered slices folded -->
+  <!-- Back layer -->
+  <path d="M 15 65 Q 45 45 75 55 Q 105 65 115 55 L 118 68 Q 85 78 55 70 Q 25 62 12 72 Z" fill="#D98888"/>
+  <path d="M 30 58 Q 55 50 80 58" stroke="#FFF" stroke-width="3" opacity="0.35"/>
+
+  <!-- Mid layer -->
+  <path d="M 20 55 Q 50 35 80 45 Q 110 55 118 48 L 120 62 Q 90 72 60 62 Q 30 52 18 65 Z" fill="#E8A0A0"/>
+  <path d="M 35 48 Q 60 40 85 50" stroke="#FFF" stroke-width="3" opacity="0.4"/>
+  <path d="M 90 50 Q 105 45 115 52" stroke="#FFF" stroke-width="2" opacity="0.3"/>
+
+  <!-- Top layer -->
+  <path d="M 25 45 Q 55 25 85 38 Q 105 48 112 42 L 115 55 Q 95 65 65 55 Q 35 45 22 58 Z" fill="#F0B0B0"/>
+  <path d="M 40 40 Q 65 32 90 42" stroke="#FFF" stroke-width="4" opacity="0.45"/>
+
+  <!-- Shine -->
+  <ellipse cx="70" cy="42" rx="4" ry="2" fill="#FFF" opacity="0.4"/>
+</svg>

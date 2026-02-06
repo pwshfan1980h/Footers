@@ -1,0 +1,20 @@
+<svg width="32" height="128" viewBox="0 0 32 128" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sleeveGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" style="stop-color:#E8E8F0"/>
+      <stop offset="30%" style="stop-color:#FFFFFF"/>
+      <stop offset="70%" style="stop-color:#FFFFFF"/>
+      <stop offset="100%" style="stop-color:#E0E0E8"/>
+    </linearGradient>
+  </defs>
+
+  <!-- White chef sleeve segment -->
+  <rect x="2" y="0" width="28" height="128" rx="6" fill="url(#sleeveGradient)" stroke="#CCCCDD" stroke-width="1"/>
+
+  <!-- Subtle fold lines for fabric effect -->
+  <path d="M8,0 L8,128" fill="none" stroke="#DDDDEE" stroke-width="1" opacity="0.5"/>
+  <path d="M24,0 L24,128" fill="none" stroke="#DDDDEE" stroke-width="1" opacity="0.5"/>
+
+  <!-- Highlight -->
+  <rect x="12" y="0" width="8" height="128" fill="#FFFFFF" opacity="0.3"/>
+</svg>

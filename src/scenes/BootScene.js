@@ -14,6 +14,9 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('bread_white', 'assets/bread_white.svg', { width: 64, height: 64 });
     this.load.svg('bread_wheat', 'assets/bread_wheat.svg', { width: 64, height: 64 });
     this.load.svg('bread_sourdough', 'assets/bread_sourdough.svg', { width: 64, height: 64 });
+    this.load.svg('bread_white_toasted', 'assets/bread_white_toasted.svg', { width: 64, height: 64 });
+    this.load.svg('bread_wheat_toasted', 'assets/bread_wheat_toasted.svg', { width: 64, height: 64 });
+    this.load.svg('bread_sourdough_toasted', 'assets/bread_sourdough_toasted.svg', { width: 64, height: 64 });
 
     // Loaves (Counter objects)
     this.load.svg('loaf_white', 'assets/loaf_white.svg', { width: 200, height: 100 });
@@ -28,11 +31,15 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('bowl_content_lettuce', 'assets/bowl_content_lettuce.svg', { width: 100, height: 60 });
     this.load.svg('bowl_content_tomato', 'assets/bowl_content_tomato.svg', { width: 100, height: 60 });
     this.load.svg('bowl_content_onion', 'assets/bowl_content_onion.svg', { width: 100, height: 60 });
+    this.load.svg('bowl_content_pickles', 'assets/bowl_content_pickles.svg', { width: 100, height: 60 });
+    this.load.svg('bowl_content_olives', 'assets/bowl_content_olives.svg', { width: 100, height: 60 });
+    this.load.svg('bowl_content_arugula', 'assets/bowl_content_arugula.svg', { width: 100, height: 60 });
 
     this.load.svg('meat_pile_ham', 'assets/meat_pile_ham.svg', { width: 128, height: 88 });
     this.load.svg('meat_pile_turkey', 'assets/meat_pile_turkey.svg', { width: 128, height: 88 });
     this.load.svg('meat_pile_roastbeef', 'assets/meat_pile_roastbeef.svg', { width: 128, height: 88 });
     this.load.svg('meat_pile_bacon', 'assets/meat_pile_bacon.svg', { width: 128, height: 88 });
+    this.load.svg('meat_pile_prosciutto', 'assets/meat_pile_prosciutto.svg', { width: 128, height: 88 });
 
     this.load.svg('meat_ham', 'assets/meat_ham.svg', { width: 128, height: 128 });
     this.load.svg('meat_turkey', 'assets/meat_turkey.svg', { width: 128, height: 128 });
@@ -45,6 +52,15 @@ export class BootScene extends Phaser.Scene {
     this.load.svg('top_lettuce', 'assets/top_lettuce.svg', { width: 64, height: 64 });
     this.load.svg('top_tomato', 'assets/top_tomato.svg', { width: 64, height: 64 });
     this.load.svg('top_onion', 'assets/top_onion.svg', { width: 64, height: 64 });
+    this.load.svg('top_pickles', 'assets/top_pickles.svg', { width: 64, height: 64 });
+    this.load.svg('top_olives', 'assets/top_olives.svg', { width: 64, height: 64 });
+    this.load.svg('top_arugula', 'assets/top_arugula.svg', { width: 64, height: 64 });
+
+    this.load.svg('meat_prosciutto', 'assets/meat_prosciutto.svg', { width: 128, height: 128 });
+
+    // Sauce bottles (shelf display)
+    this.load.svg('sauce_mayo_bottle', 'assets/sauce_mayo_bottle.svg', { width: 128, height: 256 });
+    this.load.svg('sauce_mustard_bottle', 'assets/sauce_mustard_bottle.svg', { width: 128, height: 256 });
 
   }
 
