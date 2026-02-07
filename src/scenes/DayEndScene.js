@@ -111,7 +111,7 @@ export class DayEndScene extends Phaser.Scene {
       });
       btnHit.on('pointerdown', () => {
         soundManager.ding();
-        this.scene.start('Game', { day: this.day + 1, totalScore: this.totalScore });
+        this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
       });
     } else {
       // Continue button for day 5
@@ -146,7 +146,7 @@ export class DayEndScene extends Phaser.Scene {
       });
       btnHit.on('pointerdown', () => {
         soundManager.ding();
-        this.scene.start('Win', { totalScore: this.totalScore });
+        this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
       });
     }
   }

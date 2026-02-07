@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
+import { gameState } from '../data/GameState.js';
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -9,13 +10,21 @@ export class GameOverScene extends Phaser.Scene {
   init(data) {
     this.finalScore = data.totalScore || 0;
     this.day = data.day || 1;
+    this.earnings = data.earnings || 0;
+    this.locationId = data.locationId || null;
+    this.ordersCompleted = data.ordersCompleted || 0;
+    this.ordersMissed = data.ordersMissed || 0;
   }
 
   create() {
     // Space theme colors with red alert
-    const SPACE_BLACK = 0x0a0a12;
     const HULL_DARK = 0x1a1a25;
     const ALERT_RED = 0xff2244;
+
+    // Update game state with partial earnings
+    if (this.earnings > 0) {
+      gameState.updateAfterShift(this.locationId, this.earnings, this.ordersCompleted, this.ordersMissed);
+    }
 
     soundManager.fired();
 
@@ -84,35 +93,69 @@ export class GameOverScene extends Phaser.Scene {
     // Try again button
     const btn = this.add.graphics();
     btn.fillStyle(0x3a1a1a, 1);
-    btn.fillRoundedRect(382, 448, 260, 64, 12);
+    btn.fillRoundedRect(282, 448, 220, 64, 12);
     btn.lineStyle(3, ALERT_RED, 0.8);
-    btn.strokeRoundedRect(382, 448, 260, 64, 12);
+    btn.strokeRoundedRect(282, 448, 220, 64, 12);
 
-    const btnHit = this.add.rectangle(512, 480, 260, 64)
+    const btnHit = this.add.rectangle(392, 480, 220, 64)
       .setInteractive({ useHandCursor: true });
 
-    const btnText = this.add.text(512, 480, 'TRY AGAIN', {
-      fontSize: '26px', color: '#ff6666', fontFamily: 'Bungee, Arial',
+    const btnText = this.add.text(392, 480, 'TRY AGAIN', {
+      fontSize: '24px', color: '#ff6666', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
     btnHit.on('pointerover', () => {
       btn.clear();
       btn.fillStyle(0x4a2a2a, 1);
-      btn.fillRoundedRect(382, 448, 260, 64, 12);
+      btn.fillRoundedRect(282, 448, 220, 64, 12);
       btn.lineStyle(3, 0xff4466, 1);
-      btn.strokeRoundedRect(382, 448, 260, 64, 12);
+      btn.strokeRoundedRect(282, 448, 220, 64, 12);
       btnText.setColor('#ff8888');
     });
     btnHit.on('pointerout', () => {
       btn.clear();
       btn.fillStyle(0x3a1a1a, 1);
-      btn.fillRoundedRect(382, 448, 260, 64, 12);
+      btn.fillRoundedRect(282, 448, 220, 64, 12);
       btn.lineStyle(3, ALERT_RED, 0.8);
-      btn.strokeRoundedRect(382, 448, 260, 64, 12);
+      btn.strokeRoundedRect(282, 448, 220, 64, 12);
       btnText.setColor('#ff6666');
     });
     btnHit.on('pointerdown', () => {
       this.scene.start('Game');
+    });
+
+    // Return to Map button
+    const mapBtn = this.add.graphics();
+    mapBtn.fillStyle(0x1a1a3a, 1);
+    mapBtn.fillRoundedRect(522, 448, 220, 64, 12);
+    mapBtn.lineStyle(3, 0x4488ff, 0.8);
+    mapBtn.strokeRoundedRect(522, 448, 220, 64, 12);
+
+    const mapBtnHit = this.add.rectangle(632, 480, 220, 64)
+      .setInteractive({ useHandCursor: true });
+
+    const mapBtnText = this.add.text(632, 480, 'RETURN TO MAP', {
+      fontSize: '18px', color: '#6688ff', fontFamily: 'Bungee, Arial',
+    }).setOrigin(0.5);
+
+    mapBtnHit.on('pointerover', () => {
+      mapBtn.clear();
+      mapBtn.fillStyle(0x2a2a4a, 1);
+      mapBtn.fillRoundedRect(522, 448, 220, 64, 12);
+      mapBtn.lineStyle(3, 0x6699ff, 1);
+      mapBtn.strokeRoundedRect(522, 448, 220, 64, 12);
+      mapBtnText.setColor('#88aaff');
+    });
+    mapBtnHit.on('pointerout', () => {
+      mapBtn.clear();
+      mapBtn.fillStyle(0x1a1a3a, 1);
+      mapBtn.fillRoundedRect(522, 448, 220, 64, 12);
+      mapBtn.lineStyle(3, 0x4488ff, 0.8);
+      mapBtn.strokeRoundedRect(522, 448, 220, 64, 12);
+      mapBtnText.setColor('#6688ff');
+    });
+    mapBtnHit.on('pointerdown', () => {
+      this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.earnings });
     });
   }
 }

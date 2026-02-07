@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
+import { drawFoodTruckship } from '../utils/ShipDrawing.js';
 
 export class MenuScene extends Phaser.Scene {
   constructor() {
@@ -205,7 +206,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Draw a food truckship in the background
     const truckG = this.add.graphics();
-    this.drawFoodTruckship(truckG, 512, 300, 1.5);
+    drawFoodTruckship(this, truckG, 512, 300, 1.5, container);
     container.add(truckG);
 
     // Title shadow
@@ -291,7 +292,7 @@ export class MenuScene extends Phaser.Scene {
     panelHit.on('pointerdown', () => {
       soundManager.init();
       soundManager.ding();
-      this.scene.start('Game');
+      this.scene.start('SystemMap');
     });
 
     // Subtle pulse on the panel border
@@ -347,7 +348,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Small truckship silhouette rocketing away from the vortex
     const truckG = this.add.graphics();
-    this.drawFoodTruckship(truckG, 580, 260, 0.4);
+    drawFoodTruckship(this, truckG, 580, 260, 0.4);
     container.add(truckG);
 
     // Engine trail from vortex to ship
@@ -377,7 +378,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Large truckship at center
     const truckG = this.add.graphics();
-    this.drawFoodTruckship(truckG, 512, 310, 2.5);
+    drawFoodTruckship(this, truckG, 512, 310, 2.5, container);
     container.add(truckG);
 
     // Engine glow trail
@@ -409,7 +410,7 @@ export class MenuScene extends Phaser.Scene {
 
     // Docked truckship with service window open
     const truckG = this.add.graphics();
-    this.drawFoodTruckship(truckG, 640, 300, 1.8);
+    drawFoodTruckship(this, truckG, 640, 300, 1.8, container);
     container.add(truckG);
 
     // Queued vessel silhouettes
@@ -461,55 +462,5 @@ export class MenuScene extends Phaser.Scene {
     });
   }
 
-  drawFoodTruckship(g, cx, cy, scale) {
-    const s = scale;
-
-    // Hull — rounded rectangle shape
-    g.fillStyle(0x7A5A3A, 1);
-    g.fillRoundedRect(cx - 60 * s, cy - 20 * s, 120 * s, 40 * s, 8 * s);
-
-    // Awning — striped trapezoid on top
-    g.fillStyle(0xCC3333, 0.9);
-    g.beginPath();
-    g.moveTo(cx - 30 * s, cy - 20 * s);
-    g.lineTo(cx - 20 * s, cy - 35 * s);
-    g.lineTo(cx + 40 * s, cy - 35 * s);
-    g.lineTo(cx + 50 * s, cy - 20 * s);
-    g.closePath();
-    g.fillPath();
-    // White stripes on awning
-    g.fillStyle(0xFFFFFF, 0.3);
-    for (let x = -25; x < 45; x += 12) {
-      g.fillRect(cx + x * s, cy - 34 * s, 4 * s, 14 * s);
-    }
-
-    // Service window — warm yellow glow
-    g.fillStyle(0xFFDD88, 0.9);
-    g.fillRoundedRect(cx + 5 * s, cy - 14 * s, 35 * s, 20 * s, 3 * s);
-    // Window glow halo
-    g.fillStyle(0xFFDD88, 0.2);
-    g.fillRoundedRect(cx + 2 * s, cy - 17 * s, 41 * s, 26 * s, 5 * s);
-
-    // "FOOTERS" text on hull (tiny)
-    if (scale >= 1.5) {
-      const nameText = this.add.text(cx - 25 * s, cy + 5 * s, 'FOOTERS', {
-        fontSize: `${8 * s}px`, color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
-      });
-      // Can't add Phaser text to graphics, so we add it separately
-      if (this.phaseContainer) {
-        this.phaseContainer.add(nameText);
-      }
-    }
-
-    // Engine — glowing circle at back
-    g.fillStyle(0x4488FF, 0.6);
-    g.fillCircle(cx - 60 * s, cy, 8 * s);
-    g.fillStyle(0x88CCFF, 0.8);
-    g.fillCircle(cx - 60 * s, cy, 4 * s);
-
-    // Landing gear — small circles underneath
-    g.fillStyle(0x555566, 0.8);
-    g.fillCircle(cx - 30 * s, cy + 22 * s, 4 * s);
-    g.fillCircle(cx + 30 * s, cy + 22 * s, 4 * s);
-  }
+  // drawFoodTruckship extracted to src/utils/ShipDrawing.js
 }

@@ -134,7 +134,7 @@ export class WinScene extends Phaser.Scene {
       btnText.setColor('#00ffff');
     });
     btnHit.on('pointerdown', () => {
-      this.scene.start('Game');
+      this.scene.start('SystemMap');
     });
   }
 }

@@ -24,13 +24,15 @@ export class CustomerVessels {
       { shipX: 840, shipY: 180, windowX: 830, windowY: 368, occupied: false },
     ];
 
-    // Ship visual definitions — 5 types
+    // Ship visual definitions — 5 types + 2 alien types
     this.shipDefs = [
-      { name: 'corvette',  color: 0x6688CC, accent: 0x88AAEE },
-      { name: 'hauler',    color: 0x99887A, accent: 0xBBAA99 },
-      { name: 'yacht',     color: 0xCC7788, accent: 0xEE99AA },
-      { name: 'runabout',  color: 0x77AA77, accent: 0x99CC99 },
-      { name: 'interceptor', color: 0xCC9944, accent: 0xEEBB66 },
+      { name: 'corvette',  color: 0x6688CC, accent: 0x88AAEE, type: 'human' },
+      { name: 'hauler',    color: 0x99887A, accent: 0xBBAA99, type: 'human' },
+      { name: 'yacht',     color: 0xCC7788, accent: 0xEE99AA, type: 'human' },
+      { name: 'runabout',  color: 0x77AA77, accent: 0x99CC99, type: 'human' },
+      { name: 'interceptor', color: 0xCC9944, accent: 0xEEBB66, type: 'human' },
+      { name: 'saucer',    color: 0x44FF88, accent: 0xCCFFCC, type: 'alien' },
+      { name: 'orb',       color: 0xFF44DD, accent: 0xFFCCEE, type: 'alien' },
     ];
 
     // Suit variants — each has distinct visual traits
@@ -50,6 +52,14 @@ export class CustomerVessels {
       { name: 'explorer',  suitColor: null, visorColor: 0xBBFFFF, visorShape: 'bubble',
         hasToolBelt: false, hasShoulder: false, hasStripes: true,  hasAntenna: true, helmetDeco: 'cam' },
     ];
+
+    // Alien variants
+    this.alienVariants = [
+      { name: 'blob', type: 'blob', color: 0x44ff88 },
+      { name: 'tentacle', type: 'tentacle', color: 0xff44dd },
+      { name: 'eye', type: 'eye', color: 0x44ddff },
+      { name: 'crystal', type: 'crystal', color: 0xffbb44 }
+    ];
   }
 
   create() {
@@ -66,16 +76,26 @@ export class CustomerVessels {
     slot.occupied = true;
 
     const shipDef = Phaser.Utils.Array.GetRandom(this.shipDefs);
+    
+    let suitDef = null;
+    let alienDef = null;
+    const isAlien = shipDef.type === 'alien';
 
-    // Pick suit variant and tint it to ship color
-    const suitBase = Phaser.Utils.Array.GetRandom(this.suitVariants);
-    const suitDef = { ...suitBase, suitColor: this.darkenColor(shipDef.color, 0.85) };
+    if (isAlien) {
+      alienDef = Phaser.Utils.Array.GetRandom(this.alienVariants);
+    } else {
+      // Pick suit variant and tint it to ship color
+      const suitBase = Phaser.Utils.Array.GetRandom(this.suitVariants);
+      suitDef = { ...suitBase, suitColor: this.darkenColor(shipDef.color, 0.85) };
+    }
 
     const customer = {
       tray,
       slot,
       shipDef,
       suitDef,
+      alienDef,
+      isAlien,
       onArrive,
 
       // Ship
@@ -346,6 +366,44 @@ export class CustomerVessels {
       g.fillStyle(0xFF8844, 0.6);
       g.fillCircle(x - 33, y - 14, 5);
       g.fillCircle(x - 33, y + 14, 5);
+    } else if (def.name === 'saucer') {
+      // Classic Saucer
+      g.fillStyle(col, 0.9);
+      g.fillEllipse(x, y, 60, 20);
+      g.fillStyle(acc, 0.6);
+      g.fillEllipse(x, y - 5, 30, 15); // Dome
+      g.lineStyle(2, acc, 0.8);
+      g.strokeEllipse(x, y, 60, 20);
+      
+      // Rotating lights
+      const time = Date.now() * 0.005;
+      for (let i = 0; i < 5; i++) {
+        const angle = time + i * ((Math.PI * 2) / 5);
+        // Project circle to ellipse
+        const lx = x + Math.cos(angle) * 25;
+        const ly = y + Math.sin(angle) * 8;
+        // Only draw if "front" (y > 0 relative to center) for pseudo-3D effect, or just draw all
+        g.fillStyle(0xffffaa, 0.9);
+        g.fillCircle(lx, ly, 2);
+      }
+    } else if (def.name === 'orb') {
+       // Mysterious Orb Ship
+       g.fillStyle(col, 0.9);
+       g.fillCircle(x, y, 25);
+       g.fillStyle(acc, 0.5);
+       g.fillCircle(x, y, 18);
+       
+       // Spinning rings
+       const t = Date.now() * 0.002;
+       g.lineStyle(2, acc, 0.8);
+       g.beginPath();
+       g.ellipse(x, y, 35, 10, t, 0, 360);
+       g.strokePath();
+       
+       g.lineStyle(1, acc, 0.5);
+       g.beginPath();
+       g.ellipse(x, y, 40, 12, -t * 1.5, 0, 360);
+       g.strokePath();
     }
 
     g.fillStyle(acc, 0.08);
@@ -360,6 +418,29 @@ export class CustomerVessels {
     if (c.personState === 'waiting_ship' || c.personState === 'boarded') return;
     if (c.shipState === 'gone') return;
 
+    // --- ALIEN DRAWING ---
+    if (c.isAlien) {
+      this.drawAlien(c);
+      
+      // Order number badge for aliens
+      const { personX: x, personY: y, personScale: sc } = c;
+      
+      if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_window') {
+        if (!c.numText) {
+          c.numText = this.scene.add.text(x, y - 30 * sc, `#${c.tray.orderNum}`, {
+            fontSize: '12px', color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
+            backgroundColor: '#00000066', padding: { x: 3, y: 1 },
+          }).setOrigin(0.5).setDepth(1);
+        }
+        c.numText.setPosition(x, y - 40 * sc);
+        c.numText.setAlpha(1);
+      } else if (c.numText) {
+        c.numText.setAlpha(0);
+      }
+      return;
+    }
+
+    // --- HUMAN DRAWING ---
     const { personX: x, personY: baseY, personScale: sc, personFacing: face, suitDef: suit } = c;
     const suitCol = suit.suitColor;
     const visorCol = suit.visorColor;
@@ -522,6 +603,145 @@ export class CustomerVessels {
     } else if (c.numText) {
       c.numText.setAlpha(0);
     }
+  }
+
+  // ======================== ALIEN DRAWING ========================
+
+  drawAlien(c) {
+    const g = c.personGfx;
+    const { personX: x, personY: baseY, personScale: sc, alienDef } = c;
+    const color = alienDef.color;
+    
+    // Add visual bobbing scaled by distance/size, similar to humans
+    const bobOffset = Math.sin(c.personBob) * 2 * sc;
+    const y = baseY + bobOffset;
+    
+    let happiness = 0;
+    if (c.tray && (c.tray.done || c.tray.passedFinish)) {
+        happiness = c.tray.completed ? 1 : -1;
+    }
+
+    switch (alienDef.type) {
+        case 'blob': this.drawBlobAlien(g, x, y, sc, color, happiness); break;
+        case 'tentacle': this.drawTentacleAlien(g, x, y, sc, color, happiness); break;
+        case 'eye': this.drawEyeAlien(g, x, y, sc, color, happiness); break;
+        case 'crystal': this.drawCrystalAlien(g, x, y, sc, color, happiness); break;
+    }
+  }
+
+  drawBlobAlien(g, x, y, sc, color, happiness) {
+    // Blob body
+    g.fillStyle(color, 0.9);
+    g.fillEllipse(x, y, 30 * sc, 40 * sc);
+
+    // Eyes
+    const eyeColor = happiness > 0 ? 0xffff00 : happiness < 0 ? 0xff0000 : 0xffffff;
+    g.fillStyle(eyeColor, 1);
+    g.fillCircle(x - 8 * sc, y - 8 * sc, 4 * sc);
+    g.fillCircle(x + 8 * sc, y - 8 * sc, 4 * sc);
+
+    // Pupils
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(x - 8 * sc, y - 8 * sc, 2 * sc);
+    g.fillCircle(x + 8 * sc, y - 8 * sc, 2 * sc);
+
+    // Mouth
+    if (happiness > 0) {
+      g.lineStyle(2 * sc, 0x000000, 0.8);
+      g.beginPath();
+      g.arc(x, y + 5 * sc, 8 * sc, 0.2, Math.PI - 0.2);
+      g.strokePath();
+    } else if (happiness < 0) {
+      g.lineStyle(2 * sc, 0x000000, 0.8);
+      g.beginPath();
+      g.arc(x, y + 15 * sc, 8 * sc, Math.PI + 0.2, Math.PI * 2 - 0.2);
+      g.strokePath();
+    }
+  }
+
+  drawTentacleAlien(g, x, y, sc, color, happiness) {
+    // Main body
+    g.fillStyle(color, 0.9);
+    g.fillCircle(x, y - 10 * sc, 25 * sc);
+
+    // Tentacles
+    g.lineStyle(6 * sc, color, 0.9);
+    for (let i = 0; i < 3; i++) {
+      const angle = -0.5 + i * 0.5;
+      const wavePhase = Date.now() * 0.003 + i;
+      const wave = Math.sin(wavePhase) * 5 * sc;
+      const tx = x + Math.sin(angle) * 15 * sc + wave;
+      const ty = y + 10 * sc;
+      g.lineBetween(x, y, tx, ty + 15 * sc);
+
+      // Tentacle tip
+      g.fillStyle(color, 1);
+      g.fillCircle(tx, ty + 15 * sc, 3 * sc);
+    }
+
+    // Single eye
+    const eyeColor = happiness > 0 ? 0xffff00 : happiness < 0 ? 0xff0000 : 0xffffff;
+    g.fillStyle(eyeColor, 1);
+    g.fillCircle(x, y - 10 * sc, 10 * sc);
+    g.fillStyle(0x000000, 1);
+    g.fillCircle(x, y - 10 * sc, 5 * sc);
+  }
+
+  drawEyeAlien(g, x, y, sc, color, happiness) {
+    // Hovering head
+    g.fillStyle(color, 0.8);
+    g.fillCircle(x, y - 5 * sc, 28 * sc);
+
+    // Multiple eyes
+    const eyePositions = [
+      { x: -10, y: -8 },
+      { x: 10, y: -8 },
+      { x: 0, y: 5 }
+    ];
+
+    const eyeColor = happiness > 0 ? 0xffff00 : happiness < 0 ? 0xff0000 : 0xffffff;
+
+    for (const pos of eyePositions) {
+      g.fillStyle(eyeColor, 1);
+      g.fillCircle(x + pos.x * sc, y + pos.y * sc, 6 * sc);
+      g.fillStyle(0x000000, 1);
+      g.fillCircle(x + pos.x * sc, y + pos.y * sc, 3 * sc);
+    }
+
+    // Floating particles under
+    g.fillStyle(color, 0.3);
+    for (let i = 0; i < 3; i++) {
+      const py = y + 20 * sc + i * 8 * sc + Math.sin(Date.now() * 0.003 + i) * 3 * sc;
+      g.fillCircle(x, py, (3 - i) * sc);
+    }
+  }
+
+  drawCrystalAlien(g, x, y, sc, color, happiness) {
+    // Crystal body - angular geometric shape
+    g.fillStyle(color, 0.85);
+    g.beginPath();
+    g.moveTo(x, y - 25 * sc);
+    g.lineTo(x - 15 * sc, y - 5 * sc);
+    g.lineTo(x - 10 * sc, y + 15 * sc);
+    g.lineTo(x + 10 * sc, y + 15 * sc);
+    g.lineTo(x + 15 * sc, y - 5 * sc);
+    g.closePath();
+    g.fillPath();
+
+    // Crystal facets (highlights)
+    g.fillStyle(0xffffff, 0.3);
+    g.beginPath();
+    g.moveTo(x, y - 25 * sc);
+    g.lineTo(x - 5 * sc, y - 10 * sc);
+    g.lineTo(x, y);
+    g.closePath();
+    g.fillPath();
+
+    // Glowing core
+    const coreColor = happiness > 0 ? 0xffff00 : happiness < 0 ? 0xff0000 : 0xffffff;
+    const pulse = 0.6 + Math.sin(Date.now() * 0.005) * 0.3;
+    g.fillStyle(coreColor, pulse);
+    g.fillCircle(x, y - 5 * sc, 8 * sc);
   }
 
   darkenColor(color, factor) {

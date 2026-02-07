@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { INGREDIENTS, BIN_LAYOUT, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
+import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
 import { musicManager } from '../MusicManager.js';
 import { DEBUG } from '../config.js';
@@ -30,6 +31,10 @@ export class GameScene extends Phaser.Scene {
     this.currentScore = 0;
     this.highScore = this.loadHighScore();
     this.gameTime = 0; // Track elapsed time for difficulty progression
+
+    // Location modifiers from SystemMap
+    this.locationData = data?.location || null;
+    this.locationModifiers = data?.modifiers || { speedMult: 1.0, spawnMult: 1.0, tipMult: 1.0 };
   }
 
   loadHighScore() {
@@ -284,6 +289,9 @@ export class GameScene extends Phaser.Scene {
 
     // --- SETTINGS MENU ---
     this.settingsMenu.create();
+
+    // --- END SHIFT BUTTON ---
+    this.createEndShiftButton();
 
     // --- PREP TRACK ---
     this.prepTrack.create();
@@ -2786,8 +2794,8 @@ export class GameScene extends Phaser.Scene {
     tray.scored = true;
     this.ordersCompleted++;
 
-    // Score based on price
-    const orderValue = tray.order.totalPrice || 5.00;
+    // Score based on price (apply location tip multiplier)
+    const orderValue = (tray.order.totalPrice || 5.00) * this.locationModifiers.tipMult;
     this.gameMoney += orderValue;
 
     const baseScore = Math.floor(orderValue * 10);
@@ -2911,6 +2919,69 @@ export class GameScene extends Phaser.Scene {
      ========================================= */
   destroyTray(tray) {
     tray.container.destroy();
+  }
+
+  createEndShiftButton() {
+    const btnX = 920;
+    const btnY = 6;
+    const btnW = 95;
+    const btnH = 26;
+
+    const btnG = this.add.graphics().setDepth(5);
+    btnG.fillStyle(0x3a1a1a, 0.9);
+    btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
+    btnG.lineStyle(1.5, 0xff6666, 0.6);
+    btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
+
+    const btnText = this.add.text(btnX + btnW / 2, btnY + btnH / 2, 'END SHIFT', {
+      fontSize: '11px', color: '#ff8888', fontFamily: 'Bungee, Arial',
+    }).setOrigin(0.5).setDepth(5);
+
+    const btnHit = this.add.rectangle(btnX + btnW / 2, btnY + btnH / 2, btnW, btnH)
+      .setInteractive({ useHandCursor: true }).setAlpha(0.001).setDepth(5);
+
+    btnHit.on('pointerover', () => {
+      btnG.clear();
+      btnG.fillStyle(0x4a2a2a, 1);
+      btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnG.lineStyle(1.5, 0xff8888, 1);
+      btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnText.setColor('#ffaaaa');
+    });
+    btnHit.on('pointerout', () => {
+      btnG.clear();
+      btnG.fillStyle(0x3a1a1a, 0.9);
+      btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnG.lineStyle(1.5, 0xff6666, 0.6);
+      btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnText.setColor('#ff8888');
+    });
+    btnHit.on('pointerdown', () => this.endShift());
+  }
+
+  endShift() {
+    if (this.isPaused) return;
+    this.isPaused = true;
+
+    const earnings = this.gameMoney;
+    const locationId = this.locationData?.id || null;
+
+    // Update persistent game state
+    gameState.updateAfterShift(locationId, earnings, this.ordersCompleted, this.ordersMissed);
+
+    // Save high score
+    if (this.currentScore > this.highScore) {
+      this.saveHighScore(this.currentScore);
+    }
+
+    soundManager.fanfare();
+
+    this.time.delayedCall(600, () => {
+      this.scene.start('SystemMap', {
+        returnFromShift: true,
+        shiftEarnings: earnings,
+      });
+    });
   }
 
   endDay() {
@@ -3056,17 +3127,18 @@ export class GameScene extends Phaser.Scene {
     // Adjust difficulty based on game time
     const minutesPlayed = this.gameTime / 60;
     const diff = DIFFICULTY_PROGRESSION;
+    const mods = this.locationModifiers;
 
-    // Increase belt speed
+    // Increase belt speed (apply location speedMult)
     this.conveyorSpeed = Math.min(
-      diff.maxSpeed,
-      diff.initialSpeed + minutesPlayed * diff.speedIncrease
+      diff.maxSpeed * mods.speedMult,
+      (diff.initialSpeed + minutesPlayed * diff.speedIncrease) * mods.speedMult
     );
 
-    // Decrease spawn interval (orders come faster)
+    // Decrease spawn interval (apply location spawnMult — higher mult = faster spawns)
     this.spawnInterval = Math.max(
-      diff.minSpawnInterval,
-      diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease
+      diff.minSpawnInterval / mods.spawnMult,
+      (diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease) / mods.spawnMult
     );
 
     // Music disabled (drone was unpleasant)
