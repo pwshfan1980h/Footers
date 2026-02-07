@@ -66,16 +66,45 @@ src/
   main.js              # Game initialization
   config.js            # Debug flags
   SoundManager.js      # Procedural audio singleton
+  MusicManager.js      # Background music generation
   data/
     ingredients.js     # Ingredient definitions, day configs
+    GameState.js       # Persistent state (money, day, unlocks)
+    locations.js       # System map location data
   scenes/
     BootScene.js       # Asset loading
-    GameScene.js       # Core gameplay (robot arm, conveyor belt)
+    SystemMapScene.js  # System map / hub scene
+    GameScene.js       # Core gameplay (delegates to managers)
     DayEndScene.js     # Day summary
     WinScene.js        # Victory screen
     GameOverScene.js   # Game over screen
+  managers/
+    GameSceneBackground.js  # Scene background rendering
+    GameSceneBelt.js        # Conveyor belt logic
+    GameSceneBins.js        # Ingredient bin layout
+    GameSceneHUD.js         # Heads-up display
+    GameSceneTicketBar.js   # Order ticket display
+    GameSceneInteraction.js # Click-to-place input handling
+    GameSceneScoring.js     # Score tracking
+    GameSceneTray.js        # Tray spawning and management
+    RobotArm.js             # Articulated robot arm
+    PrepTrack.js            # Prep station track
+    ParticleManager.js      # Particle effects
+    WarningSystem.js        # Warning/alert overlays
+    TutorialOverlay.js      # Tutorial system
+    SettingsMenu.js         # In-game settings
+    RevenueChallenges.js    # Revenue challenge system
+    MapBackground.js        # System map background
+    MapHUD.js               # System map HUD
+    MapVessels.js           # System map vessel rendering
+    BoidManager.js          # Boid flocking behavior
+    CustomerVessels.js      # Customer vessel spawning
+    TravelManager.js        # Travel between locations
+  utils/
+    colorUtils.js      # Shared color utilities
+    ShipDrawing.js     # Procedural ship rendering
 public/
-  assets/              # SVG graphics
+  assets/              # SVG ingredients, trays, and bin contents
 ```
 
 ---

@@ -5,21 +5,28 @@ export class WarningSystem {
   }
 
   update() {
-    const finishX = this.scene.finishLineX;
-    const warningZone = finishX + 200;
+    const customers = this.scene.customerVessels?.customers || [];
 
-    for (const tray of this.scene.trays) {
-      if (tray.done || tray.completed || tray.passedFinish) {
-        this.removeWarning(tray.orderNum);
-        continue;
-      }
+    // Track which orders are still active
+    const activeIds = new Set();
 
-      const x = tray.container.x;
-      if (x < warningZone && x > finishX) {
-        const urgency = 1 - (x - finishX) / (warningZone - finishX);
-        this.showWarning(tray, urgency);
+    for (const c of customers) {
+      if (c.personState !== 'at_window' || !c.tray || c.tray.done) continue;
+      const id = c.tray.orderNum;
+      activeIds.add(id);
+
+      const ratio = c.patienceMax > 0 ? c.patience / c.patienceMax : 1;
+      if (ratio < 0.25) {
+        this.showWarning(c.tray, 1 - ratio * 4);
       } else {
-        this.removeWarning(tray.orderNum);
+        this.removeWarning(id);
+      }
+    }
+
+    // Clean up warnings for departed customers
+    for (const id of Object.keys(this.warningGraphics)) {
+      if (!activeIds.has(Number(id))) {
+        this.removeWarning(id);
       }
     }
   }
@@ -42,18 +49,16 @@ export class WarningSystem {
     const g = warn.graphics;
     g.clear();
 
-    // Pulsing red border around tray
-    const hw = tray.isFooter ? 105 : 72;
+    const hw = 72;
     const pulseAlpha = 0.15 + Math.sin(Date.now() * 0.008) * 0.1;
     const borderAlpha = (0.3 + urgency * 0.5) * (0.7 + Math.sin(Date.now() * 0.01) * 0.3);
 
     g.fillStyle(0xff0000, pulseAlpha * urgency);
-    g.fillRoundedRect(tray.container.x - hw, 270, hw * 2, 155, 8);
+    g.fillRoundedRect(tray.container.x - hw, tray.container.y - 60, hw * 2, 120, 8);
     g.lineStyle(3, 0xff4444, borderAlpha);
-    g.strokeRoundedRect(tray.container.x - hw, 270, hw * 2, 155, 8);
+    g.strokeRoundedRect(tray.container.x - hw, tray.container.y - 60, hw * 2, 120, 8);
 
-    // Position warning exclamation
-    warn.text.setPosition(tray.container.x, 260);
+    warn.text.setPosition(tray.container.x, tray.container.y - 70);
     warn.text.setAlpha(0.6 + urgency * 0.4);
     const scale = 0.8 + Math.sin(Date.now() * 0.01) * 0.15;
     warn.text.setScale(scale);

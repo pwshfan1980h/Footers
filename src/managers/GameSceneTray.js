@@ -1,0 +1,459 @@
+/**
+ * GameSceneTray - Tray spawning, order generation, stack layers, completion
+ */
+import { INGREDIENTS, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
+import { soundManager } from '../SoundManager.js';
+import { darkenColor } from '../utils/colorUtils.js';
+import {
+  MAX_ACTIVE_ORDERS, CHEESE_CHANCE, SAUCE_CHANCE, DOUBLE_TREATMENT_CHANCE,
+  BASE_PRICE, DEFAULT_INGREDIENT_PRICE, TREATMENT_PRICE,
+  LAYER_HEIGHT_SAUCE, LAYER_HEIGHT_TOPPING, LAYER_HEIGHT_CHEESE,
+  LAYER_HEIGHT_MEAT, LAYER_HEIGHT_BREAD,
+} from '../data/constants.js';
+
+export class GameSceneTray {
+  constructor(scene) {
+    this.scene = scene;
+  }
+
+  spawnTray() {
+    const s = this.scene;
+    if (!s.isStoreOpen) return;
+
+    const activeOrders = s.trays.filter(t => !t.done && !t.completed).length;
+    if (activeOrders >= MAX_ACTIVE_ORDERS) return;
+
+    const slot = s.prepTrack.findEmptySlot();
+    if (!slot) return;
+
+    const order = this.generateOrder();
+    s.orderNumber++;
+    const orderNum = s.orderNumber;
+
+    const container = s.add.container(slot.x, slot.y).setDepth(10);
+    container.setAlpha(0);
+    container.setScale(0.85);
+
+    const traySprite = s.add.image(0, 0, 'tray_thin');
+    traySprite.setScale(0.8);
+    container.add(traySprite);
+
+
+    const hintText = s.add.text(0, -50, '', {
+      fontSize: '12px', color: '#ff0', fontFamily: 'Arial', fontStyle: 'bold',
+      backgroundColor: '#00000088',
+      padding: { x: 3, y: 1 },
+    }).setOrigin(0.5).setDepth(11);
+    container.add(hintText);
+
+    const tray = {
+      container,
+      order,
+      orderNum,
+      placed: [],
+      stackLayers: [],
+      stackHeight: 0,
+      appliedTreatments: [],
+      completed: false,
+      done: false,
+      scored: false,
+      hintText,
+      inHolding: false,
+      onPrepTrack: true,
+      prepSlot: slot,
+      draggable: true,
+      waitingForCustomer: true,
+    };
+
+    slot.occupied = true;
+    slot.tray = tray;
+
+    s.trays.push(tray);
+
+    container.setSize(traySprite.width * traySprite.scaleX, traySprite.height * traySprite.scaleY);
+    s.ordersSpawned++;
+
+    s.customerVessels.dockVessel(tray, () => {
+      tray.waitingForCustomer = false;
+
+      s.ticketBar.addTicket(order, orderNum);
+
+      container.setInteractive({ draggable: true, useHandCursor: true });
+      s.updateTrayNextHint(tray);
+
+      s.tweens.add({
+        targets: container,
+        alpha: 1,
+        scaleX: 1,
+        scaleY: 1,
+        duration: 300,
+        ease: 'Back.easeOut',
+      });
+
+      s.prepTrack.render();
+      s.refreshHUD();
+    });
+
+    if (s.ordersSpawned === 3) {
+      s.spawnTimer = s.spawnInterval * 0.5;
+    }
+
+    s.prepTrack.render();
+    s.refreshHUD();
+  }
+
+  generateOrder() {
+    const s = this.scene;
+    const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+    const pickN = (arr, n) => {
+      const copy = [...arr];
+      const out = [];
+      for (let i = 0; i < n && copy.length; i++) {
+        const idx = Math.floor(Math.random() * copy.length);
+        out.push(copy.splice(idx, 1)[0]);
+      }
+      return out;
+    };
+
+    const breads = ['bread_white', 'bread_wheat', 'bread_sourdough'];
+    const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon', 'meat_prosciutto'];
+    const cheeses = ['cheese_american', 'cheese_swiss'];
+    const toppings = ['top_lettuce', 'top_tomato', 'top_onion', 'top_pickles', 'top_arugula', 'top_olives'];
+    const sauces = ['sauce_mayo', 'sauce_mustard'];
+
+    const minutesPlayed = s.gameTime / 60;
+    const diff = DIFFICULTY_PROGRESSION;
+    const maxToppings = Math.min(
+      diff.maxMaxToppings,
+      Math.floor(diff.initialMaxToppings + minutesPlayed * diff.maxToppingsIncrease)
+    );
+    const treatmentChance = Math.min(
+      diff.maxTreatmentChance,
+      diff.initialTreatmentChance + minutesPlayed * diff.treatmentChanceIncrease
+    );
+
+    const list = [];
+    const bread = pick(breads);
+
+    list.push(bread);
+    list.push(pick(meats));
+
+    if (Math.random() < CHEESE_CHANCE) {
+      list.push(pick(cheeses));
+    }
+
+    const topCount = Math.floor(Math.random() * (maxToppings + 1));
+    if (topCount > 0) {
+      pickN(toppings, topCount).forEach((t) => list.push(t));
+    }
+
+    if (Math.random() < SAUCE_CHANCE) {
+      list.push(pick(sauces));
+    }
+
+    list.push(bread);
+
+    const treatments = [];
+    if (Math.random() < treatmentChance) {
+      const allTreatments = Object.keys(TREATMENTS);
+      const count = Math.random() < DOUBLE_TREATMENT_CHANCE ? 2 : 1;
+      const chosen = pickN(allTreatments, count);
+      chosen.forEach((t) => treatments.push(t));
+    }
+
+    const totalPrice = this.calculateOrderPrice(list, treatments);
+    return { ingredients: list, treatments, totalPrice };
+  }
+
+  calculateOrderPrice(ingredients, treatments) {
+    let price = BASE_PRICE;
+    ingredients.forEach(key => {
+      const ing = INGREDIENTS[key];
+      price += (ing.price || DEFAULT_INGREDIENT_PRICE);
+    });
+    treatments.forEach(() => price += TREATMENT_PRICE);
+    return price;
+  }
+
+  tryPlace(tray, ingredientKey) {
+    const s = this.scene;
+    const nextIndex = tray.placed.length;
+    if (nextIndex >= tray.order.ingredients.length) return 'wrong';
+
+    const expected = tray.order.ingredients[nextIndex];
+    if (ingredientKey !== expected) return 'wrong';
+
+    tray.placed.push(ingredientKey);
+
+    s.ticketBar.updateTicketIngredient(tray.orderNum, ingredientKey);
+
+    this.addStackLayer(tray, ingredientKey);
+
+    s.updateTrayNextHint(tray);
+
+    this.checkTrayCompletion(tray);
+
+    return 'valid';
+  }
+
+  getLayerHeight(ingredientKey) {
+    const cat = INGREDIENTS[ingredientKey].category;
+    if (cat === 'sauce') return LAYER_HEIGHT_SAUCE;
+    if (cat === 'topping') return LAYER_HEIGHT_TOPPING;
+    if (cat === 'cheese') return LAYER_HEIGHT_CHEESE;
+    if (cat === 'meat') return LAYER_HEIGHT_MEAT;
+    return LAYER_HEIGHT_BREAD;
+  }
+
+  addStackLayer(tray, ingredientKey) {
+    const s = this.scene;
+    const ing = INGREDIENTS[ingredientKey];
+    const cat = ing.category;
+
+    const layerH = this.getLayerHeight(ingredientKey);
+    const ly = -2 - tray.stackHeight;
+    tray.stackHeight += layerH;
+
+    const rX = (Math.random() - 0.5) * 4;
+    const rY = (Math.random() - 0.5) * 2;
+    const w = 55;
+    const hw = w / 2;
+
+    const g = s.add.graphics();
+
+    if (cat === 'bread') {
+      const isBottom = tray.stackLayers.length === 0;
+      g.fillStyle(ing.color, 1);
+      g.lineStyle(1.5, ing.border, 0.8);
+      if (isBottom) {
+        g.fillRoundedRect(rX - hw, ly + rY - 4, w, 10, 3);
+        g.strokeRoundedRect(rX - hw, ly + rY - 4, w, 10, 3);
+      } else {
+        g.fillRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
+        g.strokeRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
+      }
+      if (!tray.breadLayers) tray.breadLayers = [];
+      tray.breadLayers.push({ graphics: g, key: ingredientKey, isBottom, rX, rY, ly, w, hw });
+    } else if (cat === 'meat') {
+      const mw = hw - 2;
+      g.fillStyle(ing.color, 0.95);
+      g.lineStyle(1, ing.border, 0.7);
+      g.fillEllipse(rX, ly + rY, mw * 2, 8);
+      g.strokeEllipse(rX, ly + rY, mw * 2, 8);
+      g.fillStyle(darkenColor(ing.color, 0.85), 0.4);
+      g.fillEllipse(rX + 4, ly + rY - 1, mw, 4);
+    } else if (cat === 'cheese') {
+      const cw = hw - 1;
+      g.fillStyle(ing.color, 1);
+      g.lineStyle(1, ing.border, 0.8);
+      g.fillRect(rX - cw, ly + rY - 2, cw * 2, 5);
+      g.strokeRect(rX - cw, ly + rY - 2, cw * 2, 5);
+      g.fillTriangle(rX - cw, ly + rY + 3, rX - cw - 3, ly + rY + 7, rX - cw + 5, ly + rY + 3);
+      g.fillTriangle(rX + cw, ly + rY + 3, rX + cw + 3, ly + rY + 7, rX + cw - 5, ly + rY + 3);
+      if (ingredientKey === 'cheese_swiss') {
+        g.fillStyle(darkenColor(ing.color, 0.8), 0.6);
+        g.fillCircle(rX - 8, ly + rY, 2);
+        g.fillCircle(rX + 6, ly + rY + 1, 1.5);
+      }
+    } else if (ingredientKey === 'top_lettuce') {
+      g.fillStyle(ing.color, 0.9);
+      g.lineStyle(1, ing.border, 0.7);
+      g.beginPath();
+      g.moveTo(rX - hw + 4, ly + rY);
+      for (let i = 0; i <= 8; i++) {
+        const px = rX - hw + 4 + (i / 8) * (w - 8);
+        const py = ly + rY + Math.sin(i * 1.8) * 3;
+        g.lineTo(px, py - 3);
+      }
+      for (let i = 8; i >= 0; i--) {
+        const px = rX - hw + 4 + (i / 8) * (w - 8);
+        const py = ly + rY + Math.sin(i * 1.8 + 1) * 2;
+        g.lineTo(px, py + 3);
+      }
+      g.closePath();
+      g.fillPath();
+      g.strokePath();
+    } else if (ingredientKey === 'top_tomato') {
+      const sliceW = 12;
+      g.fillStyle(ing.color, 0.9);
+      g.lineStyle(1, ing.border, 0.7);
+      for (let i = -1; i <= 1; i++) {
+        g.fillEllipse(rX + i * (sliceW + 2), ly + rY, sliceW, 6);
+        g.strokeEllipse(rX + i * (sliceW + 2), ly + rY, sliceW, 6);
+        g.fillStyle(0xFFAAAA, 0.5);
+        g.fillCircle(rX + i * (sliceW + 2), ly + rY, 1.5);
+        g.fillStyle(ing.color, 0.9);
+      }
+    } else if (ingredientKey === 'top_onion') {
+      g.lineStyle(2, ing.border, 0.8);
+      g.strokeEllipse(rX - 10, ly + rY, 14, 6);
+      g.strokeEllipse(rX + 8, ly + rY, 16, 7);
+      g.fillStyle(ing.color, 0.5);
+      g.fillEllipse(rX - 10, ly + rY, 14, 6);
+      g.fillEllipse(rX + 8, ly + rY, 16, 7);
+    } else if (cat === 'sauce') {
+      g.lineStyle(2.5, ing.color, 0.9);
+      g.beginPath();
+      const steps = 7;
+      g.moveTo(rX - hw + 6, ly + rY);
+      for (let i = 1; i <= steps; i++) {
+        const px = rX - hw + 6 + (i / steps) * (w - 12);
+        const py = ly + rY + (i % 2 === 0 ? -3 : 3);
+        g.lineTo(px, py);
+      }
+      g.strokePath();
+    }
+
+    tray.container.add(g);
+    tray.stackLayers.push(g);
+
+    // --- Stacking animation: drop, squash, settle ---
+    const isTopBread = cat === 'bread' && tray.stackLayers.length > 1;
+
+    // Drop in from above
+    g.y = -15;
+    s.tweens.add({
+      targets: g,
+      y: 0,
+      duration: 120,
+      ease: 'Bounce.easeOut',
+      onComplete: () => {
+        // Squash on landing
+        this.squashLayer(g, tray, ingredientKey, isTopBread);
+      },
+    });
+
+    // Settle existing layers
+    this.settleStack(tray, g);
+  }
+
+  squashLayer(g, tray, ingredientKey, isTopBread) {
+    const s = this.scene;
+    const squashY = isTopBread ? 0.5 : 0.6;
+    const squashX = isTopBread ? 1.3 : 1.2;
+    const squashDuration = isTopBread ? 120 : 80;
+
+    g.scaleY = squashY;
+    g.scaleX = squashX;
+
+    s.tweens.add({
+      targets: g,
+      scaleX: 1.0,
+      scaleY: 1.0,
+      duration: squashDuration,
+      ease: 'Back.easeOut',
+    });
+
+    // Top bread triggers a bread-cap particle puff
+    if (isTopBread) {
+      const worldX = tray.container.x;
+      const worldY = tray.container.y - tray.stackHeight;
+      s.particleManager.breadCapPuff(worldX, worldY);
+    }
+  }
+
+  settleStack(tray, newLayer) {
+    const s = this.scene;
+    for (const layer of tray.stackLayers) {
+      if (layer === newLayer) continue;
+      const origY = layer.y;
+      layer.y = origY + 1.5;
+      s.tweens.add({
+        targets: layer,
+        y: origY,
+        duration: 100,
+        ease: 'Sine.easeOut',
+      });
+    }
+  }
+
+  checkTrayCompletion(tray) {
+    const s = this.scene;
+    const ingredientsDone = tray.placed.length === tray.order.ingredients.length;
+    const treatmentsDone = !tray.order.treatments || tray.order.treatments.length === 0
+      || tray.order.treatments.every((t) => tray.appliedTreatments.includes(t));
+
+    if (ingredientsDone && treatmentsDone) {
+      this.completeTray(tray);
+    }
+  }
+
+  completeTray(tray) {
+    const s = this.scene;
+    tray.completed = true;
+    if (tray.hintText) tray.hintText.setText('');
+    s.flashTray(tray, 0x00ff00);
+
+    soundManager.successChime();
+
+    s.particleManager.orderCompleted(tray.container.x, tray.container.y - 20);
+
+    const c = tray.container;
+    this.animateCompletionHop(c, c.y);
+    this.animateCompletionDance(c);
+    this.animateChefPress(c);
+  }
+
+  animateCompletionHop(container, baseY) {
+    const s = this.scene;
+    s.tweens.add({
+      targets: container, y: baseY - 18, scaleX: 0.9, scaleY: 1.2,
+      duration: 120, ease: 'Quad.easeOut',
+      onComplete: () => {
+        s.tweens.add({
+          targets: container, y: baseY, scaleX: 1.15, scaleY: 0.85,
+          duration: 100, ease: 'Quad.easeIn',
+          onComplete: () => {
+            s.tweens.add({
+              targets: container, scaleX: 1.0, scaleY: 1.0,
+              duration: 200, ease: 'Bounce.easeOut',
+            });
+          },
+        });
+      },
+    });
+  }
+
+  animateCompletionDance(container) {
+    const s = this.scene;
+    s.tweens.chain({
+      targets: container,
+      tweens: [
+        { angle: -10, duration: 80, ease: 'Sine.easeOut', delay: 100 },
+        { angle: 10, duration: 100, ease: 'Sine.easeInOut' },
+        { angle: -8, duration: 90, ease: 'Sine.easeInOut' },
+        { angle: 8, duration: 85, ease: 'Sine.easeInOut' },
+        { angle: -4, duration: 75, ease: 'Sine.easeInOut' },
+        { angle: 3, duration: 70, ease: 'Sine.easeInOut' },
+        { angle: 0, duration: 80, ease: 'Sine.easeOut' },
+      ],
+    });
+  }
+
+  animateChefPress(container) {
+    const s = this.scene;
+    s.time.delayedCall(700, () => {
+      if (!container || !container.scene) return;
+      s.tweens.add({
+        targets: container,
+        scaleY: 0.82,
+        scaleX: 1.06,
+        duration: 150,
+        ease: 'Quad.easeIn',
+        onComplete: () => {
+          s.tweens.add({
+            targets: container,
+            scaleY: 0.88,
+            scaleX: 1.02,
+            duration: 200,
+            ease: 'Bounce.easeOut',
+          });
+        },
+      });
+    });
+  }
+
+  destroyTray(tray) {
+    tray.container.destroy();
+  }
+}

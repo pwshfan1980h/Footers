@@ -20,15 +20,21 @@ No test runner, linter, or formatter is configured.
 
 **Entry:** `index.html` loads `src/main.js`, which initializes a 1024x768 Phaser game with FIT scaling.
 
-**Scene flow:** `BootScene` → `GameScene` ↔ `DayEndScene` → (after day 5) `WinScene`. `GameOverScene` triggers on 3 strikes.
+**Scene flow:** `BootScene` → `SystemMapScene` → `GameScene` ↔ `DayEndScene` → `SystemMapScene`. `GameOverScene` triggers on 3 strikes. `WinScene` after completing all days.
 
 **Key files:**
 
-- `src/scenes/GameScene.js` (~1750 lines) — All core gameplay: conveyor belt, bins, click-to-place system, tray spawning, order generation, scoring, treatment system, and the game loop. This is by far the largest file.
-- `src/data/ingredients.js` — Game data: ingredient definitions (colors, categories), bin layout, treatment definitions, and `DAY_CONFIG` (orders, speed, spawn intervals, treatment chance per day).
+- `src/scenes/GameScene.js` (~450 lines) — Core gameplay scene. Most logic is delegated to manager classes.
+- `src/managers/` — Extracted subsystems: `GameSceneBackground`, `GameSceneBelt`, `GameSceneBins`, `GameSceneHUD`, `GameSceneTicketBar`, `GameSceneInteraction`, `GameSceneScoring`, `GameSceneTray`, `RobotArm`, `PrepTrack`, `ParticleManager`, `WarningSystem`, `TutorialOverlay`, `SettingsMenu`, `RevenueChallenges`. Also `MapBackground`, `MapHUD`, `MapVessels`, `BoidManager`, `CustomerVessels`, `TravelManager` for the system map.
+- `src/data/ingredients.js` — Ingredient definitions (colors, categories), bin layout, treatment definitions, and `DAY_CONFIG` (orders, speed, spawn intervals, treatment chance per day).
+- `src/data/GameState.js` — Persistent game state across scenes (money, day, unlocks).
+- `src/data/locations.js` — System map location data.
 - `src/SoundManager.js` — Singleton (`soundManager`) using Web Audio API to procedurally generate all sounds. No audio files exist.
+- `src/MusicManager.js` — Background music generation.
+- `src/utils/colorUtils.js` — Shared color utilities.
+- `src/utils/ShipDrawing.js` — Procedural ship rendering for the system map.
 
-**Graphics:** All visuals are drawn with Phaser Graphics primitives (no sprite sheets or image assets). Ingredients have category-specific shapes (bread domes, meat ovals, cheese rectangles, wavy lettuce, tomato circles, sauce zigzags).
+**Graphics:** SVG assets in `public/assets/` for ingredients, trays, and bin contents (breads, meats, cheeses, toppings, sauces). Scene chrome (walls, conveyor, windows, bins) drawn with Phaser Graphics primitives. No sprite sheets or image atlas.
 
 **Interaction model:** Click-to-place (not drag-and-drop). Click a bin item to pick up, click a tray to place. ESC cancels. Treatments are toggled on, then clicked onto trays. SPACE key speeds up the belt 2.5x.
 

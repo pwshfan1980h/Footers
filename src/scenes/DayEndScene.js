@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 
 export class DayEndScene extends Phaser.Scene {
   constructor() {
@@ -23,7 +24,7 @@ export class DayEndScene extends Phaser.Scene {
     soundManager.fanfare();
 
     // Background
-    this.add.rectangle(512, 384, 1024, 768, SPACE_BLACK);
+    this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK);
 
     // Starfield
     const g = this.add.graphics();
@@ -41,11 +42,11 @@ export class DayEndScene extends Phaser.Scene {
     const dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
     // Title
-    this.add.text(512, 100, 'SHIFT COMPLETE!', {
+    this.add.text(HALF_WIDTH, 100, 'SHIFT COMPLETE!', {
       fontSize: '52px', color: '#00ffcc', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
-    this.add.text(512, 180, `${dayNames[this.day]} is done.`, {
+    this.add.text(HALF_WIDTH, 180, `${dayNames[this.day]} is done.`, {
       fontSize: '24px', color: '#8899aa', fontFamily: 'Arial',
     }).setOrigin(0.5);
 
@@ -56,15 +57,15 @@ export class DayEndScene extends Phaser.Scene {
     panel.lineStyle(2, NEON_CYAN, 0.5);
     panel.strokeRoundedRect(312, 220, 400, 160, 12);
 
-    this.add.text(512, 260, `Orders filled: ${this.ordersCompleted} / ${this.totalOrders}`, {
+    this.add.text(HALF_WIDTH, 260, `Orders filled: ${this.ordersCompleted} / ${this.totalOrders}`, {
       fontSize: '22px', color: '#ffffff', fontFamily: 'Arial',
     }).setOrigin(0.5);
 
-    this.add.text(512, 300, `Day score: +${this.dayScore}`, {
+    this.add.text(HALF_WIDTH, 300, `Day score: +${this.dayScore}`, {
       fontSize: '22px', color: '#ffd700', fontFamily: 'Arial',
     }).setOrigin(0.5);
 
-    this.add.text(512, 350, `Total score: ${this.totalScore}`, {
+    this.add.text(HALF_WIDTH, 350, `Total score: ${this.totalScore}`, {
       fontSize: '26px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
@@ -75,79 +76,56 @@ export class DayEndScene extends Phaser.Scene {
         3: 'The rush is building...',
         4: 'Tomorrow the line moves faster...',
       };
-      this.add.text(512, 420, previews[this.day] || '', {
+      this.add.text(HALF_WIDTH, 420, previews[this.day] || '', {
         fontSize: '16px', color: '#ff8888', fontFamily: 'Arial', fontStyle: 'italic',
       }).setOrigin(0.5);
-
-      // Next day button
-      const btn = this.add.graphics();
-      btn.fillStyle(0x1a3a4a, 1);
-      btn.fillRoundedRect(387, 478, 250, 64, 12);
-      btn.lineStyle(3, NEON_CYAN, 1);
-      btn.strokeRoundedRect(387, 478, 250, 64, 12);
-
-      const btnHit = this.add.rectangle(512, 510, 250, 64)
-        .setInteractive({ useHandCursor: true });
-
-      const btnText = this.add.text(512, 510, 'NEXT DAY', {
-        fontSize: '26px', color: '#00ffff', fontFamily: 'Bungee, Arial',
-      }).setOrigin(0.5);
-
-      btnHit.on('pointerover', () => {
-        btn.clear();
-        btn.fillStyle(0x2a4a5a, 1);
-        btn.fillRoundedRect(387, 478, 250, 64, 12);
-        btn.lineStyle(3, 0x44ffff, 1);
-        btn.strokeRoundedRect(387, 478, 250, 64, 12);
-        btnText.setColor('#44ffff');
-      });
-      btnHit.on('pointerout', () => {
-        btn.clear();
-        btn.fillStyle(0x1a3a4a, 1);
-        btn.fillRoundedRect(387, 478, 250, 64, 12);
-        btn.lineStyle(3, NEON_CYAN, 1);
-        btn.strokeRoundedRect(387, 478, 250, 64, 12);
-        btnText.setColor('#00ffff');
-      });
-      btnHit.on('pointerdown', () => {
-        soundManager.ding();
-        this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
-      });
-    } else {
-      // Continue button for day 5
-      const btn = this.add.graphics();
-      btn.fillStyle(0x1a3a4a, 1);
-      btn.fillRoundedRect(387, 478, 250, 64, 12);
-      btn.lineStyle(3, NEON_CYAN, 1);
-      btn.strokeRoundedRect(387, 478, 250, 64, 12);
-
-      const btnHit = this.add.rectangle(512, 510, 250, 64)
-        .setInteractive({ useHandCursor: true });
-
-      const btnText = this.add.text(512, 510, 'CONTINUE', {
-        fontSize: '26px', color: '#00ffff', fontFamily: 'Bungee, Arial',
-      }).setOrigin(0.5);
-
-      btnHit.on('pointerover', () => {
-        btn.clear();
-        btn.fillStyle(0x2a4a5a, 1);
-        btn.fillRoundedRect(387, 478, 250, 64, 12);
-        btn.lineStyle(3, 0x44ffff, 1);
-        btn.strokeRoundedRect(387, 478, 250, 64, 12);
-        btnText.setColor('#44ffff');
-      });
-      btnHit.on('pointerout', () => {
-        btn.clear();
-        btn.fillStyle(0x1a3a4a, 1);
-        btn.fillRoundedRect(387, 478, 250, 64, 12);
-        btn.lineStyle(3, NEON_CYAN, 1);
-        btn.strokeRoundedRect(387, 478, 250, 64, 12);
-        btnText.setColor('#00ffff');
-      });
-      btnHit.on('pointerdown', () => {
-        soundManager.ding();
-        this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
-      });
     }
+
+    // Action button (same for both paths -- only label differs)
+    const label = this.day < 5 ? 'NEXT DAY' : 'CONTINUE';
+    this.createButton(387, 478, 250, 64, label, NEON_CYAN, () => {
+      soundManager.ding();
+      this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
+    });
+  }
+
+  /**
+   * Creates a styled, interactive button with hover effects.
+   */
+  createButton(x, y, w, h, label, accentColor, onClick) {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const baseFill = 0x1a3a4a;
+    const hoverFill = 0x2a4a5a;
+    const hoverAccent = 0x44ffff;
+
+    const btn = this.add.graphics();
+    const drawBtn = (fill, stroke) => {
+      btn.clear();
+      btn.fillStyle(fill, 1);
+      btn.fillRoundedRect(x, y, w, h, 12);
+      btn.lineStyle(3, stroke, 1);
+      btn.strokeRoundedRect(x, y, w, h, 12);
+    };
+    drawBtn(baseFill, accentColor);
+
+    const btnHit = this.add.rectangle(cx, cy, w, h)
+      .setInteractive({ useHandCursor: true });
+
+    const btnText = this.add.text(cx, cy, label, {
+      fontSize: '26px', color: '#00ffff', fontFamily: 'Bungee, Arial',
+    }).setOrigin(0.5);
+
+    btnHit.on('pointerover', () => {
+      drawBtn(hoverFill, hoverAccent);
+      btnText.setColor('#44ffff');
+    });
+    btnHit.on('pointerout', () => {
+      drawBtn(baseFill, accentColor);
+      btnText.setColor('#00ffff');
+    });
+    btnHit.on('pointerdown', onClick);
+
+    return { btn, btnHit, btnText };
   }
 }

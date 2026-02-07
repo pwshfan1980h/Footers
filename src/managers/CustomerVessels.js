@@ -1,4 +1,6 @@
 import Phaser from 'phaser';
+import { HUMAN_NAMES, ALIEN_NAME_PARTS, QUIPS } from '../data/customerPersonality.js';
+import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 
 /**
  * CustomerVessels — Large ships park in the deep window background.
@@ -89,6 +91,9 @@ export class CustomerVessels {
       suitDef = { ...suitBase, suitColor: this.darkenColor(shipDef.color, 0.85) };
     }
 
+    const name = this.generateName(isAlien);
+    const quip = this.generateQuip(isAlien);
+
     const customer = {
       tray,
       slot,
@@ -97,6 +102,9 @@ export class CustomerVessels {
       alienDef,
       isAlien,
       onArrive,
+      name,
+      quip,
+      speechBubble: null,
 
       // Ship
       shipX: -120,
@@ -120,6 +128,11 @@ export class CustomerVessels {
       personGfx: this.scene.add.graphics().setDepth(0.6),
       numText: null,
 
+      // Patience timer
+      patienceMax: 0,
+      patience: 0,
+      patienceBarGfx: this.scene.add.graphics().setDepth(1.5),
+
       // Idle animation
       idleTimer: 0,
       idleAction: 'none', // none | look_left | look_right
@@ -134,6 +147,11 @@ export class CustomerVessels {
     const c = this.customers.find(v => v.tray === tray);
     if (!c) return;
 
+    if (c.speechBubble) {
+      c.speechBubble.destroy();
+      c.speechBubble = null;
+    }
+
     if (c.personState === 'at_window' || c.personState === 'eva_to_window') {
       c.personState = 'eva_to_ship';
       c.personFacing = -1;
@@ -147,6 +165,7 @@ export class CustomerVessels {
 
   update(delta) {
     const dt = delta / 16;
+    const dtSec = delta / 1000;
 
     for (let i = this.customers.length - 1; i >= 0; i--) {
       const c = this.customers[i];
@@ -155,17 +174,71 @@ export class CustomerVessels {
       this.updatePerson(c, dt);
       this.updateIdle(c, dt);
 
+      // Patience countdown for customers at window
+      if (c.personState === 'at_window' && c.patienceMax > 0) {
+        c.patience -= dtSec;
+        this.drawPatienceBar(c);
+
+        if (c.patience <= 0) {
+          c.patience = 0;
+          // Timeout — miss this order
+          const tray = c.tray;
+          if (tray && !tray.done && !tray.scored) {
+            this.scene.scoringManager.handleMiss(tray);
+            tray.done = true;
+            this.scene.destroyTray(tray);
+          }
+        }
+      }
+
       this.drawShip(c);
       this.drawPerson(c);
 
       if (c.shipState === 'gone') {
         c.shipGfx.destroy();
         c.personGfx.destroy();
+        if (c.patienceBarGfx) c.patienceBarGfx.destroy();
         if (c.numText) c.numText.destroy();
+        if (c.speechBubble) c.speechBubble.destroy();
         if (c.slot) c.slot.occupied = false;
         this.customers.splice(i, 1);
       }
     }
+  }
+
+  drawPatienceBar(c) {
+    const g = c.patienceBarGfx;
+    g.clear();
+    if (c.personState !== 'at_window' || c.patienceMax <= 0) return;
+
+    const ratio = Math.max(0, c.patience / c.patienceMax);
+    const barW = 50;
+    const barH = 5;
+    const x = c.personX - barW / 2;
+    const y = c.personY - 50;
+
+    // Background
+    g.fillStyle(0x000000, 0.5);
+    g.fillRect(x, y, barW, barH);
+
+    // Fill — green → yellow → red
+    let color;
+    if (ratio > 0.5) color = 0x44ff44;
+    else if (ratio > 0.25) color = 0xffff44;
+    else color = 0xff4444;
+
+    // Pulse when low
+    let alpha = 0.9;
+    if (ratio < 0.25) {
+      alpha = 0.6 + Math.sin(Date.now() * 0.01) * 0.3;
+    }
+
+    g.fillStyle(color, alpha);
+    g.fillRect(x, y, barW * ratio, barH);
+
+    // Border
+    g.lineStyle(1, 0xffffff, 0.3);
+    g.strokeRect(x, y, barW, barH);
   }
 
   // ======================== SHIP UPDATE ========================
@@ -209,8 +282,16 @@ export class CustomerVessels {
         c.personY = c.personTargetY;
         c.personScale = c.personTargetScale;
         c.personState = 'at_window';
+        // Set patience timer based on difficulty
+        const minutesPlayed = this.scene.gameTime / 60;
+        const basePat = 40;
+        const minPat = 20;
+        const patDecrease = 3; // seconds lost per minute of game time
+        c.patienceMax = Math.max(minPat, basePat - minutesPlayed * patDecrease);
+        c.patience = c.patienceMax;
         // Fire arrival callback — this reveals the order
         if (c.onArrive) c.onArrive();
+        this.showSpeechBubble(c);
       }
     } else if (c.personState === 'at_window') {
       c.personBob += 0.03 * dt;
@@ -617,7 +698,7 @@ export class CustomerVessels {
     const y = baseY + bobOffset;
     
     let happiness = 0;
-    if (c.tray && (c.tray.done || c.tray.passedFinish)) {
+    if (c.tray && (c.tray.done || c.tray.scored)) {
         happiness = c.tray.completed ? 1 : -1;
     }
 
@@ -744,6 +825,95 @@ export class CustomerVessels {
     g.fillCircle(x, y - 5 * sc, 8 * sc);
   }
 
+  generateName(isAlien) {
+    if (isAlien) {
+      const p = ALIEN_NAME_PARTS;
+      const prefix = Phaser.Utils.Array.GetRandom(p.prefix);
+      const middle = Phaser.Utils.Array.GetRandom(p.middle);
+      const suffix = Phaser.Utils.Array.GetRandom(p.suffix);
+      return prefix + middle + suffix;
+    }
+    return Phaser.Utils.Array.GetRandom(HUMAN_NAMES);
+  }
+
+  generateQuip(isAlien) {
+    if (isAlien) {
+      return Phaser.Utils.Array.GetRandom(QUIPS.alien);
+    }
+    const pools = ['friendly', 'impatient', 'weird'];
+    const pool = Phaser.Utils.Array.GetRandom(pools);
+    return Phaser.Utils.Array.GetRandom(QUIPS[pool]);
+  }
+
+  showSpeechBubble(c) {
+    if (c.speechBubble) {
+      c.speechBubble.destroy();
+      c.speechBubble = null;
+    }
+
+    const s = this.scene;
+    const bx = c.personX;
+    const by = c.personY - 55;
+    const displayText = `${c.name}: "${c.quip}"`;
+
+    const container = s.add.container(bx, by).setDepth(1.2);
+
+    // Measure text to size the bubble
+    const txt = s.add.text(0, 0, displayText, {
+      fontSize: '11px', color: '#ffffff', fontFamily: 'Arial',
+      wordWrap: { width: 140 },
+      align: 'center',
+    }).setOrigin(0.5);
+
+    const padX = 10;
+    const padY = 6;
+    const tw = txt.width + padX * 2;
+    const th = txt.height + padY * 2;
+
+    const bg = s.add.graphics();
+    bg.fillStyle(0x1a1a30, 0.9);
+    bg.fillRoundedRect(-tw / 2, -th / 2, tw, th, 6);
+    bg.lineStyle(1.5, 0x6688cc, 0.7);
+    bg.strokeRoundedRect(-tw / 2, -th / 2, tw, th, 6);
+
+    // Triangle pointer
+    bg.fillStyle(0x1a1a30, 0.9);
+    bg.fillTriangle(
+      -5, th / 2,
+      5, th / 2,
+      0, th / 2 + 8
+    );
+
+    container.add(bg);
+    container.add(txt);
+    container.setAlpha(0);
+
+    // Fade in
+    s.tweens.add({
+      targets: container,
+      alpha: 1,
+      duration: 300,
+      ease: 'Sine.easeOut',
+    });
+
+    // Auto-destroy after 3.5s with fade-out
+    s.time.delayedCall(3500, () => {
+      if (!container || !container.scene) return;
+      s.tweens.add({
+        targets: container,
+        alpha: 0,
+        duration: 400,
+        ease: 'Sine.easeIn',
+        onComplete: () => {
+          if (container && container.scene) container.destroy();
+          if (c.speechBubble === container) c.speechBubble = null;
+        },
+      });
+    });
+
+    c.speechBubble = container;
+  }
+
   darkenColor(color, factor) {
     const r = Math.floor(((color >> 16) & 0xFF) * factor);
     const g = Math.floor(((color >> 8) & 0xFF) * factor);
@@ -755,7 +925,9 @@ export class CustomerVessels {
     for (const c of this.customers) {
       c.shipGfx.destroy();
       c.personGfx.destroy();
+      if (c.patienceBarGfx) c.patienceBarGfx.destroy();
       if (c.numText) c.numText.destroy();
+      if (c.speechBubble) c.speechBubble.destroy();
     }
     this.customers = [];
   }

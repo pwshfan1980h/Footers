@@ -1,5 +1,15 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+
+// Score-based performance ratings (checked in descending order)
+const RATINGS = [
+  { min: 5000, label: 'Legendary Station Chef', color: '#ffd700' },
+  { min: 3500, label: 'Master Food Technician', color: '#ff44aa' },
+  { min: 2000, label: 'Seasoned Space Cook',    color: '#00ffcc' },
+  { min: 1000, label: 'Orbital Apprentice',     color: '#88ddff' },
+  { min: 0,    label: 'Adequate Worker',         color: '#aaddff' },
+];
 
 export class WinScene extends Phaser.Scene {
   constructor() {
@@ -20,7 +30,7 @@ export class WinScene extends Phaser.Scene {
     soundManager.fanfare();
 
     // Background
-    this.add.rectangle(512, 384, 1024, 768, SPACE_BLACK);
+    this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK);
 
     // Starfield
     const g = this.add.graphics();
@@ -82,25 +92,11 @@ export class WinScene extends Phaser.Scene {
       fontSize: '36px', color: '#ffd700', fontFamily: 'Bungee, Arial',
     }).setOrigin(0.5);
 
-    // Rating
-    let rating = 'Adequate Worker';
-    let ratingColor = '#aaddff';
-    if (this.totalScore >= 5000) {
-      rating = 'Legendary Station Chef';
-      ratingColor = '#ffd700';
-    } else if (this.totalScore >= 3500) {
-      rating = 'Master Food Technician';
-      ratingColor = '#ff44aa';
-    } else if (this.totalScore >= 2000) {
-      rating = 'Seasoned Space Cook';
-      ratingColor = '#00ffcc';
-    } else if (this.totalScore >= 1000) {
-      rating = 'Orbital Apprentice';
-      ratingColor = '#88ddff';
-    }
+    // Rating (find first matching tier)
+    const tier = RATINGS.find(r => this.totalScore >= r.min) || RATINGS[RATINGS.length - 1];
 
-    this.add.text(512, 405, `Rating: ${rating}`, {
-      fontSize: '26px', color: ratingColor, fontFamily: 'Arial', fontStyle: 'italic',
+    this.add.text(HALF_WIDTH, 405, `Rating: ${tier.label}`, {
+      fontSize: '26px', color: tier.color, fontFamily: 'Arial', fontStyle: 'italic',
     }).setOrigin(0.5);
 
     // Play again button

@@ -145,6 +145,30 @@ export class ParticleManager {
     }
   }
 
+  // Warm puff when top bread caps the sandwich
+  breadCapPuff(x, y) {
+    const colors = [0xDDB88C, 0xC8A070, 0xE8C89A, 0xFFDDAA];
+    for (let i = 0; i < 10; i++) {
+      const angle = (Math.PI * 2 * i) / 10 + (Math.random() - 0.5) * 0.3;
+      const speed = 1.5 + Math.random() * 2;
+
+      this.particles.push({
+        x: x + (Math.random() - 0.5) * 10,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 1.5,
+        gravity: 0.06,
+        friction: 0.96,
+        color: colors[Math.floor(Math.random() * colors.length)],
+        size: 2 + Math.random() * 2,
+        shape: 'circle',
+        life: 350 + Math.random() * 150,
+        maxLife: 500,
+        alpha: 0.8
+      });
+    }
+  }
+
   // Gentle puff when picking up ingredient
   ingredientPickup(x, y, color) {
     for (let i = 0; i < 5; i++) {

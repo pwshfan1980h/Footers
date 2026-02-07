@@ -127,7 +127,6 @@ export class PrepTrack {
     slot.tray = tray;
     tray.prepSlot = slot;
     tray.onPrepTrack = true;
-    tray.onBelt = false;
 
     // Move tray to slot position
     tray.container.x = slot.x;
@@ -152,13 +151,4 @@ export class PrepTrack {
     this.render();
   }
 
-  update() {
-    // Check for completed trays and update visual state
-    for (const slot of this.slots) {
-      if (slot.tray && slot.tray.completed) {
-        // Visual feedback for completed tray (ready to move to belt)
-        // Could add glow or pulsing effect here
-      }
-    }
-  }
 }

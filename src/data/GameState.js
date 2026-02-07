@@ -4,7 +4,7 @@ class GameState {
   constructor() {
     this.currentLocation = 'hub_central';
     this.truckshipWorldX = 1500;
-    this.truckshipWorldY = 1000;
+    this.truckshipWorldY = 900;
     this.totalMoney = 0;
     this.shiftsCompleted = 0;
     this.locationsVisited = new Set(['hub_central']);
@@ -34,7 +34,7 @@ class GameState {
       const data = JSON.parse(raw);
       this.currentLocation = data.currentLocation || 'hub_central';
       this.truckshipWorldX = data.truckshipWorldX ?? 1500;
-      this.truckshipWorldY = data.truckshipWorldY ?? 1000;
+      this.truckshipWorldY = data.truckshipWorldY ?? 900;
       this.totalMoney = data.totalMoney || 0;
       this.shiftsCompleted = data.shiftsCompleted || 0;
       this.locationsVisited = new Set(data.locationsVisited || ['hub_central']);
@@ -56,7 +56,7 @@ class GameState {
   reset() {
     this.currentLocation = 'hub_central';
     this.truckshipWorldX = 1500;
-    this.truckshipWorldY = 1000;
+    this.truckshipWorldY = 900;
     this.totalMoney = 0;
     this.shiftsCompleted = 0;
     this.locationsVisited = new Set(['hub_central']);
