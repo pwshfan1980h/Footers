@@ -474,17 +474,13 @@ export class CustomerVessels {
        g.fillStyle(acc, 0.5);
        g.fillCircle(x, y, 18);
        
-       // Spinning rings
+       // Spinning rings (simulate rotation by oscillating height)
        const t = Date.now() * 0.002;
        g.lineStyle(2, acc, 0.8);
-       g.beginPath();
-       g.ellipse(x, y, 35, 10, t, 0, 360);
-       g.strokePath();
-       
+       g.strokeEllipse(x, y, 70, 20 + Math.sin(t) * 16);
+
        g.lineStyle(1, acc, 0.5);
-       g.beginPath();
-       g.ellipse(x, y, 40, 12, -t * 1.5, 0, 360);
-       g.strokePath();
+       g.strokeEllipse(x, y, 80, 24 + Math.cos(t * 1.5) * 20);
     }
 
     g.fillStyle(acc, 0.08);

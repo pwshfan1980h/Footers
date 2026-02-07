@@ -9,6 +9,7 @@ class SoundManager {
       return;
     }
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    if (this.ctx.state === 'suspended') this.ctx.resume();
   }
 
   _osc(type, freq, startTime, duration, volume = 0.2) {

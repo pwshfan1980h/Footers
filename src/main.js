@@ -6,6 +6,20 @@ import { DayEndScene } from './scenes/DayEndScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
 import { WinScene } from './scenes/WinScene.js';
 import { GAME_WIDTH, GAME_HEIGHT } from './data/constants.js';
+import { soundManager } from './SoundManager.js';
+import { musicManager } from './MusicManager.js';
+
+// Resume audio contexts on first user interaction (browser autoplay policy)
+const resumeAudio = () => {
+  soundManager.init();
+  if (musicManager.audioContext?.state === 'suspended') {
+    musicManager.audioContext.resume();
+  }
+  document.removeEventListener('pointerdown', resumeAudio);
+  document.removeEventListener('keydown', resumeAudio);
+};
+document.addEventListener('pointerdown', resumeAudio);
+document.addEventListener('keydown', resumeAudio);
 
 const config = {
   type: Phaser.AUTO,
