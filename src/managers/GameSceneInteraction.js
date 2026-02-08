@@ -197,6 +197,7 @@ export class GameSceneInteraction {
 
     s.draggedTray = null;
     s.trayDragStartPos = { x: 0, y: 0 };
+    this.deliveryArrow = null;
 
     s.input.on('dragstart', (pointer, gameObject) => {
       const tray = s.trays.find(t => t.container === gameObject);
@@ -205,6 +206,11 @@ export class GameSceneInteraction {
         s.trayDragStartPos.x = tray.container.x;
         s.trayDragStartPos.y = tray.container.y;
         soundManager.robotPickup();
+
+        // Show delivery arrow over the linked customer
+        if (tray.completed) {
+          this.showDeliveryArrow(tray);
+        }
       }
     });
 
@@ -212,12 +218,18 @@ export class GameSceneInteraction {
       if (s.draggedTray && s.draggedTray.container === gameObject) {
         gameObject.x = dragX;
         gameObject.y = dragY;
+
+        // Keep arrow tracking the customer (they sway)
+        this.updateDeliveryArrow(s.draggedTray);
       }
     });
 
     s.input.on('dragend', (pointer, gameObject) => {
       const tray = s.draggedTray;
       if (!tray || tray.container !== gameObject) return;
+
+      // Immediately remove the arrow
+      this.hideDeliveryArrow();
 
       const y = gameObject.y;
 
@@ -427,5 +439,104 @@ export class GameSceneInteraction {
         }
       });
     });
+  }
+
+  // ======================== DELIVERY ARROW ========================
+
+  showDeliveryArrow(tray) {
+    this.hideDeliveryArrow();
+
+    const s = this.scene;
+    const customer = s.customerVessels.customers.find(c => c.tray === tray);
+    if (!customer || customer.personState !== 'at_counter') return;
+
+    const container = s.add.container(customer.personX, customer.personY - 55).setDepth(50);
+
+    // Draw arrow using graphics
+    const g = s.add.graphics();
+    // Arrow shaft
+    g.fillStyle(0x44ff88, 0.9);
+    g.fillRect(-3, -18, 6, 18);
+    // Arrow head (triangle pointing down)
+    g.fillStyle(0x44ff88, 0.9);
+    g.beginPath();
+    g.moveTo(-10, 0);
+    g.lineTo(10, 0);
+    g.lineTo(0, 14);
+    g.closePath();
+    g.fillPath();
+    // Bright edge highlight
+    g.lineStyle(1, 0x88ffbb, 0.6);
+    g.beginPath();
+    g.moveTo(-10, 0);
+    g.lineTo(0, 14);
+    g.lineTo(10, 0);
+    g.closePath();
+    g.strokePath();
+    container.add(g);
+
+    // Glow behind arrow
+    const glow = s.add.graphics();
+    glow.fillStyle(0x44ff88, 0.15);
+    glow.fillCircle(0, 0, 20);
+    container.addAt(glow, 0);
+
+    // Bouncing animation
+    s.tweens.add({
+      targets: container,
+      y: container.y - 8,
+      duration: 400,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Pulsing glow
+    s.tweens.add({
+      targets: glow,
+      alpha: 0.4,
+      duration: 500,
+      ease: 'Sine.easeInOut',
+      yoyo: true,
+      repeat: -1,
+    });
+
+    // Fade in
+    container.setAlpha(0);
+    container.setScale(0.5);
+    s.tweens.add({
+      targets: container,
+      alpha: 1,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 150,
+      ease: 'Back.easeOut',
+    });
+
+    this.deliveryArrow = { container, glow, customer };
+  }
+
+  updateDeliveryArrow(tray) {
+    if (!this.deliveryArrow) return;
+
+    const { container, customer } = this.deliveryArrow;
+    if (!customer || customer.personState !== 'at_counter') {
+      this.hideDeliveryArrow();
+      return;
+    }
+
+    // Track customer X (they may sway); keep base Y offset
+    container.x = customer.personX;
+  }
+
+  hideDeliveryArrow() {
+    if (!this.deliveryArrow) return;
+
+    const { container, glow } = this.deliveryArrow;
+    // Stop all tweens and destroy immediately
+    this.scene.tweens.killTweensOf(container);
+    this.scene.tweens.killTweensOf(glow);
+    container.destroy();
+    this.deliveryArrow = null;
   }
 }
