@@ -10,6 +10,7 @@ import { musicManager } from '../MusicManager.js';
 import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
+import { applyPalette } from '../utils/applyPalette.js';
 const SHIP_SPEED = 120; // px/s
 const DOCK_RANGE = 80;
 const CAMERA_LERP = 0.08;
@@ -111,6 +112,7 @@ export class SystemMapScene extends Phaser.Scene {
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
+      applyPalette(this);
       this.cameras.main.setPostPipeline(WarpPostFX);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) {

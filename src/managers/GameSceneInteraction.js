@@ -121,12 +121,12 @@ export class GameSceneInteraction {
         if (tray && !tray.completed && !tray.done) {
           targetTray = tray;
           const trayX = tray.container.x;
-          const trayY = s.LAND_Y;
+          const trayY = tray.container.y - 20;
           const distX = Math.abs(pointer.x - trayX);
           const distY = Math.abs(pointer.y - trayY);
           const magnetRadius = 100;
 
-          if (distX < magnetRadius && distY < 80) {
+          if (distX < magnetRadius && distY < 120) {
             const dist = Math.sqrt(distX * distX + distY * distY);
             magnetStrength = Math.max(0, 1 - dist / magnetRadius);
 
@@ -163,10 +163,12 @@ export class GameSceneInteraction {
       s.trayHighlight.clear();
       if (targetTray) {
         const hw = 72;
+        const highlightTop = targetTray.container.y - 120;
+        const highlightH = 175;
         const pulseAlpha = 0.4 + Math.sin(Date.now() * 0.01) * 0.15 + magnetStrength * 0.3;
         s.trayHighlight.lineStyle(3 + magnetStrength * 2, 0x44ff88, pulseAlpha);
         s.trayHighlight.strokeRoundedRect(
-          targetTray.container.x - hw, 270, hw * 2, 155, 8,
+          targetTray.container.x - hw, highlightTop, hw * 2, highlightH, 8,
         );
       }
     });
@@ -274,7 +276,7 @@ export class GameSceneInteraction {
     const savedTreatmentKey = s.heldItem.treatmentKey;
     const savedIngredientKey = s.heldItem.ingredientKey;
 
-    if (tray && tray.onPrepTrack && !tray.completed && !tray.done && pointer.y < landY + 40) {
+    if (tray && tray.onPrepTrack && !tray.completed && !tray.done && pointer.y < tray.container.y + 50) {
       soundManager.robotRelease();
       const fallDist = Math.max(0, landY - obj.y);
       const duration = Math.max(80, Math.min(400, fallDist * 1.8));

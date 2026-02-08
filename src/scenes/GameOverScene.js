@@ -3,6 +3,7 @@ import { soundManager } from '../SoundManager.js';
 import { gameState } from '../data/GameState.js';
 import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, HULL_DARK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { applyPalette } from '../utils/applyPalette.js';
 import { createButton } from '../utils/uiHelpers.js';
 
 export class GameOverScene extends Phaser.Scene {
@@ -34,8 +35,9 @@ export class GameOverScene extends Phaser.Scene {
     soundManager.init();
     soundManager.fired();
 
-    // Apply CRT shader (WebGL only)
+    // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
+      applyPalette(this);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
     }

@@ -15,11 +15,31 @@ export class GameSceneHUD {
 
     const hudBg = s.add.graphics().setDepth(4);
     hudBg.fillStyle(s.HULL_DARK, 0.85);
-    hudBg.fillRect(0, 0, 1024, 50);
+    hudBg.fillRect(0, 0, 1024, 56);
     hudBg.fillStyle(s.NEON_PINK, 0.4);
-    hudBg.fillRect(0, 48, 1024, 2);
+    hudBg.fillRect(0, 54, 1024, 2);
 
-    s.scoreText = s.add.text(12, 15, `Score: ${s.currentScore}`, {
+    // Background panels behind HUD groups
+    const panels = s.add.graphics().setDepth(4.5);
+    panels.fillStyle(0xffffff, 0.06);
+    panels.fillRoundedRect(6, 6, 175, 40, 6);
+    panels.fillRoundedRect(190, 6, 200, 40, 6);
+    panels.fillRoundedRect(400, 6, 140, 40, 6);
+    panels.fillRoundedRect(690, 4, 86, 46, 6);
+
+    // Star icon next to score
+    const icons = s.add.graphics().setDepth(5);
+    icons.fillStyle(0xffd700, 0.9);
+    icons.fillTriangle(20, 20, 16, 26, 24, 26);
+    icons.fillTriangle(20, 30, 16, 24, 24, 24);
+
+    // Coin icon next to money
+    icons.lineStyle(2, 0x44ff88, 0.9);
+    icons.strokeCircle(414, 26, 7);
+    icons.fillStyle(0x44ff88, 0.3);
+    icons.fillCircle(414, 26, 7);
+
+    s.scoreText = s.add.text(32, 15, `Score: ${s.currentScore}`, {
       fontSize: '18px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setDepth(5);
 
@@ -31,15 +51,14 @@ export class GameSceneHUD {
       fontSize: '12px', color: '#aaddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
-    s.moneyText = s.add.text(480, 15, '$0.00', {
+    s.moneyText = s.add.text(426, 15, '$0.00', {
       fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setDepth(5);
 
-    s.strikesText = s.add.text(700, 5, '', {
-      fontSize: '14px', color: '#ff6666', fontFamily: GAME_FONT, fontStyle: 'bold',
-    }).setDepth(5);
+    // Strike indicators drawn as graphics instead of text
+    this.strikeGraphics = null;
 
-    s.riskText = s.add.text(700, 30, '', {
+    s.riskText = s.add.text(700, 36, '', {
       fontSize: '13px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(5).setAlpha(0);
 
@@ -183,22 +202,47 @@ export class GameSceneHUD {
     s.ordersText.setText(s.ordersDisplay());
     this.animateMoney(s.gameMoney);
 
-    // Strike indicators: filled X for misses, empty circles for remaining
-    const maxStrikes = 3;
+    // Draw graphical strike indicators
     const missed = s.ordersMissed || 0;
-    let strikesStr = '';
-    for (let i = 0; i < maxStrikes; i++) {
-      strikesStr += i < missed ? '\u2717' : '\u25CB';
-    }
-    s.strikesText.setText(strikesStr);
+    this.drawStrikeIndicators(missed);
 
     // Risk warning after first miss
+    const maxStrikes = 3;
     if (missed > 0 && missed < maxStrikes) {
       const penaltyAmount = s.gameMoney * 0.5;
       s.riskText.setText(`AT RISK: -$${penaltyAmount.toFixed(2)}`);
       s.riskText.setAlpha(1);
     } else {
       s.riskText.setAlpha(0);
+    }
+  }
+
+  drawStrikeIndicators(missed) {
+    const s = this.scene;
+    if (this.strikeGraphics) {
+      this.strikeGraphics.destroy();
+    }
+    this.strikeGraphics = s.add.graphics().setDepth(5);
+    const g = this.strikeGraphics;
+    const maxStrikes = 3;
+    const baseX = 705;
+    const baseY = 20;
+    const spacing = 24;
+
+    for (let i = 0; i < maxStrikes; i++) {
+      const cx = baseX + i * spacing;
+      if (i < missed) {
+        // Red X for missed
+        g.lineStyle(3, 0xff4444, 1);
+        g.lineBetween(cx - 6, baseY - 6, cx + 6, baseY + 6);
+        g.lineBetween(cx + 6, baseY - 6, cx - 6, baseY + 6);
+      } else {
+        // Green open circle for remaining
+        g.lineStyle(2, 0x44ff88, 0.8);
+        g.strokeCircle(cx, baseY, 7);
+        g.fillStyle(0x44ff88, 0.2);
+        g.fillCircle(cx, baseY, 3);
+      }
     }
   }
 }

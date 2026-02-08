@@ -48,6 +48,30 @@ No test runner, linter, or formatter is configured.
 
 **Scoring:** Order value is based on ingredient prices (`BASE_PRICE` + per-ingredient + treatment prices) multiplied by location tip modifier. Score = `orderValue * SCORE_MULTIPLIER`. Penalty of -25 score for placing the wrong ingredient.
 
+## Palette Shader System
+
+A post-processing shader that restricts all rendered output to a fixed color palette. Every pixel is snapped to the nearest color in the active palette using Euclidean RGB distance.
+
+**Files:**
+- `src/shaders/PalettePostFX.js` — The WebGL PostFX pipeline class and GLSL fragment shader.
+- `src/data/palettes.js` — Palette definitions (hex color arrays) and the `DEFAULT_PALETTE` constant.
+- `src/utils/applyPalette.js` — Helper that reads `localStorage` preference and applies the pipeline to a scene's camera.
+
+**Pipeline order:** PalettePostFX is applied first (before WarningPulse, Warp, CRT) so it processes raw rendered colors. Subsequent effects (scanlines, barrel distortion, etc.) operate on the already-snapped palette output.
+
+**localStorage key:** `footers_palette`. Values: a palette key name (e.g. `'gameboy'`) to enable that palette, `'off'` to disable, or absent/null to use `DEFAULT_PALETTE`.
+
+**Adding a new palette:** Add a key to `PALETTES` in `src/data/palettes.js` with an array of up to 32 hex colors (`0xRRGGBB`). No other changes needed — the shader picks it up automatically.
+
+**Runtime switching:** Get the pipeline from the camera and call `setPalette()`:
+```
+const pp = scene.cameras.main.getPostPipeline(PalettePostFX);
+const pipeline = Array.isArray(pp) ? pp[0] : pp;
+pipeline.setPalette(PALETTES.someKey);
+```
+
+**Shader limits:** Max 32 colors per palette (WebGL1 fixed-loop constraint). Uses RGB Euclidean distance (not perceptual LAB). WebGL renderer required (Canvas fallback not supported, but Phaser defaults to WebGL).
+
 ## Campaign System (Planned — "The Golden Spatula Tour")
 
 The game is being extended with a 7-chapter linear campaign and supporting systems. The game name will likely change to match the campaign narrative.

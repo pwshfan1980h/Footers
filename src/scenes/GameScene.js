@@ -24,6 +24,7 @@ import { musicManager } from '../MusicManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
+import { applyPalette } from '../utils/applyPalette.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -189,6 +190,7 @@ export class GameScene extends Phaser.Scene {
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
+      applyPalette(this);
       this.cameras.main.setPostPipeline(WarningPulsePostFX);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) {

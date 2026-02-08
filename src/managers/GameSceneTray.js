@@ -3,7 +3,6 @@
  */
 import { INGREDIENTS, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
-import { darkenColor } from '../utils/colorUtils.js';
 import {
   MAX_ACTIVE_ORDERS, CHEESE_CHANCE, SAUCE_CHANCE, DOUBLE_TREATMENT_CHANCE,
   BASE_PRICE, DEFAULT_INGREDIENT_PRICE, TREATMENT_PRICE,
@@ -216,79 +215,9 @@ export class GameSceneTray {
     const w = 55;
     const hw = w / 2;
 
-    const g = s.add.graphics();
-
-    if (cat === 'bread') {
-      const isBottom = tray.stackLayers.length === 0;
-      g.fillStyle(ing.color, 1);
-      g.lineStyle(1.5, ing.border, 0.8);
-      if (isBottom) {
-        g.fillRoundedRect(rX - hw, ly + rY - 4, w, 10, 3);
-        g.strokeRoundedRect(rX - hw, ly + rY - 4, w, 10, 3);
-      } else {
-        g.fillRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
-        g.strokeRoundedRect(rX - hw, ly + rY - 3, w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
-      }
-      if (!tray.breadLayers) tray.breadLayers = [];
-      tray.breadLayers.push({ graphics: g, key: ingredientKey, isBottom, rX, rY, ly, w, hw });
-    } else if (cat === 'meat') {
-      const mw = hw - 2;
-      g.fillStyle(ing.color, 0.95);
-      g.lineStyle(1, ing.border, 0.7);
-      g.fillEllipse(rX, ly + rY, mw * 2, 8);
-      g.strokeEllipse(rX, ly + rY, mw * 2, 8);
-      g.fillStyle(darkenColor(ing.color, 0.85), 0.4);
-      g.fillEllipse(rX + 4, ly + rY - 1, mw, 4);
-    } else if (cat === 'cheese') {
-      const cw = hw - 1;
-      g.fillStyle(ing.color, 1);
-      g.lineStyle(1, ing.border, 0.8);
-      g.fillRect(rX - cw, ly + rY - 2, cw * 2, 5);
-      g.strokeRect(rX - cw, ly + rY - 2, cw * 2, 5);
-      g.fillTriangle(rX - cw, ly + rY + 3, rX - cw - 3, ly + rY + 7, rX - cw + 5, ly + rY + 3);
-      g.fillTriangle(rX + cw, ly + rY + 3, rX + cw + 3, ly + rY + 7, rX + cw - 5, ly + rY + 3);
-      if (ingredientKey === 'cheese_swiss') {
-        g.fillStyle(darkenColor(ing.color, 0.8), 0.6);
-        g.fillCircle(rX - 8, ly + rY, 2);
-        g.fillCircle(rX + 6, ly + rY + 1, 1.5);
-      }
-    } else if (ingredientKey === 'top_lettuce') {
-      g.fillStyle(ing.color, 0.9);
-      g.lineStyle(1, ing.border, 0.7);
-      g.beginPath();
-      g.moveTo(rX - hw + 4, ly + rY);
-      for (let i = 0; i <= 8; i++) {
-        const px = rX - hw + 4 + (i / 8) * (w - 8);
-        const py = ly + rY + Math.sin(i * 1.8) * 3;
-        g.lineTo(px, py - 3);
-      }
-      for (let i = 8; i >= 0; i--) {
-        const px = rX - hw + 4 + (i / 8) * (w - 8);
-        const py = ly + rY + Math.sin(i * 1.8 + 1) * 2;
-        g.lineTo(px, py + 3);
-      }
-      g.closePath();
-      g.fillPath();
-      g.strokePath();
-    } else if (ingredientKey === 'top_tomato') {
-      const sliceW = 12;
-      g.fillStyle(ing.color, 0.9);
-      g.lineStyle(1, ing.border, 0.7);
-      for (let i = -1; i <= 1; i++) {
-        g.fillEllipse(rX + i * (sliceW + 2), ly + rY, sliceW, 6);
-        g.strokeEllipse(rX + i * (sliceW + 2), ly + rY, sliceW, 6);
-        g.fillStyle(0xFFAAAA, 0.5);
-        g.fillCircle(rX + i * (sliceW + 2), ly + rY, 1.5);
-        g.fillStyle(ing.color, 0.9);
-      }
-    } else if (ingredientKey === 'top_onion') {
-      g.lineStyle(2, ing.border, 0.8);
-      g.strokeEllipse(rX - 10, ly + rY, 14, 6);
-      g.strokeEllipse(rX + 8, ly + rY, 16, 7);
-      g.fillStyle(ing.color, 0.5);
-      g.fillEllipse(rX - 10, ly + rY, 14, 6);
-      g.fillEllipse(rX + 8, ly + rY, 16, 7);
-    } else if (cat === 'sauce') {
+    if (cat === 'sauce') {
+      // Sauce stays as Graphics zigzag
+      const g = s.add.graphics();
       g.lineStyle(2.5, ing.color, 0.9);
       g.beginPath();
       const steps = 7;
@@ -299,29 +228,62 @@ export class GameSceneTray {
         g.lineTo(px, py);
       }
       g.strokePath();
+      // Sauce uses the old animation pattern (baked coords, tween y from -15 to 0)
+      g.y = -15;
+      tray.container.add(g);
+      tray.stackLayers.push(g);
+
+      const isTopBread = false;
+      s.tweens.add({
+        targets: g,
+        y: 0,
+        duration: 120,
+        ease: 'Bounce.easeOut',
+        onComplete: () => {
+          this.squashLayer(g, tray, ingredientKey, isTopBread);
+        },
+      });
+      this.settleStack(tray, g);
+      return;
     }
 
-    tray.container.add(g);
-    tray.stackLayers.push(g);
+    // All non-sauce ingredients use SVG images
+    const img = s.add.image(rX, ly + rY, ingredientKey);
+
+    if (cat === 'bread') {
+      const isBottom = tray.stackLayers.length === 0;
+      img.setScale(0.85, isBottom ? 0.33 : 0.28);
+      if (!tray.breadLayers) tray.breadLayers = [];
+      tray.breadLayers.push({ image: img, key: ingredientKey, isBottom, rX, rY, ly });
+    } else if (cat === 'meat') {
+      img.setScale(0.43, 0.22);
+    } else if (cat === 'cheese') {
+      img.setScale(0.43, 0.18);
+    } else if (cat === 'topping') {
+      img.setScale(0.85, 0.40);
+    }
+
+    tray.container.add(img);
+    tray.stackLayers.push(img);
 
     // --- Stacking animation: drop, squash, settle ---
     const isTopBread = cat === 'bread' && tray.stackLayers.length > 1;
+    const targetY = ly + rY;
 
     // Drop in from above
-    g.y = -15;
+    img.y = targetY - 15;
     s.tweens.add({
-      targets: g,
-      y: 0,
+      targets: img,
+      y: targetY,
       duration: 120,
       ease: 'Bounce.easeOut',
       onComplete: () => {
-        // Squash on landing
-        this.squashLayer(g, tray, ingredientKey, isTopBread);
+        this.squashLayer(img, tray, ingredientKey, isTopBread);
       },
     });
 
     // Settle existing layers
-    this.settleStack(tray, g);
+    this.settleStack(tray, img);
   }
 
   squashLayer(g, tray, ingredientKey, isTopBread) {

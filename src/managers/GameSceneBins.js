@@ -4,7 +4,7 @@
 import { INGREDIENTS, BIN_LAYOUT, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 import { GAME_FONT } from '../data/constants.js';
-import { darkenColor } from '../utils/colorUtils.js';
+
 
 export class GameSceneBins {
   constructor(scene) {
@@ -566,30 +566,12 @@ export class GameSceneBins {
     if (treatmentKey === 'toasted') {
       if (tray.breadLayers) {
         tray.breadLayers.forEach(bread => {
-          const ing = INGREDIENTS[bread.key];
-          const toastedColor = ing.toastedColor || 0xC4943D;
-          const toastedBorder = ing.toastedBorder || 0x8B6914;
-
-          bread.graphics.clear();
-          bread.graphics.fillStyle(toastedColor, 1);
-          bread.graphics.lineStyle(1.5, toastedBorder, 0.8);
-
-          if (bread.isBottom) {
-            bread.graphics.fillRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 4, bread.w, 10, 3);
-            bread.graphics.strokeRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 4, bread.w, 10, 3);
-            bread.graphics.lineStyle(2, 0x6B4010, 0.5);
-            for (let i = 0; i < 3; i++) {
-              const markX = bread.rX - bread.hw + 8 + i * (bread.w - 16) / 2;
-              bread.graphics.lineBetween(markX, bread.ly + bread.rY - 3, markX + 4, bread.ly + bread.rY + 4);
-            }
+          const toastedKey = bread.key + '_toasted';
+          if (s.textures.exists(toastedKey)) {
+            bread.image.setTexture(toastedKey);
           } else {
-            bread.graphics.fillRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 3, bread.w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
-            bread.graphics.strokeRoundedRect(bread.rX - bread.hw, bread.ly + bread.rY - 3, bread.w, 8, { tl: 8, tr: 8, bl: 2, br: 2 });
-            bread.graphics.lineStyle(2, 0x6B4010, 0.5);
-            for (let i = 0; i < 3; i++) {
-              const markX = bread.rX - bread.hw + 10 + i * (bread.w - 20) / 2;
-              bread.graphics.lineBetween(markX, bread.ly + bread.rY - 2, markX + 3, bread.ly + bread.rY + 3);
-            }
+            // Fallback tint if texture missing
+            bread.image.setTint(0xC4943D);
           }
         });
       }

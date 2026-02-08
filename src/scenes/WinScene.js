@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, HULL_DARK, NEON_CYAN, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { applyPalette } from '../utils/applyPalette.js';
 import { createButton } from '../utils/uiHelpers.js';
 
 // Score-based performance ratings (checked in descending order)
@@ -26,8 +27,9 @@ export class WinScene extends Phaser.Scene {
     soundManager.init();
     soundManager.fanfare();
 
-    // Apply CRT shader (WebGL only)
+    // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
+      applyPalette(this);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
     }

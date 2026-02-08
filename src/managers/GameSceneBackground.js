@@ -110,7 +110,7 @@ export class GameSceneBackground {
     // Type-specific environmental elements
     this._drawSpaceEnvironment(g, locType, locColor, s);
 
-    // Stars — bias color toward location tint
+    // Stars — bias color toward location tint, each as its own Graphics for twinkle
     const stars = [];
     for (let i = 0; i < 80; i++) {
       stars.push({
@@ -121,15 +121,34 @@ export class GameSceneBackground {
       });
     }
 
+    const starGraphics = [];
     stars.forEach(star => {
       const rand = Math.random();
-      // 25% chance of location-tinted star, rest normal distribution
       const color = rand > 0.85 ? locColor
         : rand > 0.7 ? s.STAR_BLUE
         : rand > 0.55 ? s.STAR_WARM
         : s.STAR_WHITE;
-      g.fillStyle(color, star.alpha);
-      g.fillCircle(star.x, star.y, star.size);
+      const sg = s.add.graphics().setDepth(0.1);
+      sg.fillStyle(color, 1);
+      sg.fillCircle(0, 0, star.size);
+      sg.setPosition(star.x, star.y);
+      sg.setAlpha(star.alpha);
+      starGraphics.push(sg);
+    });
+
+    // Add twinkle tweens to ~35% of stars
+    starGraphics.forEach(sg => {
+      if (Math.random() < 0.35) {
+        s.tweens.add({
+          targets: sg,
+          alpha: Phaser.Math.FloatBetween(0.15, 0.35),
+          duration: Phaser.Math.Between(1500, 4000),
+          delay: Phaser.Math.Between(0, 3000),
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1,
+        });
+      }
     });
 
     s.starPositions = stars;

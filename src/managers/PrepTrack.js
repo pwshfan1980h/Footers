@@ -19,7 +19,9 @@ export class PrepTrack {
   }
 
   create() {
+    this.glowGfx = this.scene.add.graphics().setDepth(4);
     this.gfx = this.scene.add.graphics().setDepth(5);
+    this.pulseTween = null;
 
     // Initialize prep slots
     for (let i = 0; i < this.numSlots; i++) {
@@ -35,48 +37,98 @@ export class PrepTrack {
   }
 
   render() {
+    const s = this.scene;
     const g = this.gfx;
+    const glow = this.glowGfx;
     g.clear();
+    glow.clear();
 
     // Draw single prep slot
     const slot = this.slots[0];
     if (!slot) return;
 
-    // Wood cutting board colors
+    const slotLeft = slot.x - this.slotWidth / 2;
+    const slotTop = slot.y - this.slotHeight / 2;
+
+    // Glow ellipse behind the board
+    const glowColor = slot.occupied ? 0x44ff88 : 0x4488ff;
+    glow.fillStyle(glowColor, 0.18);
+    glow.fillEllipse(slot.x, slot.y, this.slotWidth + 30, this.slotHeight + 20);
+    glow.fillStyle(glowColor, 0.08);
+    glow.fillEllipse(slot.x, slot.y, this.slotWidth + 55, this.slotHeight + 40);
+
+    // Drop shadow
+    g.fillStyle(0x000000, 0.3);
+    g.fillRoundedRect(slotLeft + 3, slotTop + 3, this.slotWidth, this.slotHeight, 8);
+
+    // Wood cutting board
     const color = slot.occupied ? 0xB89868 : 0xC8A878;
     const borderColor = slot.occupied ? 0x44ff88 : 0x8B6A4A;
 
     g.fillStyle(color, 0.9);
-    g.fillRoundedRect(
-      slot.x - this.slotWidth / 2,
-      slot.y - this.slotHeight / 2,
-      this.slotWidth,
-      this.slotHeight,
-      6
-    );
+    g.fillRoundedRect(slotLeft, slotTop, this.slotWidth, this.slotHeight, 8);
 
     // Wood grain lines inside
-    const slotLeft = slot.x - this.slotWidth / 2;
-    const slotTop = slot.y - this.slotHeight / 2;
     g.lineStyle(1, 0x9A7A58, 0.12);
     for (let y = slotTop + 4; y < slotTop + this.slotHeight - 4; y += 5) {
       g.lineBetween(slotLeft + 4, y, slotLeft + this.slotWidth - 4, y);
     }
 
+    // Knife-mark scratches
+    g.lineStyle(1, 0x8A6A48, 0.15);
+    g.lineBetween(slotLeft + 20, slotTop + 12, slotLeft + 24, slotTop + 28);
+    g.lineBetween(slotLeft + 55, slotTop + 18, slotLeft + 58, slotTop + 38);
+    g.lineBetween(slotLeft + 90, slotTop + 8, slotLeft + 94, slotTop + 30);
+    g.lineBetween(slotLeft + 110, slotTop + 22, slotLeft + 113, slotTop + 42);
+    g.lineBetween(slotLeft + 35, slotTop + 50, slotLeft + 40, slotTop + 72);
+
     // Border
-    g.lineStyle(2, borderColor, slot.occupied ? 0.8 : 0.5);
-    g.strokeRoundedRect(
-      slot.x - this.slotWidth / 2,
-      slot.y - this.slotHeight / 2,
-      this.slotWidth,
-      this.slotHeight,
-      6
-    );
+    g.lineStyle(3, borderColor, slot.occupied ? 0.8 : 0.5);
+    g.strokeRoundedRect(slotLeft, slotTop, this.slotWidth, this.slotHeight, 8);
+
+    // Corner brackets
+    const bracketLen = 12;
+    const bracketInset = 4;
+    const bracketColor = slot.occupied ? 0x44ff88 : 0x8B6A4A;
+    const bracketAlpha = slot.occupied ? 0.9 : 0.4;
+    g.lineStyle(2, bracketColor, bracketAlpha);
+    // Top-left
+    g.lineBetween(slotLeft + bracketInset, slotTop + bracketInset, slotLeft + bracketInset + bracketLen, slotTop + bracketInset);
+    g.lineBetween(slotLeft + bracketInset, slotTop + bracketInset, slotLeft + bracketInset, slotTop + bracketInset + bracketLen);
+    // Top-right
+    g.lineBetween(slotLeft + this.slotWidth - bracketInset, slotTop + bracketInset, slotLeft + this.slotWidth - bracketInset - bracketLen, slotTop + bracketInset);
+    g.lineBetween(slotLeft + this.slotWidth - bracketInset, slotTop + bracketInset, slotLeft + this.slotWidth - bracketInset, slotTop + bracketInset + bracketLen);
+    // Bottom-left
+    g.lineBetween(slotLeft + bracketInset, slotTop + this.slotHeight - bracketInset, slotLeft + bracketInset + bracketLen, slotTop + this.slotHeight - bracketInset);
+    g.lineBetween(slotLeft + bracketInset, slotTop + this.slotHeight - bracketInset, slotLeft + bracketInset, slotTop + this.slotHeight - bracketInset - bracketLen);
+    // Bottom-right
+    g.lineBetween(slotLeft + this.slotWidth - bracketInset, slotTop + this.slotHeight - bracketInset, slotLeft + this.slotWidth - bracketInset - bracketLen, slotTop + this.slotHeight - bracketInset);
+    g.lineBetween(slotLeft + this.slotWidth - bracketInset, slotTop + this.slotHeight - bracketInset, slotLeft + this.slotWidth - bracketInset, slotTop + this.slotHeight - bracketInset - bracketLen);
 
     // Label when empty
     if (!slot.occupied) {
       g.fillStyle(0x8B6A4A, 0.3);
       g.fillCircle(slot.x, slot.y, 18);
+    }
+
+    // Pulse tween on glow when empty, stop when occupied
+    if (!slot.occupied) {
+      if (!this.pulseTween || !this.pulseTween.isPlaying()) {
+        this.pulseTween = s.tweens.add({
+          targets: glow,
+          alpha: { from: 1.0, to: 0.4 },
+          duration: 1200,
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1,
+        });
+      }
+    } else {
+      if (this.pulseTween) {
+        this.pulseTween.destroy();
+        this.pulseTween = null;
+      }
+      glow.setAlpha(1.0);
     }
 
     // Draw slot label text
