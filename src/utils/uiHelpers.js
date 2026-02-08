@@ -1,6 +1,7 @@
 /**
  * Shared UI helpers — reusable button factory for menu scenes
  */
+import { GAME_FONT } from '../data/constants.js';
 
 /**
  * Creates a styled, interactive button with hover effects.
@@ -51,7 +52,7 @@ export function createButton(scene, x, y, w, h, label, options = {}) {
     .setInteractive({ useHandCursor: true });
 
   const btnText = scene.add.text(cx, cy, label, {
-    fontSize, color: textColor, fontFamily: 'Bungee, Arial',
+    fontSize, color: textColor, fontFamily: GAME_FONT,
   }).setOrigin(0.5);
 
   btnHit.on('pointerover', () => {

@@ -7,7 +7,7 @@ import { MapVessels } from '../managers/MapVessels.js';
 import { TravelManager } from '../managers/TravelManager.js';
 import { MapHUD } from '../managers/MapHUD.js';
 import { musicManager } from '../MusicManager.js';
-import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK } from '../data/constants.js';
+import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
 const SHIP_SPEED = 120; // px/s
@@ -132,14 +132,14 @@ export class SystemMapScene extends Phaser.Scene {
       this.locationContainer.add(g);
 
       const label = this.add.text(loc.x, loc.y + 50, loc.name, {
-        fontSize: '22px', color: '#ccddee', fontFamily: 'Arial',
+        fontSize: '22px', color: '#ccddee', fontFamily: GAME_FONT,
         fontStyle: 'bold', align: 'center',
       }).setOrigin(0.5);
       this.locationContainer.add(label);
 
       const hint = this.getLocationHint(loc);
       const hintText = this.add.text(loc.x, loc.y + 74, hint, {
-        fontSize: '15px', color: '#778899', fontFamily: 'Arial',
+        fontSize: '15px', color: '#778899', fontFamily: GAME_FONT,
         align: 'center',
       }).setOrigin(0.5);
       this.locationContainer.add(hintText);

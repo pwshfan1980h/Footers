@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, HULL_DARK, NEON_CYAN } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, HULL_DARK, NEON_CYAN, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { createButton } from '../utils/uiHelpers.js';
 
@@ -60,16 +60,16 @@ export class WinScene extends Phaser.Scene {
 
     // Title
     this.add.text(512, 100, 'EMPLOYEE OF', {
-      fontSize: '40px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+      fontSize: '40px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(512, 155, 'THE WEEK!', {
-      fontSize: '56px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+      fontSize: '56px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Title glow animation
     const titleGlow = this.add.text(512, 155, 'THE WEEK!', {
-      fontSize: '56px', color: '#ffff00', fontFamily: 'Bungee, Arial',
+      fontSize: '56px', color: '#ffff00', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setAlpha(0);
 
     this.tweens.add({
@@ -81,7 +81,7 @@ export class WinScene extends Phaser.Scene {
     });
 
     this.add.text(512, 230, 'You survived the whole week at the station!', {
-      fontSize: '22px', color: '#8899bb', fontFamily: 'Arial',
+      fontSize: '22px', color: '#8899bb', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Score panel
@@ -92,14 +92,14 @@ export class WinScene extends Phaser.Scene {
     panel.strokeRoundedRect(312, 270, 400, 100, 12);
 
     this.add.text(512, 320, `Final Score: ${this.totalScore}`, {
-      fontSize: '36px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+      fontSize: '36px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Rating (find first matching tier)
     const tier = RATINGS.find(r => this.totalScore >= r.min) || RATINGS[RATINGS.length - 1];
 
     this.add.text(HALF_WIDTH, 405, `Rating: ${tier.label}`, {
-      fontSize: '26px', color: tier.color, fontFamily: 'Arial', fontStyle: 'italic',
+      fontSize: '26px', color: tier.color, fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Play again button

@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { HUMAN_NAMES, ALIEN_NAME_PARTS, QUIPS } from '../data/customerPersonality.js';
 import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
+import { GAME_FONT } from '../data/constants.js';
 
 /**
  * CustomerVessels — Large ships park in the deep window background.
@@ -104,7 +105,6 @@ export class CustomerVessels {
       onArrive,
       name,
       quip,
-      speechBubble: null,
 
       // Ship
       shipX: -120,
@@ -147,10 +147,8 @@ export class CustomerVessels {
     const c = this.customers.find(v => v.tray === tray);
     if (!c) return;
 
-    if (c.speechBubble) {
-      c.speechBubble.destroy();
-      c.speechBubble = null;
-    }
+    // Clear patience bar immediately
+    if (c.patienceBarGfx) c.patienceBarGfx.clear();
 
     if (c.personState === 'at_window' || c.personState === 'eva_to_window') {
       c.personState = 'eva_to_ship';
@@ -199,7 +197,6 @@ export class CustomerVessels {
         c.personGfx.destroy();
         if (c.patienceBarGfx) c.patienceBarGfx.destroy();
         if (c.numText) c.numText.destroy();
-        if (c.speechBubble) c.speechBubble.destroy();
         if (c.slot) c.slot.occupied = false;
         this.customers.splice(i, 1);
       }
@@ -505,7 +502,7 @@ export class CustomerVessels {
       if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_window') {
         if (!c.numText) {
           c.numText = this.scene.add.text(x, y - 30 * sc, `#${c.tray.orderNum}`, {
-            fontSize: '12px', color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
+            fontSize: '12px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
             backgroundColor: '#00000066', padding: { x: 3, y: 1 },
           }).setOrigin(0.5).setDepth(1);
         }
@@ -671,7 +668,7 @@ export class CustomerVessels {
     if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_window') {
       if (!c.numText) {
         c.numText = this.scene.add.text(x, y - 30 * sc, `#${c.tray.orderNum}`, {
-          fontSize: '12px', color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
+          fontSize: '12px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
           backgroundColor: '#00000066', padding: { x: 3, y: 1 },
         }).setOrigin(0.5).setDepth(1);
       }
@@ -842,72 +839,9 @@ export class CustomerVessels {
   }
 
   showSpeechBubble(c) {
-    if (c.speechBubble) {
-      c.speechBubble.destroy();
-      c.speechBubble = null;
-    }
-
-    const s = this.scene;
-    const bx = c.personX;
-    const by = c.personY - 55;
-    const displayText = `${c.name}: "${c.quip}"`;
-
-    const container = s.add.container(bx, by).setDepth(1.2);
-
-    // Measure text to size the bubble
-    const txt = s.add.text(0, 0, displayText, {
-      fontSize: '11px', color: '#ffffff', fontFamily: 'Arial',
-      wordWrap: { width: 140 },
-      align: 'center',
-    }).setOrigin(0.5);
-
-    const padX = 10;
-    const padY = 6;
-    const tw = txt.width + padX * 2;
-    const th = txt.height + padY * 2;
-
-    const bg = s.add.graphics();
-    bg.fillStyle(0x1a1a30, 0.9);
-    bg.fillRoundedRect(-tw / 2, -th / 2, tw, th, 6);
-    bg.lineStyle(1.5, 0x6688cc, 0.7);
-    bg.strokeRoundedRect(-tw / 2, -th / 2, tw, th, 6);
-
-    // Triangle pointer
-    bg.fillStyle(0x1a1a30, 0.9);
-    bg.fillTriangle(
-      -5, th / 2,
-      5, th / 2,
-      0, th / 2 + 8
-    );
-
-    container.add(bg);
-    container.add(txt);
-    container.setAlpha(0);
-
-    // Fade in
-    s.tweens.add({
-      targets: container,
-      alpha: 1,
-      duration: 300,
-      ease: 'Sine.easeOut',
+    this.scene.notificationManager.show(`${c.name}: "${c.quip}"`, {
+      borderColor: c.isAlien ? 0x44ff88 : 0x6688cc,
     });
-
-    // Auto-destroy after 3.5s with fade-out
-    s.time.delayedCall(3500, () => {
-      if (!container || !container.scene) return;
-      s.tweens.add({
-        targets: container,
-        alpha: 0,
-        duration: 400,
-        ease: 'Sine.easeIn',
-        onComplete: () => {
-          if (container && container.scene) container.destroy();
-          if (c.speechBubble === container) c.speechBubble = null;
-        },
-      });
-    });
-
-    c.speechBubble = container;
   }
 
   darkenColor(color, factor) {
@@ -923,7 +857,6 @@ export class CustomerVessels {
       c.personGfx.destroy();
       if (c.patienceBarGfx) c.patienceBarGfx.destroy();
       if (c.numText) c.numText.destroy();
-      if (c.speechBubble) c.speechBubble.destroy();
     }
     this.customers = [];
   }

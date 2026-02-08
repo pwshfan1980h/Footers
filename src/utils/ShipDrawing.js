@@ -1,3 +1,5 @@
+import { GAME_FONT } from '../data/constants.js';
+
 /**
  * Draw the food truckship at a given position and scale.
  * @param {Phaser.Scene} scene - The Phaser scene (needed for text at large scales)
@@ -40,7 +42,7 @@ export function drawFoodTruckship(scene, g, cx, cy, scale, container, angle) {
   // "FOOTERS" text on hull (only at larger scales)
   if (scale >= 1.5 && scene) {
     const nameText = scene.add.text(cx - 25 * s, cy + 5 * s, 'FOOTERS', {
-      fontSize: `${8 * s}px`, color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: `${8 * s}px`, color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
     });
     if (container) {
       container.add(nameText);

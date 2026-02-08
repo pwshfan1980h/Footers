@@ -3,6 +3,7 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { GAME_FONT } from '../data/constants.js';
 
 export class GameSceneInteraction {
   constructor(scene) {
@@ -31,7 +32,7 @@ export class GameSceneInteraction {
 
     const label = s.add.text(0, 17, ing.name, {
       fontSize: '13px', color: ing.textColor || '#000',
-      fontFamily: 'Arial', fontStyle: 'bold',
+      fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
     c.add(label);
 
@@ -309,7 +310,7 @@ export class GameSceneInteraction {
               const expectedName = expectedKey ? INGREDIENTS[expectedKey].name : '?';
               const needTxt = s.add.text(tray.container.x, tray.container.y - 60,
                 `Need ${expectedName}!\n-25`, {
-                fontSize: '16px', color: '#ff4444', fontFamily: 'Arial', fontStyle: 'bold',
+                fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
                 align: 'center',
               }).setOrigin(0.5).setDepth(100);
               s.tweens.add({

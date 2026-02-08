@@ -3,6 +3,7 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { GAME_FONT } from '../data/constants.js';
 
 export class GameSceneTicketBar {
   constructor(scene) {
@@ -31,7 +32,7 @@ export class GameSceneTicketBar {
     ticketLip.fillRect(0, 139, 1024, 1);
 
     s.add.text(8, 55, 'ORDERS:', {
-      fontSize: '10px', color: '#00bbdd', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '10px', color: '#00bbdd', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(36);
 
     s.ticketContainer = s.add.container(0, 0).setDepth(36);
@@ -39,8 +40,7 @@ export class GameSceneTicketBar {
 
   addTicket(order, orderNum) {
     const s = this.scene;
-    const handFonts = ['Caveat, cursive', 'Permanent Marker, cursive', 'Nothing You Could Do, cursive', 'Grape Nuts, cursive'];
-    const ticketFont = handFonts[Math.floor(Math.random() * handFonts.length)];
+    const ticketFont = GAME_FONT;
     const cardW = 140;
     const lineH = 13;
     const ingLines = order.ingredients.length;
@@ -66,14 +66,14 @@ export class GameSceneTicketBar {
     card.add(bg);
 
     const numText = s.add.text(cardW / 2, 4, `#${orderNum}`, {
-      fontSize: '14px', color: '#333', fontFamily: 'Bungee, Arial',
+      fontSize: '14px', color: '#333', fontFamily: GAME_FONT,
     }).setOrigin(0.5, 0);
     card.add(numText);
 
     let yOff = 20;
 
     const priceTxt = s.add.text(cardW - 6, 5, `$${order.totalPrice.toFixed(2)}`, {
-      fontSize: '11px', color: '#006600', fontFamily: 'Arial', fontStyle: 'bold'
+      fontSize: '13px', color: '#006600', fontFamily: GAME_FONT, fontStyle: 'bold'
     }).setOrigin(1, 0);
     card.add(priceTxt);
 
@@ -221,7 +221,7 @@ export class GameSceneTicketBar {
     overlay.fillRoundedRect(0, 0, w, h, 5);
     ticket.card.add(overlay);
     const check = s.add.text(w / 2, h / 2, '\u2713', {
-      fontSize: '36px', color: '#0a0', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '36px', color: '#0a0', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setAlpha(0.6);
     ticket.card.add(check);
   }
@@ -238,7 +238,7 @@ export class GameSceneTicketBar {
     overlay.fillRoundedRect(0, 0, w, h, 5);
     ticket.card.add(overlay);
     const xMark = s.add.text(w / 2, h / 2, '\u2717', {
-      fontSize: '36px', color: '#f33', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '36px', color: '#f33', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setAlpha(0.6);
     ticket.card.add(xMark);
   }

@@ -6,8 +6,15 @@ class GameState {
     this.truckshipWorldX = 1500;
     this.truckshipWorldY = 900;
     this.totalMoney = 0;
-    this.shiftsCompleted = 0;        // TODO: used by campaign system
-    this.locationsVisited = new Set(['hub_central']); // TODO: used by campaign system
+    this.shiftsCompleted = 0;
+    this.locationsVisited = new Set(['hub_central']);
+    this.stats = {
+      totalOrdersCompleted: 0,
+      totalOrdersMissed: 0,
+      bestShiftEarnings: 0,
+      fastestOrder: null,
+      totalSandwiches: 0,
+    };
     this.load();
   }
 
@@ -20,6 +27,7 @@ class GameState {
         totalMoney: this.totalMoney,
         shiftsCompleted: this.shiftsCompleted,
         locationsVisited: [...this.locationsVisited],
+        stats: this.stats,
       };
       localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
     } catch (e) {
@@ -38,18 +46,32 @@ class GameState {
       this.totalMoney = data.totalMoney || 0;
       this.shiftsCompleted = data.shiftsCompleted || 0;
       this.locationsVisited = new Set(data.locationsVisited || ['hub_central']);
+      if (data.stats) {
+        this.stats = { ...this.stats, ...data.stats };
+      }
     } catch (e) {
       // corrupted or unavailable
     }
   }
 
-  updateAfterShift(locationId, earnings, ordersCompleted, ordersMissed) {
+  updateAfterShift(locationId, earnings, ordersCompleted, ordersMissed, fastestOrder) {
     this.totalMoney += earnings;
     this.shiftsCompleted++;
     if (locationId) {
       this.locationsVisited.add(locationId);
       this.currentLocation = locationId;
     }
+
+    this.stats.totalOrdersCompleted += ordersCompleted || 0;
+    this.stats.totalOrdersMissed += ordersMissed || 0;
+    this.stats.totalSandwiches += ordersCompleted || 0;
+    if (earnings > this.stats.bestShiftEarnings) {
+      this.stats.bestShiftEarnings = earnings;
+    }
+    if (fastestOrder != null && (this.stats.fastestOrder == null || fastestOrder < this.stats.fastestOrder)) {
+      this.stats.fastestOrder = fastestOrder;
+    }
+
     this.save();
   }
 
@@ -60,6 +82,13 @@ class GameState {
     this.totalMoney = 0;
     this.shiftsCompleted = 0;
     this.locationsVisited = new Set(['hub_central']);
+    this.stats = {
+      totalOrdersCompleted: 0,
+      totalOrdersMissed: 0,
+      bestShiftEarnings: 0,
+      fastestOrder: null,
+      totalSandwiches: 0,
+    };
     this.save();
   }
 }

@@ -1,9 +1,13 @@
 /**
  * GameSceneHUD - Score display, hotkey hints, speed indicators
  */
+import { GAME_FONT } from '../data/constants.js';
+
 export class GameSceneHUD {
   constructor(scene) {
     this.scene = scene;
+    this.displayedMoney = 0;
+    this.moneyTween = null;
   }
 
   create() {
@@ -16,27 +20,27 @@ export class GameSceneHUD {
     hudBg.fillRect(0, 48, 1024, 2);
 
     s.scoreText = s.add.text(12, 15, `Score: ${s.currentScore}`, {
-      fontSize: '18px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+      fontSize: '18px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setDepth(5);
 
     s.highScoreText = s.add.text(200, 15, `High Score: ${s.highScore}`, {
-      fontSize: '16px', color: '#00ddff', fontFamily: 'Bungee, Arial',
+      fontSize: '18px', color: '#00ddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
     s.ordersText = s.add.text(780, 17, s.ordersDisplay(), {
-      fontSize: '12px', color: '#aaddff', fontFamily: 'Arial',
+      fontSize: '12px', color: '#aaddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
     s.moneyText = s.add.text(480, 15, '$0.00', {
-      fontSize: '16px', color: '#44ff88', fontFamily: 'Bungee, Arial',
+      fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setDepth(5);
 
     s.strikesText = s.add.text(700, 5, '', {
-      fontSize: '14px', color: '#ff6666', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '14px', color: '#ff6666', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(5);
 
     s.riskText = s.add.text(700, 30, '', {
-      fontSize: '11px', color: '#ff4444', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '13px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(5).setAlpha(0);
 
     this.createHotkeyMemo();
@@ -55,7 +59,7 @@ export class GameSceneHUD {
     memo.strokeRoundedRect(memoX, memoY - 12, 70, 24, 4);
 
     s.add.text(memoX + 35, memoY, 'F1=Help', {
-      fontSize: '11px', color: '#00ddff', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '13px', color: '#00ddff', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(5);
   }
 
@@ -76,7 +80,7 @@ export class GameSceneHUD {
     legend.add(bg);
 
     const title = s.add.text(panelW / 2, 12, 'CONTROLS', {
-      fontSize: '14px', color: '#00ffcc', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '14px', color: '#00ffcc', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5, 0);
     legend.add(title);
 
@@ -95,10 +99,10 @@ export class GameSceneHUD {
     controls.forEach((ctrl, i) => {
       const y = 34 + i * 16;
       const keyTxt = s.add.text(8, y, ctrl.key, {
-        fontSize: '11px', color: '#00ddff', fontFamily: 'Arial', fontStyle: 'bold',
+        fontSize: '13px', color: '#00ddff', fontFamily: GAME_FONT, fontStyle: 'bold',
       });
       const descTxt = s.add.text(55, y, ctrl.desc, {
-        fontSize: '11px', color: '#aaddff', fontFamily: 'Arial',
+        fontSize: '13px', color: '#aaddff', fontFamily: GAME_FONT,
       });
       legend.add(keyTxt);
       legend.add(descTxt);
@@ -121,13 +125,44 @@ export class GameSceneHUD {
     container.add(bg);
 
     const txt = s.add.text(0, 0, key, {
-      fontSize: '14px', color: '#00ffff', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '14px', color: '#00ffff', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
     container.add(txt);
 
     container.setVisible(false);
     s.hotkeyHints.push(container);
     return container;
+  }
+
+  animateMoney(target) {
+    const s = this.scene;
+    if (this.displayedMoney === target) {
+      s.moneyText.setText(`$${target.toFixed(2)}`);
+      return;
+    }
+
+    if (this.moneyTween) this.moneyTween.destroy();
+
+    const from = this.displayedMoney;
+    const dummy = { value: from };
+
+    this.moneyTween = s.tweens.add({
+      targets: dummy,
+      value: target,
+      duration: 350,
+      ease: 'Cubic.easeOut',
+      onUpdate: () => {
+        s.moneyText.setText(`$${dummy.value.toFixed(2)}`);
+        // Flash green on increase
+        s.moneyText.setColor(dummy.value > from ? '#88ffaa' : '#44ff88');
+      },
+      onComplete: () => {
+        s.moneyText.setText(`$${target.toFixed(2)}`);
+        s.moneyText.setColor('#44ff88');
+        this.displayedMoney = target;
+        this.moneyTween = null;
+      },
+    });
   }
 
   showHotkeyHints(visible) {
@@ -146,7 +181,7 @@ export class GameSceneHUD {
     s.scoreText.setText(`Score: ${s.currentScore}`);
     s.highScoreText.setText(`High Score: ${s.highScore}`);
     s.ordersText.setText(s.ordersDisplay());
-    s.moneyText.setText(`$${s.gameMoney.toFixed(2)}`);
+    this.animateMoney(s.gameMoney);
 
     // Strike indicators: filled X for misses, empty circles for remaining
     const maxStrikes = 3;

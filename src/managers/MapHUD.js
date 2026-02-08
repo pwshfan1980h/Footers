@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { LOCATIONS } from '../data/locations.js';
+import { GAME_FONT } from '../data/constants.js';
 import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
 
@@ -13,6 +14,8 @@ export class MapHUD {
     this.statusText = null;
     this.moneyText = null;
     this.helpOverlay = null;
+    this.statsPanel = null;
+    this.statsPanelVisible = false;
   }
 
   create() {
@@ -22,6 +25,7 @@ export class MapHUD {
     scene.uiContainer = scene.add.container(0, 0).setDepth(10);
     this.createUI();
     this.createHelpOverlay();
+    this.createStatsPanel();
   }
 
   createUI() {
@@ -37,19 +41,25 @@ export class MapHUD {
 
     // Money display
     this.moneyText = scene.add.text(12, 12, `$${gameState.totalMoney.toFixed(2)}`, {
-      fontSize: '18px', color: '#44ff88', fontFamily: 'Bungee, Arial',
+      fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
     });
     scene.uiContainer.add(this.moneyText);
 
     // Shifts completed
     this.shiftsText = scene.add.text(200, 14, `Shifts: ${gameState.shiftsCompleted}`, {
-      fontSize: '14px', color: '#aabbcc', fontFamily: 'Arial',
+      fontSize: '14px', color: '#aabbcc', fontFamily: GAME_FONT,
     });
     scene.uiContainer.add(this.shiftsText);
 
+    // Stats button
+    this.statsBtn = this.createButton(340, 8, 70, 28, 'STATS', 0x1a1a3a, 0x88aaff, () => {
+      this.toggleStatsPanel();
+    });
+    scene.uiContainer.add(this.statsBtn.container);
+
     // Current status
     this.statusText = scene.add.text(512, 14, '', {
-      fontSize: '14px', color: '#FFE8CC', fontFamily: 'Arial',
+      fontSize: '14px', color: '#FFE8CC', fontFamily: GAME_FONT,
     }).setOrigin(0.5, 0);
     scene.uiContainer.add(this.statusText);
     this.updateStatusText();
@@ -64,7 +74,7 @@ export class MapHUD {
     memo.strokeRoundedRect(memoX, memoY - 12, 70, 24, 4);
     scene.uiContainer.add(memo);
     const memoText = scene.add.text(memoX + 35, memoY, 'F1=Help', {
-      fontSize: '11px', color: '#FF6B8A', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '13px', color: '#FF6B8A', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
     scene.uiContainer.add(memoText);
 
@@ -95,7 +105,7 @@ export class MapHUD {
 
     const text = scene.add.text(w / 2, h / 2, label, {
       fontSize: '12px', color: Phaser.Display.Color.IntegerToColor(textColor).rgba,
-      fontFamily: 'Bungee, Arial',
+      fontFamily: GAME_FONT,
     }).setOrigin(0.5);
     container.add(text);
 
@@ -166,7 +176,7 @@ export class MapHUD {
     this.helpOverlay.add(bg);
 
     const title = scene.add.text(panelW / 2, 16, 'SYSTEM MAP', {
-      fontSize: '16px', color: '#FF6B8A', fontFamily: 'Bungee, Arial',
+      fontSize: '18px', color: '#FF6B8A', fontFamily: GAME_FONT,
     }).setOrigin(0.5, 0);
     this.helpOverlay.add(title);
 
@@ -185,17 +195,17 @@ export class MapHUD {
     ];
 
     const ctrlTitle = scene.add.text(16, 50, 'CONTROLS', {
-      fontSize: '11px', color: '#FF6B8A', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '13px', color: '#FF6B8A', fontFamily: GAME_FONT, fontStyle: 'bold',
     });
     this.helpOverlay.add(ctrlTitle);
 
     controls.forEach((ctrl, i) => {
       const y = 68 + i * 17;
       const keyTxt = scene.add.text(16, y, ctrl.key, {
-        fontSize: '11px', color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
+        fontSize: '13px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
       });
       const descTxt = scene.add.text(120, y, ctrl.desc, {
-        fontSize: '11px', color: '#8899aa', fontFamily: 'Arial',
+        fontSize: '13px', color: '#8899aa', fontFamily: GAME_FONT,
       });
       this.helpOverlay.add(keyTxt);
       this.helpOverlay.add(descTxt);
@@ -208,7 +218,7 @@ export class MapHUD {
     this.helpOverlay.add(tipDivider);
 
     const tipTitle = scene.add.text(16, tipsY, 'TIPS', {
-      fontSize: '11px', color: '#FF6B8A', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '13px', color: '#FF6B8A', fontFamily: GAME_FONT, fontStyle: 'bold',
     });
     this.helpOverlay.add(tipTitle);
 
@@ -220,13 +230,104 @@ export class MapHUD {
 
     tips.forEach((tip, i) => {
       const t = scene.add.text(16, tipsY + 18 + i * 16, tip, {
-        fontSize: '10px', color: '#667788', fontFamily: 'Arial', fontStyle: 'italic',
+        fontSize: '10px', color: '#667788', fontFamily: GAME_FONT,
       });
       this.helpOverlay.add(t);
     });
 
     this.helpOverlay.setVisible(false);
     scene.uiContainer.add(this.helpOverlay);
+  }
+
+  createStatsPanel() {
+    const scene = this.scene;
+    const panelW = 280;
+    const panelH = 240;
+    const panelX = 372;
+    const panelY = 60;
+
+    this.statsPanel = scene.add.container(panelX, panelY).setDepth(100);
+
+    const bg = scene.add.graphics();
+    bg.fillStyle(0x0a0a18, 0.95);
+    bg.fillRoundedRect(0, 0, panelW, panelH, 10);
+    bg.lineStyle(2, 0x88aaff, 0.8);
+    bg.strokeRoundedRect(0, 0, panelW, panelH, 10);
+    this.statsPanel.add(bg);
+
+    const title = scene.add.text(panelW / 2, 14, 'CAREER STATS', {
+      fontSize: '18px', color: '#88aaff', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    this.statsPanel.add(title);
+
+    const divider = scene.add.graphics();
+    divider.lineStyle(1, 0x88aaff, 0.3);
+    divider.lineBetween(16, 38, panelW - 16, 38);
+    this.statsPanel.add(divider);
+
+    this.statsLines = [];
+    const statDefs = [
+      { label: 'Shifts Completed', key: 'shifts' },
+      { label: 'Sandwiches Made', key: 'totalSandwiches' },
+      { label: 'Orders Missed', key: 'totalOrdersMissed' },
+      { label: 'Total Earnings', key: 'totalMoney' },
+      { label: 'Best Shift', key: 'bestShiftEarnings' },
+      { label: 'Fastest Order', key: 'fastestOrder' },
+      { label: 'Locations Visited', key: 'locationsVisited' },
+    ];
+
+    statDefs.forEach((def, i) => {
+      const y = 48 + i * 24;
+      const labelTxt = scene.add.text(16, y, def.label, {
+        fontSize: '13px', color: '#8899aa', fontFamily: GAME_FONT,
+      });
+      const valueTxt = scene.add.text(panelW - 16, y, '', {
+        fontSize: '13px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(1, 0);
+      this.statsPanel.add(labelTxt);
+      this.statsPanel.add(valueTxt);
+      this.statsLines.push({ key: def.key, text: valueTxt });
+    });
+
+    this.statsPanel.setVisible(false);
+    scene.uiContainer.add(this.statsPanel);
+  }
+
+  toggleStatsPanel() {
+    this.statsPanelVisible = !this.statsPanelVisible;
+    if (this.statsPanelVisible) {
+      this.refreshStats();
+    }
+    this.statsPanel.setVisible(this.statsPanelVisible);
+  }
+
+  refreshStats() {
+    const s = gameState.stats;
+    this.statsLines.forEach(line => {
+      switch (line.key) {
+        case 'shifts':
+          line.text.setText(gameState.shiftsCompleted.toString());
+          break;
+        case 'totalSandwiches':
+          line.text.setText(s.totalSandwiches.toString());
+          break;
+        case 'totalOrdersMissed':
+          line.text.setText(s.totalOrdersMissed.toString());
+          break;
+        case 'totalMoney':
+          line.text.setText(`$${gameState.totalMoney.toFixed(2)}`);
+          break;
+        case 'bestShiftEarnings':
+          line.text.setText(`$${s.bestShiftEarnings.toFixed(2)}`);
+          break;
+        case 'fastestOrder':
+          line.text.setText(s.fastestOrder != null ? `${s.fastestOrder.toFixed(1)}s` : '--');
+          break;
+        case 'locationsVisited':
+          line.text.setText(`${gameState.locationsVisited.size} / 7`);
+          break;
+      }
+    });
   }
 
   showHelp(visible) {
@@ -261,12 +362,12 @@ export class MapHUD {
     popup.add(bg);
 
     const nameText = scene.add.text(14 * s, 10 * s, loc.name, {
-      fontSize: `${18 * s}px`, color: '#FFE8CC', fontFamily: 'Bungee, Arial',
+      fontSize: `${18 * s}px`, color: '#FFE8CC', fontFamily: GAME_FONT,
     });
     popup.add(nameText);
 
     const descText = scene.add.text(14 * s, 36 * s, loc.description || '', {
-      fontSize: `${11 * s}px`, color: '#8899aa', fontFamily: 'Arial',
+      fontSize: `${11 * s}px`, color: '#8899aa', fontFamily: GAME_FONT,
       wordWrap: { width: 270 * s },
     });
     popup.add(descText);
@@ -280,7 +381,7 @@ export class MapHUD {
     if (m.tipMult > 1.3) hints.push('Big tips!');
     else if (m.tipMult < 0.9) hints.push('Low tips');
     const modText = scene.add.text(14 * s, 80 * s, hints.join(' · ') || 'Standard difficulty', {
-      fontSize: `${10 * s}px`, color: '#aabbcc', fontFamily: 'Arial',
+      fontSize: `${10 * s}px`, color: '#aabbcc', fontFamily: GAME_FONT,
     });
     popup.add(modText);
 
@@ -322,7 +423,7 @@ export class MapHUD {
     popup.add(btnBg);
 
     const btnText = scene.add.text(x + w / 2, y + h / 2, label, {
-      fontSize: `${12 * s}px`, color: '#ffffff', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: `${12 * s}px`, color: '#ffffff', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
     popup.add(btnText);
 
@@ -371,7 +472,7 @@ export class MapHUD {
     const centerWorldX = cam.scrollX + 512 / cam.zoom;
     const centerWorldY = cam.scrollY + 120 / cam.zoom;
     const text = scene.add.text(centerWorldX, centerWorldY, `+$${amount.toFixed(2)} earned!`, {
-      fontSize: '44px', color: '#44ff88', fontFamily: 'Bungee, Arial',
+      fontSize: '44px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setDepth(20);
 
     scene.tweens.add({

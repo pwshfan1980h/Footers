@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, SPACE_BLACK, HULL_DARK, NEON_CYAN } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, SPACE_BLACK, HULL_DARK, NEON_CYAN, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { createButton } from '../utils/uiHelpers.js';
 
@@ -47,11 +47,11 @@ export class DayEndScene extends Phaser.Scene {
 
     // Title
     this.add.text(HALF_WIDTH, 100, 'SHIFT COMPLETE!', {
-      fontSize: '52px', color: '#00ffcc', fontFamily: 'Bungee, Arial',
+      fontSize: '52px', color: '#00ffcc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(HALF_WIDTH, 180, `${dayNames[this.day]} is done.`, {
-      fontSize: '24px', color: '#8899aa', fontFamily: 'Arial',
+      fontSize: '24px', color: '#8899aa', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Stats panel
@@ -62,15 +62,15 @@ export class DayEndScene extends Phaser.Scene {
     panel.strokeRoundedRect(312, 220, 400, 160, 12);
 
     this.add.text(HALF_WIDTH, 260, `Orders filled: ${this.ordersCompleted} / ${this.totalOrders}`, {
-      fontSize: '22px', color: '#ffffff', fontFamily: 'Arial',
+      fontSize: '22px', color: '#ffffff', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(HALF_WIDTH, 300, `Day score: +${this.dayScore}`, {
-      fontSize: '22px', color: '#ffd700', fontFamily: 'Arial',
+      fontSize: '22px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(HALF_WIDTH, 350, `Total score: ${this.totalScore}`, {
-      fontSize: '26px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+      fontSize: '26px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     if (this.day < 5) {
@@ -81,7 +81,7 @@ export class DayEndScene extends Phaser.Scene {
         4: 'Tomorrow the line moves faster...',
       };
       this.add.text(HALF_WIDTH, 420, previews[this.day] || '', {
-        fontSize: '16px', color: '#ff8888', fontFamily: 'Arial', fontStyle: 'italic',
+        fontSize: '18px', color: '#ff8888', fontFamily: GAME_FONT,
       }).setOrigin(0.5);
     }
 

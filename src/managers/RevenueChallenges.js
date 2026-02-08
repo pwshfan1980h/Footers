@@ -1,4 +1,5 @@
 import { soundManager } from '../SoundManager.js';
+import { GAME_FONT } from '../data/constants.js';
 
 /**
  * RevenueChallenges — timed revenue goals that provide optional progression.
@@ -57,15 +58,15 @@ export class RevenueChallenges {
     this.gfx = this.scene.add.graphics().setDepth(120);
 
     this.labelText = this.scene.add.text(this.panelX, this.panelY - 8, '', {
-      fontSize: '11px', color: '#FFE8CC', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '13px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5, 0.5).setDepth(121);
 
     this.goalText = this.scene.add.text(this.panelX, this.panelY + 8, '', {
-      fontSize: '10px', color: '#C8A878', fontFamily: 'Arial',
+      fontSize: '10px', color: '#C8A878', fontFamily: GAME_FONT,
     }).setOrigin(0.5, 0.5).setDepth(121);
 
     this.timerText = this.scene.add.text(this.panelX, this.panelY + 24, '', {
-      fontSize: '10px', color: '#FF6B8A', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '10px', color: '#FF6B8A', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5, 0.5).setDepth(121);
 
     // Skip already completed challenges
@@ -195,7 +196,7 @@ export class RevenueChallenges {
 
     // Gold flash + floating text
     const celebText = this.scene.add.text(512, 200, `${name} Complete!`, {
-      fontSize: '32px', color: '#FFD700', fontFamily: 'Bungee, Arial',
+      fontSize: '32px', color: '#FFD700', fontFamily: GAME_FONT,
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(150);
 
@@ -222,8 +223,8 @@ export class RevenueChallenges {
     this.timerText.setText('');
 
     const timeoutText = this.scene.add.text(512, 200, "Time's up! Retrying...", {
-      fontSize: '22px', color: '#C8A878', fontFamily: 'Arial',
-      fontStyle: 'italic', stroke: '#000000', strokeThickness: 3,
+      fontSize: '22px', color: '#C8A878', fontFamily: GAME_FONT,
+      stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(150);
 
     this.scene.tweens.add({

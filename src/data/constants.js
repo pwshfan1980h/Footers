@@ -44,3 +44,6 @@ export const LAYER_HEIGHT_TOPPING = 4;
 export const LAYER_HEIGHT_CHEESE = 4;
 export const LAYER_HEIGHT_MEAT = 5;
 export const LAYER_HEIGHT_BREAD = 6;
+
+// --- Font ---
+export const GAME_FONT = 'Oxanium';

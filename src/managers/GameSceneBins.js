@@ -3,6 +3,7 @@
  */
 import { INGREDIENTS, BIN_LAYOUT, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { GAME_FONT } from '../data/constants.js';
 import { darkenColor } from '../utils/colorUtils.js';
 
 export class GameSceneBins {
@@ -65,7 +66,7 @@ export class GameSceneBins {
       }
 
       const label = s.add.text(x, y + 44, ing.name, {
-        fontSize: '13px', color: isLocked ? '#666' : '#ddd', fontFamily: 'Arial', fontStyle: 'bold',
+        fontSize: '13px', color: isLocked ? '#666' : '#ddd', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(21);
 
       if (hints[key] && !isLocked) {
@@ -124,7 +125,7 @@ export class GameSceneBins {
       });
 
       s.add.text(x, y + 38, b.label, {
-        fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
+        fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
       const breadHints = { 'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C' };
@@ -142,6 +143,8 @@ export class GameSceneBins {
       binX: 0,
       binY: 0,
     };
+    const ing = INGREDIENTS[key];
+    s.particleManager.ingredientPickup(pointer.x, pointer.y, ing.color);
   }
 
   createTreatments() {
@@ -189,7 +192,7 @@ export class GameSceneBins {
       });
 
       const label = s.add.text(x, y + 52, c.label, {
-        fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
+        fontSize: '18px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
       const hints = { 'cheese_american': 'W', 'cheese_swiss': 'E' };
@@ -253,7 +256,7 @@ export class GameSceneBins {
       }
 
       const label = s.add.text(v.x, v.y + 32, v.label, {
-        fontSize: '14px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
+        fontSize: '14px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
       if (!isLocked) {
@@ -284,7 +287,7 @@ export class GameSceneBins {
     container.add(bottleImg);
 
     const label = s.add.text(0, -radius - 12, ingredient.name, {
-      fontSize: '12px', color: '#ccc', fontStyle: 'bold', fontFamily: 'Arial'
+      fontSize: '12px', color: '#ccc', fontStyle: 'bold', fontFamily: GAME_FONT
     }).setOrigin(0.5);
     container.add(label);
 
@@ -351,7 +354,7 @@ export class GameSceneBins {
 
     const labelY = (tKey === 'togo') ? 38 : (tKey === 'toasted') ? 36 : 34;
     const label = s.add.text(0, labelY, treat.name, {
-      fontSize: '12px', color: treat.label, fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '12px', color: treat.label, fontFamily: GAME_FONT, fontStyle: 'bold',
       stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5);
     c.add(label);

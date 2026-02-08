@@ -68,16 +68,13 @@ export class BootScene extends Phaser.Scene {
   create() {
     // Preload Google Fonts so they're ready before any text renders
     Promise.all([
-      document.fonts.load('16px "Bungee"'),
-      document.fonts.load('16px "Caveat"'),
-      document.fonts.load('16px "Permanent Marker"'),
-      document.fonts.load('16px "Nothing You Could Do"'),
-      document.fonts.load('16px "Grape Nuts"'),
+      document.fonts.load('16px "Oxanium"'),
+      document.fonts.load('bold 16px "Oxanium"'),
     ]).then(() => {
-      this.scene.start('SystemMap');
+      this.scene.start('Title');
     }).catch(() => {
       // If font loading fails, proceed anyway with fallbacks
-      this.scene.start('SystemMap');
+      this.scene.start('Title');
     });
   }
 }

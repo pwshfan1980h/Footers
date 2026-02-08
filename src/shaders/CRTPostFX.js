@@ -27,7 +27,7 @@ void main() {
     // Chromatic aberration (stronger at edges)
     vec2 cc = uv - 0.5;
     float edgeDist = dot(cc, cc);
-    float aberration = edgeDist * 0.008;
+    float aberration = edgeDist * 0.004;
 
     float r = texture2D(uMainSampler, vec2(uv.x + aberration, uv.y)).r;
     float g = texture2D(uMainSampler, uv).g;
@@ -35,12 +35,12 @@ void main() {
     vec4 color = vec4(r, g, b, 1.0);
 
     // Scanlines
-    float scanline = sin(uv.y * uResolution.y * 1.5) * 0.04;
+    float scanline = sin(uv.y * uResolution.y * 1.5) * 0.02;
     color.rgb -= scanline;
 
     // Vignette
     vec2 vigUV = uv * (1.0 - uv);
-    float vig = vigUV.x * vigUV.y * 15.0;
+    float vig = vigUV.x * vigUV.y * 20.0;
     vig = pow(vig, 0.25);
     color.rgb *= vig;
 

@@ -2,6 +2,7 @@
  * PrepTrack - Static preparation area where players build sandwiches
  * before moving them to the delivery belt
  */
+import { GAME_FONT } from '../data/constants.js';
 
 export class PrepTrack {
   constructor(scene) {
@@ -94,7 +95,7 @@ export class PrepTrack {
       if (!slot.occupied) {
         const label = this.scene.add.text(slot.x, slot.y, `${i + 1}`, {
           fontSize: '24px',
-          fontFamily: 'Arial',
+          fontFamily: GAME_FONT,
           color: '#666666'
         }).setOrigin(0.5).setDepth(6);
         this.slotLabels.push(label);

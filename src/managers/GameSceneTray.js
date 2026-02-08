@@ -9,6 +9,7 @@ import {
   BASE_PRICE, DEFAULT_INGREDIENT_PRICE, TREATMENT_PRICE,
   LAYER_HEIGHT_SAUCE, LAYER_HEIGHT_TOPPING, LAYER_HEIGHT_CHEESE,
   LAYER_HEIGHT_MEAT, LAYER_HEIGHT_BREAD,
+  GAME_FONT,
 } from '../data/constants.js';
 
 export class GameSceneTray {
@@ -34,13 +35,8 @@ export class GameSceneTray {
     container.setAlpha(0);
     container.setScale(0.85);
 
-    const traySprite = s.add.image(0, 0, 'tray_thin');
-    traySprite.setScale(0.8);
-    container.add(traySprite);
-
-
     const hintText = s.add.text(0, -50, '', {
-      fontSize: '12px', color: '#ff0', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '12px', color: '#ff0', fontFamily: GAME_FONT, fontStyle: 'bold',
       backgroundColor: '#00000088',
       padding: { x: 3, y: 1 },
     }).setOrigin(0.5).setDepth(11);
@@ -70,15 +66,15 @@ export class GameSceneTray {
 
     s.trays.push(tray);
 
-    container.setSize(traySprite.width * traySprite.scaleX, traySprite.height * traySprite.scaleY);
+    container.setSize(140, 120);
     s.ordersSpawned++;
 
     s.customerVessels.dockVessel(tray, () => {
       tray.waitingForCustomer = false;
+      tray.spawnedAt = Date.now();
 
       s.ticketBar.addTicket(order, orderNum);
 
-      container.setInteractive({ draggable: true, useHandCursor: true });
       s.updateTrayNextHint(tray);
 
       s.tweens.add({
@@ -383,6 +379,10 @@ export class GameSceneTray {
     const s = this.scene;
     tray.completed = true;
     if (tray.hintText) tray.hintText.setText('');
+
+    // Enable dragging now that the sandwich is complete
+    tray.container.setInteractive({ draggable: true, useHandCursor: true });
+
     s.flashTray(tray, 0x00ff00);
 
     soundManager.successChime();

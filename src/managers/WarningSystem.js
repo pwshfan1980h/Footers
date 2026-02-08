@@ -1,3 +1,5 @@
+import { GAME_FONT } from '../data/constants.js';
+
 export class WarningSystem {
   constructor(scene) {
     this.scene = scene;
@@ -45,7 +47,7 @@ export class WarningSystem {
       this.warningGraphics[id] = { graphics: g, text: null };
 
       const txt = this.scene.add.text(0, 0, '!', {
-        fontSize: '28px', color: '#ff4444', fontFamily: 'Bungee, Arial',
+        fontSize: '28px', color: '#ff4444', fontFamily: GAME_FONT,
         stroke: '#000', strokeThickness: 3,
       }).setOrigin(0.5).setDepth(16);
       this.warningGraphics[id].text = txt;

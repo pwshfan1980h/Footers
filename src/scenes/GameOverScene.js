@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
 import { gameState } from '../data/GameState.js';
-import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, HULL_DARK } from '../data/constants.js';
+import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, HULL_DARK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { createButton } from '../utils/uiHelpers.js';
 
@@ -69,7 +69,7 @@ export class GameOverScene extends Phaser.Scene {
 
     // Title
     this.add.text(512, 140, "YOU'RE FIRED!", {
-      fontSize: '68px', color: '#ff2244', fontFamily: 'Bungee, Arial',
+      fontSize: '68px', color: '#ff2244', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Pulsing alert effect
@@ -83,7 +83,7 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     this.add.text(512, 230, 'Too many orders missed!', {
-      fontSize: '24px', color: '#ff8888', fontFamily: 'Arial',
+      fontSize: '24px', color: '#ff8888', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Stats panel — expanded with penalty breakdown
@@ -95,27 +95,27 @@ export class GameOverScene extends Phaser.Scene {
 
     const dayNames = DAY_NAMES;
     this.add.text(512, 290, `Lasted until: ${dayNames[this.day]}`, {
-      fontSize: '18px', color: '#aaaacc', fontFamily: 'Arial',
+      fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(512, 316, `Orders completed: ${this.ordersCompleted}`, {
-      fontSize: '16px', color: '#aaaacc', fontFamily: 'Arial',
+      fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(512, 346, `Shift earnings: $${this.rawEarnings.toFixed(2)}`, {
-      fontSize: '18px', color: '#44ff88', fontFamily: 'Arial',
+      fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(512, 372, `Termination penalty: -$${this.penaltyAmount.toFixed(2)}`, {
-      fontSize: '18px', color: '#ff4444', fontFamily: 'Arial', fontStyle: 'bold',
+      fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
 
     this.add.text(512, 404, `Amount kept: $${this.earnings.toFixed(2)}`, {
-      fontSize: '22px', color: '#ffd700', fontFamily: 'Bungee, Arial',
+      fontSize: '22px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(512, 434, `Final score: ${this.finalScore}`, {
-      fontSize: '16px', color: '#aaaacc', fontFamily: 'Arial',
+      fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Try again button

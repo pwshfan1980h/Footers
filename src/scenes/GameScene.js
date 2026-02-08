@@ -17,9 +17,11 @@ import { GameSceneBins } from '../managers/GameSceneBins.js';
 import { GameSceneInteraction } from '../managers/GameSceneInteraction.js';
 import { GameSceneTray } from '../managers/GameSceneTray.js';
 import { GameSceneScoring } from '../managers/GameSceneScoring.js';
+import { RadioChatter } from '../managers/RadioChatter.js';
+import { NotificationManager } from '../managers/NotificationManager.js';
 import { soundManager } from '../SoundManager.js';
 import { musicManager } from '../MusicManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
 
@@ -121,6 +123,7 @@ export class GameScene extends Phaser.Scene {
     this.treatmentItems = {};
     this.glowGraphics = null;
     this.magnetActive = false;
+    this.fastestOrderThisShift = null;
 
     this.boidManager = new BoidManager(this);
     this.tutorialOverlay = new TutorialOverlay(this);
@@ -138,6 +141,8 @@ export class GameScene extends Phaser.Scene {
     this.interactionManager = new GameSceneInteraction(this);
     this.trayManager = new GameSceneTray(this);
     this.scoringManager = new GameSceneScoring(this);
+    this.radioChatter = new RadioChatter(this);
+    this.notificationManager = new NotificationManager(this);
 
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
 
@@ -179,6 +184,8 @@ export class GameScene extends Phaser.Scene {
     this.prepTrack.create();
     this.customerVessels.create();
     this.revenueChallenges.create();
+    this.radioChatter.create();
+    this.notificationManager.create();
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
@@ -264,7 +271,7 @@ export class GameScene extends Phaser.Scene {
     btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
 
     const btnText = this.add.text(btnX + btnW / 2, btnY + btnH / 2, 'END SHIFT', {
-      fontSize: '11px', color: '#ff8888', fontFamily: 'Bungee, Arial',
+      fontSize: '13px', color: '#ff8888', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setDepth(5);
 
     const btnHit = this.add.rectangle(btnX + btnW / 2, btnY + btnH / 2, btnW, btnH)
@@ -296,7 +303,7 @@ export class GameScene extends Phaser.Scene {
     const earnings = this.gameMoney;
     const locationId = this.locationData?.id || null;
 
-    gameState.updateAfterShift(locationId, earnings, this.ordersCompleted, this.ordersMissed);
+    gameState.updateAfterShift(locationId, earnings, this.ordersCompleted, this.ordersMissed, this.fastestOrderThisShift);
 
     if (this.currentScore > this.highScore) {
       this.saveHighScore(this.currentScore);
@@ -332,13 +339,14 @@ export class GameScene extends Phaser.Scene {
     const warningPipeline = Array.isArray(wp) ? wp[0] : wp;
     if (warningPipeline) {
       const strikeUrgency = this.ordersMissed >= 2 ? 0.4 : this.ordersMissed >= 1 ? 0.1 : 0;
-      const intensity = Math.min(1, Math.max(this.warningSystem.screenUrgency || 0, strikeUrgency));
-      warningPipeline.setIntensity(intensity);
+      const rawIntensity = Math.min(1, Math.max(this.warningSystem.screenUrgency || 0, strikeUrgency));
+      warningPipeline.setIntensity(rawIntensity * 0.5);
     }
 
     this.boidManager.update(delta);
     this.customerVessels.update(delta);
     this.revenueChallenges.update(delta);
+    this.radioChatter.update(delta);
 
     if (this.isStoreOpen && this.prepTrack.findEmptySlot()) {
       if (this.ordersSpawned < 3) {

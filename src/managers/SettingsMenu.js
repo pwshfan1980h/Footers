@@ -4,6 +4,7 @@
 
 import { musicManager } from '../MusicManager.js';
 import { soundManager } from '../SoundManager.js';
+import { GAME_FONT } from '../data/constants.js';
 
 export class SettingsMenu {
   constructor(scene) {
@@ -49,7 +50,7 @@ export class SettingsMenu {
     // Title
     const title = this.scene.add.text(centerX, centerY - 160, 'SETTINGS', {
       fontSize: '36px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontStyle: 'bold',
       color: '#00ddee'
     }).setOrigin(0.5);
@@ -58,7 +59,7 @@ export class SettingsMenu {
     // Music Volume Section
     const musicLabel = this.scene.add.text(centerX - 180, centerY - 80, 'Music Volume', {
       fontSize: '20px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       color: '#ffffff'
     });
     this.container.add(musicLabel);
@@ -72,7 +73,7 @@ export class SettingsMenu {
     // SFX Volume Section
     const sfxLabel = this.scene.add.text(centerX - 180, centerY + 20, 'SFX Volume', {
       fontSize: '20px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       color: '#ffffff'
     });
     this.container.add(sfxLabel);
@@ -91,14 +92,14 @@ export class SettingsMenu {
     const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
     const crtLabel = this.scene.add.text(centerX - 180, centerY + 100, 'CRT Shader', {
       fontSize: '20px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       color: '#ffffff'
     });
     this.container.add(crtLabel);
 
     this.crtToggle = this.scene.add.text(centerX + 80, centerY + 100, crtEnabled ? 'ON' : 'OFF', {
       fontSize: '20px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontStyle: 'bold',
       color: crtEnabled ? '#44ff88' : '#ff6666',
       backgroundColor: crtEnabled ? '#1a3a2a' : '#3a1a1a',
@@ -122,7 +123,7 @@ export class SettingsMenu {
       if (!this.crtRestartNote) {
         this.crtRestartNote = this.scene.add.text(centerX, centerY + 130, 'Restart the game for this change to take effect.', {
           fontSize: '14px',
-          fontFamily: 'Arial',
+          fontFamily: GAME_FONT,
           color: '#ffcc44'
         }).setOrigin(0.5);
         this.container.add(this.crtRestartNote);
@@ -135,7 +136,7 @@ export class SettingsMenu {
     // Close button
     const closeBtn = this.scene.add.text(centerX, centerY + 170, 'CLOSE (ESC)', {
       fontSize: '24px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       fontStyle: 'bold',
       color: '#44ff88'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
@@ -159,7 +160,7 @@ export class SettingsMenu {
     // Instructions
     const instructions = this.scene.add.text(centerX, centerY + 210, 'Press ESC to toggle settings', {
       fontSize: '14px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       color: '#888888'
     }).setOrigin(0.5);
     this.container.add(instructions);
@@ -192,7 +193,7 @@ export class SettingsMenu {
     // Value text
     const valueText = this.scene.add.text(x + sliderWidth/2 + 30, y, Math.round(initialValue * 100) + '%', {
       fontSize: '18px',
-      fontFamily: 'Arial',
+      fontFamily: GAME_FONT,
       color: '#ffffff'
     }).setOrigin(0, 0.5);
     this.container.add(valueText);

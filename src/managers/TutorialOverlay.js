@@ -1,4 +1,5 @@
 import { soundManager } from '../SoundManager.js';
+import { GAME_FONT } from '../data/constants.js';
 
 export class TutorialOverlay {
   constructor(scene) {
@@ -69,7 +70,7 @@ export class TutorialOverlay {
     const y = 260;
 
     const title = this.scene.add.text(512, y, s.title, {
-      fontSize: '36px', color: '#00ddff', fontFamily: 'Bungee, Arial',
+      fontSize: '36px', color: '#00ddff', fontFamily: GAME_FONT,
       stroke: '#003344', strokeThickness: 3,
     }).setOrigin(0.5);
     title.setData('tutStep', true);
@@ -77,7 +78,7 @@ export class TutorialOverlay {
 
     s.lines.forEach((line, i) => {
       const txt = this.scene.add.text(512, y + 55 + i * 36, line, {
-        fontSize: '20px', color: '#ddeeff', fontFamily: 'Arial',
+        fontSize: '20px', color: '#ddeeff', fontFamily: GAME_FONT,
       }).setOrigin(0.5);
       txt.setData('tutStep', true);
       overlay.add(txt);
@@ -85,13 +86,13 @@ export class TutorialOverlay {
 
     const pageNum = `${this.step + 1} / ${this.steps.length}`;
     const page = this.scene.add.text(512, y + 200, pageNum, {
-      fontSize: '14px', color: '#668899', fontFamily: 'Arial',
+      fontSize: '14px', color: '#668899', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
     page.setData('tutStep', true);
     overlay.add(page);
 
     const prompt = this.scene.add.text(512, y + 230, 'click to continue', {
-      fontSize: '16px', color: '#88aacc', fontFamily: 'Arial', fontStyle: 'italic',
+      fontSize: '18px', color: '#88aacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setAlpha(0.6);
     prompt.setData('tutStep', true);
     overlay.add(prompt);
