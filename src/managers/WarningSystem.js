@@ -2,6 +2,7 @@ export class WarningSystem {
   constructor(scene) {
     this.scene = scene;
     this.warningGraphics = {};
+    this.screenUrgency = 0;
   }
 
   update() {
@@ -9,6 +10,7 @@ export class WarningSystem {
 
     // Track which orders are still active
     const activeIds = new Set();
+    let maxUrgency = 0;
 
     for (const c of customers) {
       if (c.personState !== 'at_window' || !c.tray || c.tray.done) continue;
@@ -17,11 +19,15 @@ export class WarningSystem {
 
       const ratio = c.patienceMax > 0 ? c.patience / c.patienceMax : 1;
       if (ratio < 0.25) {
-        this.showWarning(c.tray, 1 - ratio * 4);
+        const urgency = 1 - ratio * 4;
+        this.showWarning(c.tray, urgency);
+        if (urgency > maxUrgency) maxUrgency = urgency;
       } else {
         this.removeWarning(id);
       }
     }
+
+    this.screenUrgency = maxUrgency;
 
     // Clean up warnings for departed customers
     for (const id of Object.keys(this.warningGraphics)) {

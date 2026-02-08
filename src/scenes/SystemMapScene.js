@@ -7,7 +7,9 @@ import { MapVessels } from '../managers/MapVessels.js';
 import { TravelManager } from '../managers/TravelManager.js';
 import { MapHUD } from '../managers/MapHUD.js';
 import { musicManager } from '../MusicManager.js';
-import { WORLD_W, WORLD_H } from '../data/constants.js';
+import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK } from '../data/constants.js';
+import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { WarpPostFX } from '../shaders/WarpPostFX.js';
 const SHIP_SPEED = 120; // px/s
 const DOCK_RANGE = 80;
 const CAMERA_LERP = 0.08;
@@ -26,10 +28,10 @@ export class SystemMapScene extends Phaser.Scene {
 
   create() {
     // === COLOR PALETTE ===
-    this.SPACE_BLACK = 0x0a0a12;
-    this.NEON_PINK = 0xFF6B8A;
+    this.SPACE_BLACK = SPACE_BLACK;
+    this.NEON_PINK = NEON_PINK;
     this.WARM_CREAM = 0xFFE8CC;
-    this.HULL_DARK = 0x1a1a25;
+    this.HULL_DARK = HULL_DARK;
 
     // Ship position from gameState
     this.shipX = gameState.truckshipWorldX;
@@ -106,6 +108,15 @@ export class SystemMapScene extends Phaser.Scene {
 
     // Location marker pulse timer
     this.markerPulseTimer = 0;
+
+    // Apply post-processing shaders (WebGL only)
+    if (this.renderer.pipelines) {
+      this.cameras.main.setPostPipeline(WarpPostFX);
+      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
+      if (crtEnabled) {
+        this.cameras.main.setPostPipeline(CRTPostFX);
+      }
+    }
 
     // Start ambient music (no-op if already playing)
     musicManager.start();

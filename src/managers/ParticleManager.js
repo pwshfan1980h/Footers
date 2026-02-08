@@ -212,25 +212,4 @@ export class ParticleManager {
     }
   }
 
-  // Tray placement whoosh
-  trayPlaced(x, y) {
-    for (let i = 0; i < 15; i++) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 2 + Math.random() * 2;
-
-      this.particles.push({
-        x, y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        gravity: 0.08,
-        friction: 0.96,
-        color: 0x00ddff,
-        size: 2 + Math.random() * 2,
-        shape: 'circle',
-        life: 400 + Math.random() * 300,
-        maxLife: 700,
-        alpha: 0.7
-      });
-    }
-  }
 }

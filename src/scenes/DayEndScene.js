@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, SPACE_BLACK, HULL_DARK, NEON_CYAN } from '../data/constants.js';
+import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { createButton } from '../utils/uiHelpers.js';
 
 export class DayEndScene extends Phaser.Scene {
   constructor() {
@@ -16,12 +18,14 @@ export class DayEndScene extends Phaser.Scene {
   }
 
   create() {
-    // Space theme colors
-    const SPACE_BLACK = 0x0a0a12;
-    const HULL_DARK = 0x1a1a25;
-    const NEON_CYAN = 0x00ddff;
-
+    soundManager.init();
     soundManager.fanfare();
+
+    // Apply CRT shader (WebGL only)
+    if (this.renderer.pipelines) {
+      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
+      if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
+    }
 
     // Background
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK);
@@ -39,7 +43,7 @@ export class DayEndScene extends Phaser.Scene {
       g.fillCircle(star.x, star.y, star.s);
     });
 
-    const dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const dayNames = DAY_NAMES;
 
     // Title
     this.add.text(HALF_WIDTH, 100, 'SHIFT COMPLETE!', {
@@ -83,49 +87,12 @@ export class DayEndScene extends Phaser.Scene {
 
     // Action button (same for both paths -- only label differs)
     const label = this.day < 5 ? 'NEXT DAY' : 'CONTINUE';
-    this.createButton(387, 478, 250, 64, label, NEON_CYAN, () => {
-      soundManager.ding();
-      this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
+    createButton(this, 387, 478, 250, 64, label, {
+      accentColor: NEON_CYAN,
+      onClick: () => {
+        soundManager.ding();
+        this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
+      },
     });
-  }
-
-  /**
-   * Creates a styled, interactive button with hover effects.
-   */
-  createButton(x, y, w, h, label, accentColor, onClick) {
-    const cx = x + w / 2;
-    const cy = y + h / 2;
-    const baseFill = 0x1a3a4a;
-    const hoverFill = 0x2a4a5a;
-    const hoverAccent = 0x44ffff;
-
-    const btn = this.add.graphics();
-    const drawBtn = (fill, stroke) => {
-      btn.clear();
-      btn.fillStyle(fill, 1);
-      btn.fillRoundedRect(x, y, w, h, 12);
-      btn.lineStyle(3, stroke, 1);
-      btn.strokeRoundedRect(x, y, w, h, 12);
-    };
-    drawBtn(baseFill, accentColor);
-
-    const btnHit = this.add.rectangle(cx, cy, w, h)
-      .setInteractive({ useHandCursor: true });
-
-    const btnText = this.add.text(cx, cy, label, {
-      fontSize: '26px', color: '#00ffff', fontFamily: 'Bungee, Arial',
-    }).setOrigin(0.5);
-
-    btnHit.on('pointerover', () => {
-      drawBtn(hoverFill, hoverAccent);
-      btnText.setColor('#44ffff');
-    });
-    btnHit.on('pointerout', () => {
-      drawBtn(baseFill, accentColor);
-      btnText.setColor('#00ffff');
-    });
-    btnHit.on('pointerdown', onClick);
-
-    return { btn, btnHit, btnText };
   }
 }

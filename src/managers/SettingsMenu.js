@@ -31,7 +31,7 @@ export class SettingsMenu {
     const centerX = 512;
     const centerY = 384;
     const panelWidth = 500;
-    const panelHeight = 400;
+    const panelHeight = 450;
 
     // Panel background
     const panel = this.scene.add.graphics();
@@ -80,14 +80,60 @@ export class SettingsMenu {
     // SFX slider
     this.sfxSlider = this.createSlider(centerX, centerY + 60, this.sfxVolume, (value) => {
       this.sfxVolume = value;
+      soundManager.setVolume(value);
       // Test sound when adjusting
       if (soundManager.ctx) {
         soundManager.plop();
       }
     });
 
+    // CRT Shader Toggle
+    const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
+    const crtLabel = this.scene.add.text(centerX - 180, centerY + 100, 'CRT Shader', {
+      fontSize: '20px',
+      fontFamily: 'Arial',
+      color: '#ffffff'
+    });
+    this.container.add(crtLabel);
+
+    this.crtToggle = this.scene.add.text(centerX + 80, centerY + 100, crtEnabled ? 'ON' : 'OFF', {
+      fontSize: '20px',
+      fontFamily: 'Arial',
+      fontStyle: 'bold',
+      color: crtEnabled ? '#44ff88' : '#ff6666',
+      backgroundColor: crtEnabled ? '#1a3a2a' : '#3a1a1a',
+      padding: { x: 16, y: 6 },
+    }).setInteractive({ useHandCursor: true });
+    this.container.add(this.crtToggle);
+
+    this.crtToggle.on('pointerover', () => this.crtToggle.setScale(1.05));
+    this.crtToggle.on('pointerout', () => this.crtToggle.setScale(1.0));
+    this.crtRestartNote = null;
+
+    this.crtToggle.on('pointerdown', () => {
+      const nowEnabled = localStorage.getItem('footers_crt') !== 'false';
+      const newVal = !nowEnabled;
+      localStorage.setItem('footers_crt', newVal ? 'true' : 'false');
+      this.crtToggle.setText(newVal ? 'ON' : 'OFF');
+      this.crtToggle.setColor(newVal ? '#44ff88' : '#ff6666');
+      this.crtToggle.setBackgroundColor(newVal ? '#1a3a2a' : '#3a1a1a');
+
+      // Show restart notice
+      if (!this.crtRestartNote) {
+        this.crtRestartNote = this.scene.add.text(centerX, centerY + 130, 'Restart the game for this change to take effect.', {
+          fontSize: '14px',
+          fontFamily: 'Arial',
+          color: '#ffcc44'
+        }).setOrigin(0.5);
+        this.container.add(this.crtRestartNote);
+      }
+
+      soundManager.init();
+      soundManager.plop();
+    });
+
     // Close button
-    const closeBtn = this.scene.add.text(centerX, centerY + 140, 'CLOSE (ESC)', {
+    const closeBtn = this.scene.add.text(centerX, centerY + 170, 'CLOSE (ESC)', {
       fontSize: '24px',
       fontFamily: 'Arial',
       fontStyle: 'bold',
@@ -111,7 +157,7 @@ export class SettingsMenu {
     this.container.add(closeBtn);
 
     // Instructions
-    const instructions = this.scene.add.text(centerX, centerY + 180, 'Press ESC to toggle settings', {
+    const instructions = this.scene.add.text(centerX, centerY + 210, 'Press ESC to toggle settings', {
       fontSize: '14px',
       fontFamily: 'Arial',
       color: '#888888'

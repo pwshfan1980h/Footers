@@ -354,6 +354,7 @@ export class GameSceneInteraction {
     const day = s.day ?? 99;
 
     this.shortcutMap = {
+      'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C',
       'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4', 'meat_prosciutto': 'Q',
       'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7',
       'top_pickles': '8', 'top_arugula': '9', 'top_olives': '0',
@@ -365,6 +366,9 @@ export class GameSceneInteraction {
     const KC = Phaser.Input.Keyboard.KeyCodes;
 
     const bindings = [
+      { code: KC.Z,     ingredient: 'bread_white' },
+      { code: KC.X,     ingredient: 'bread_wheat' },
+      { code: KC.C,     ingredient: 'bread_sourdough' },
       { code: KC.ONE,   ingredient: 'meat_ham' },
       { code: KC.TWO,   ingredient: 'meat_turkey' },
       { code: KC.THREE, ingredient: 'meat_roastbeef' },
@@ -389,6 +393,7 @@ export class GameSceneInteraction {
 
     bindings.forEach(({ code, ingredient, treatment }) => {
       const key = s.input.keyboard.addKey(code);
+      key.emitOnRepeat = false;
       key.on('down', () => {
         if (s.isPaused || s.heldItem || !s.isStoreOpen) return;
 
@@ -407,7 +412,7 @@ export class GameSceneInteraction {
           if (ingredient.startsWith('sauce_')) {
             s.binsManager.pickupSauce(ingredient);
           } else {
-            soundManager.robotPickup();
+            soundManager.hotkeySelect();
             const visual = s.createHeldVisual(ingredient, pointer.x, pointer.y);
             s.heldItem = { visual, ingredientKey: ingredient, binX: 0, binY: 0 };
           }

@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { LOCATIONS } from '../data/locations.js';
 import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
+import { WarpPostFX } from '../shaders/WarpPostFX.js';
 
 const BASE_ZOOM = 0.4;
 
@@ -58,8 +59,25 @@ export class TravelManager {
 
   update(delta) {
     this.updateTravel(delta);
+    this.updateWarpShader();
     this.drawPathLine();
     this.drawWarpEffect();
+  }
+
+  updateWarpShader() {
+    const result = this.scene.cameras.main.getPostPipeline(WarpPostFX);
+    const pipeline = Array.isArray(result) ? result[0] : result;
+    if (!pipeline) return;
+
+    let intensity = 0;
+    if (this.travelState === 'departing') {
+      intensity = Math.min(this.travelTimer / this.travelDuration, 1);
+    } else if (this.travelState === 'warping') {
+      intensity = 0.8 + 0.2 * Math.sin(this.travelTimer * 0.003);
+    } else if (this.travelState === 'arriving') {
+      intensity = 1 - Math.min(this.travelTimer / this.travelDuration, 1);
+    }
+    pipeline.setIntensity(intensity);
   }
 
   updateTravel(delta) {

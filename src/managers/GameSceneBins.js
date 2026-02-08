@@ -126,6 +126,9 @@ export class GameSceneBins {
       s.add.text(x, y + 38, b.label, {
         fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: 'Arial'
       }).setOrigin(0.5).setDepth(21);
+
+      const breadHints = { 'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C' };
+      s.createHotkeyHint(x + 34, y - 24, breadHints[b.key]);
     });
   }
 

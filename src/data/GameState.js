@@ -6,8 +6,8 @@ class GameState {
     this.truckshipWorldX = 1500;
     this.truckshipWorldY = 900;
     this.totalMoney = 0;
-    this.shiftsCompleted = 0;
-    this.locationsVisited = new Set(['hub_central']);
+    this.shiftsCompleted = 0;        // TODO: used by campaign system
+    this.locationsVisited = new Set(['hub_central']); // TODO: used by campaign system
     this.load();
   }
 

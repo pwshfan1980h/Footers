@@ -1,6 +1,7 @@
 class SoundManager {
   constructor() {
     this.ctx = null;
+    this.masterGain = null;
   }
 
   init() {
@@ -10,6 +11,18 @@ class SoundManager {
     }
     this.ctx = new (window.AudioContext || window.webkitAudioContext)();
     if (this.ctx.state === 'suspended') this.ctx.resume();
+    this.masterGain = this.ctx.createGain();
+    this.masterGain.connect(this.ctx.destination);
+  }
+
+  setVolume(v) {
+    if (this.masterGain) {
+      this.masterGain.gain.setValueAtTime(v, this.ctx.currentTime);
+    }
+  }
+
+  _output() {
+    return this.masterGain || this.ctx.destination;
   }
 
   _osc(type, freq, startTime, duration, volume = 0.2) {
@@ -17,7 +30,7 @@ class SoundManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     osc.type = type;
     osc.frequency.setValueAtTime(freq, startTime);
     gain.gain.setValueAtTime(volume, startTime);
@@ -38,7 +51,7 @@ class SoundManager {
     source.buffer = buffer;
     const gain = this.ctx.createGain();
     source.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     const t = this.ctx.currentTime;
     gain.gain.setValueAtTime(volume, t);
     gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
@@ -52,7 +65,7 @@ class SoundManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     osc.frequency.setValueAtTime(400, t);
     osc.frequency.exponentialRampToValueAtTime(150, t + 0.08);
     gain.gain.setValueAtTime(0.2, t);
@@ -76,7 +89,7 @@ class SoundManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     osc.frequency.setValueAtTime(250, t);
     osc.frequency.exponentialRampToValueAtTime(100, t + 0.1);
     gain.gain.setValueAtTime(0.15, t);
@@ -91,7 +104,7 @@ class SoundManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     osc.frequency.setValueAtTime(300, t);
     osc.frequency.exponentialRampToValueAtTime(150, t + 0.1);
     gain.gain.setValueAtTime(0.18, t);
@@ -113,7 +126,7 @@ class SoundManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     osc.frequency.setValueAtTime(800, t);
     osc.frequency.exponentialRampToValueAtTime(200, t + 0.15);
     gain.gain.setValueAtTime(0.15, t);
@@ -188,6 +201,14 @@ class SoundManager {
     this._osc('sine', 2349, t + 0.25, 0.2, 0.1);
   }
 
+  hotkeySelect() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Short crisp UI tick - ascending pair
+    this._osc('sine', 880, t, 0.03, 0.1);
+    this._osc('sine', 1320, t + 0.02, 0.04, 0.08);
+  }
+
   robotPickup() {
     if (!this.ctx) return;
     const t = this.ctx.currentTime;
@@ -228,7 +249,7 @@ class SoundManager {
       const gain = this.ctx.createGain();
 
       osc.connect(gain);
-      gain.connect(this.ctx.destination);
+      gain.connect(this._output());
 
       osc.type = type;
       osc.frequency.setValueAtTime(freq, now);
@@ -255,7 +276,7 @@ class SoundManager {
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
     osc.connect(gain);
-    gain.connect(this.ctx.destination);
+    gain.connect(this._output());
     osc.frequency.setValueAtTime(800, t);
     osc.frequency.exponentialRampToValueAtTime(200, t + 0.2);
     gain.gain.setValueAtTime(0.12, t);

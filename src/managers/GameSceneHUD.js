@@ -64,7 +64,7 @@ export class GameSceneHUD {
     const panelX = 60;
     const panelY = 300;
     const panelW = 160;
-    const panelH = 200;
+    const panelH = 216;
 
     const legend = s.add.container(panelX, panelY).setDepth(100);
 
@@ -82,6 +82,7 @@ export class GameSceneHUD {
 
     const controls = [
       { key: 'ESC', desc: 'Cancel pickup' },
+      { key: 'Z/X/C', desc: 'Breads' },
       { key: '1-4', desc: 'Meats' },
       { key: '5-7', desc: 'Veggies' },
       { key: '8-9', desc: 'Cheese' },

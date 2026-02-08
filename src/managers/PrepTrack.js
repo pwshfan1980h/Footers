@@ -107,35 +107,6 @@ export class PrepTrack {
     return this.slots.find(s => !s.occupied);
   }
 
-  // Find slot at position
-  findSlotAt(x, y) {
-    for (const slot of this.slots) {
-      const dx = Math.abs(x - slot.x);
-      const dy = Math.abs(y - slot.y);
-      if (dx < this.slotWidth / 2 && dy < this.slotHeight / 2) {
-        return slot;
-      }
-    }
-    return null;
-  }
-
-  // Place tray in slot
-  placeTray(slot, tray) {
-    if (slot.occupied) return false;
-
-    slot.occupied = true;
-    slot.tray = tray;
-    tray.prepSlot = slot;
-    tray.onPrepTrack = true;
-
-    // Move tray to slot position
-    tray.container.x = slot.x;
-    tray.container.y = slot.y;
-
-    this.render();
-    return true;
-  }
-
   // Remove tray from slot
   removeTray(slot) {
     if (!slot.occupied) return;

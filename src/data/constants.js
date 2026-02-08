@@ -29,6 +29,15 @@ export const BASE_PRICE = 1.50;
 export const DEFAULT_INGREDIENT_PRICE = 0.50;
 export const TREATMENT_PRICE = 0.25;
 
+// --- Shared Color Palette ---
+export const SPACE_BLACK = 0x0a0a12;
+export const HULL_DARK = 0x1a1a25;
+export const NEON_CYAN = 0x00ddff;
+export const NEON_PINK = 0xFF6B8A;
+
+// --- Day Names ---
+export const DAY_NAMES = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
 // --- Stack Layer Heights (pixels) ---
 export const LAYER_HEIGHT_SAUCE = 2;
 export const LAYER_HEIGHT_TOPPING = 4;

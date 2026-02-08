@@ -115,11 +115,12 @@ export class GameSceneTray {
       return out;
     };
 
-    const breads = ['bread_white', 'bread_wheat', 'bread_sourdough'];
-    const meats = ['meat_ham', 'meat_turkey', 'meat_roastbeef', 'meat_bacon', 'meat_prosciutto'];
-    const cheeses = ['cheese_american', 'cheese_swiss'];
-    const toppings = ['top_lettuce', 'top_tomato', 'top_onion', 'top_pickles', 'top_arugula', 'top_olives'];
-    const sauces = ['sauce_mayo', 'sauce_mustard'];
+    const byCategory = (cat) => Object.keys(INGREDIENTS).filter(k => INGREDIENTS[k].category === cat);
+    const breads = byCategory('bread');
+    const meats = byCategory('meat');
+    const cheeses = byCategory('cheese');
+    const toppings = byCategory('topping');
+    const sauces = byCategory('sauce');
 
     const minutesPlayed = s.gameTime / 60;
     const diff = DIFFICULTY_PROGRESSION;
@@ -454,6 +455,9 @@ export class GameSceneTray {
   }
 
   destroyTray(tray) {
+    if (tray.prepSlot) {
+      this.scene.prepTrack.removeTray(tray.prepSlot);
+    }
     tray.container.destroy();
   }
 }

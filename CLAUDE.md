@@ -14,7 +14,7 @@ No test runner, linter, or formatter is configured.
 
 ## Project Overview
 
-**Footers** is a browser-based time-management arcade game built with Phaser 3 and Vite. Players control a robot arm to pick up ingredients from bins and place them on moving conveyor belt trays in strict order, applying treatments to complete orders before trays slide past the finish line. The game spans 5 days (Monday-Friday) with increasing difficulty. 3 missed orders = game over.
+**Footers** is a browser-based time-management arcade game built with Phaser 3 and Vite. Players run a space food truck, picking ingredients from bins and assembling sandwiches on a static prep station to fill customer orders. Customer vessels dock at the ship's window, place orders, and wait while you build. 3 missed orders = game over. Between shifts, players navigate a system map to travel between locations with different difficulty modifiers.
 
 ## Architecture
 
@@ -24,20 +24,26 @@ No test runner, linter, or formatter is configured.
 
 **Key files:**
 
-- `src/scenes/GameScene.js` (~450 lines) — Core gameplay scene. Most logic is delegated to manager classes.
-- `src/managers/` — Extracted subsystems: `GameSceneBackground`, `GameSceneBelt`, `GameSceneBins`, `GameSceneHUD`, `GameSceneTicketBar`, `GameSceneInteraction`, `GameSceneScoring`, `GameSceneTray`, `RobotArm`, `PrepTrack`, `ParticleManager`, `WarningSystem`, `TutorialOverlay`, `SettingsMenu`, `RevenueChallenges`. Also `MapBackground`, `MapHUD`, `MapVessels`, `BoidManager`, `CustomerVessels`, `TravelManager` for the system map.
-- `src/data/ingredients.js` — Ingredient definitions (colors, categories), bin layout, treatment definitions, and `DAY_CONFIG` (orders, speed, spawn intervals, treatment chance per day).
-- `src/data/GameState.js` — Persistent game state across scenes (money, day, unlocks).
-- `src/data/locations.js` — System map location data.
-- `src/SoundManager.js` — Singleton (`soundManager`) using Web Audio API to procedurally generate all sounds. No audio files exist.
-- `src/MusicManager.js` — Background music generation.
+- `src/scenes/GameScene.js` (~360 lines) — Core gameplay scene. Most logic is delegated to manager classes.
+- `src/managers/` — Gameplay managers: `GameSceneBackground`, `GameSceneBins`, `GameSceneHUD`, `GameSceneTicketBar`, `GameSceneInteraction`, `GameSceneScoring`, `GameSceneTray`, `PrepTrack`, `ParticleManager`, `WarningSystem`, `TutorialOverlay`, `SettingsMenu`, `RevenueChallenges`, `CustomerVessels`, `BoidManager`. System map managers: `MapBackground`, `MapHUD`, `MapVessels`, `TravelManager`.
+- `src/data/ingredients.js` — Ingredient definitions (colors, categories), bin layout, treatment definitions, and `DIFFICULTY_PROGRESSION` (spawn intervals).
+- `src/data/constants.js` — Shared constants: layout dimensions, scoring values, order generation parameters.
+- `src/data/GameState.js` — Persistent game state across scenes (money, day, unlocks). Uses `localStorage`.
+- `src/data/locations.js` — System map location data with per-location modifiers (speed, spawn rate, tip multiplier).
+- `src/data/customerPersonality.js` — Customer personality data.
+- `src/SoundManager.js` — Singleton (`soundManager`) using Web Audio API to procedurally generate all SFX. No audio files.
+- `src/MusicManager.js` — Procedural ambient engine drone using Web Audio API.
 - `src/utils/colorUtils.js` — Shared color utilities.
 - `src/utils/ShipDrawing.js` — Procedural ship rendering for the system map.
 
-**Graphics:** SVG assets in `public/assets/` for ingredients, trays, and bin contents (breads, meats, cheeses, toppings, sauces). Scene chrome (walls, conveyor, windows, bins) drawn with Phaser Graphics primitives. No sprite sheets or image atlas.
+**Dead code:** `GameSceneBelt.js` exists but is not imported anywhere. `RobotArm.js` was deleted.
 
-**Interaction model:** Click-to-place (not drag-and-drop). Click a bin item to pick up, click a tray to place. ESC cancels. Treatments are toggled on, then clicked onto trays. SPACE key speeds up the belt 2.5x.
+**Graphics:** SVG assets in `public/assets/` for ingredients, trays, and bin contents (breads, meats, cheeses, toppings, sauces). Scene chrome (walls, windows, bins, prep station) drawn with Phaser Graphics primitives. No sprite sheets or image atlas.
 
-**Order system:** Orders are randomly generated with bread → meat → optional cheese → optional toppings → optional sauce → top bread. Ingredients must be placed in exact ticket order. Treatments (toasted, to-go, salt & pepper, oil & vinegar) are unlocked starting day 2.
+**Interaction model:** Click-to-place (not drag-and-drop). Click a bin item to pick up, click the prep tray to place. ESC cancels held item. Treatments are toggled on, then clicked onto trays. Hotkeys shown with F1. Bread hotkeys: Z/X/C for white/wheat/sourdough.
 
-**Scoring:** +100 per completed order, +50 speed bonus if scored before x=300. Penalty of -25 for wrong ingredient placement.
+**Prep station model:** One static `PrepTrack` slot (cutting board). A tray spawns there, a `CustomerVessel` docks at the window, the ticket appears in the ticket bar, and the player assembles the sandwich in place. On completion, the customer vessel undocks and departs. No conveyor belt or moving trays.
+
+**Order system:** Orders are randomly generated: bread → meat → optional cheese → optional toppings → optional sauce → top bread. Ingredients must be placed in exact ticket order. Treatments (toasted, to-go, salt & pepper, oil & vinegar) are unlocked on later days.
+
+**Scoring:** Order value is based on ingredient prices (`BASE_PRICE` + per-ingredient + treatment prices) multiplied by location tip modifier. Score = `orderValue * SCORE_MULTIPLIER`. Penalty of -25 score for placing the wrong ingredient.

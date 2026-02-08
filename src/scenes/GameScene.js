@@ -19,7 +19,9 @@ import { GameSceneTray } from '../managers/GameSceneTray.js';
 import { GameSceneScoring } from '../managers/GameSceneScoring.js';
 import { soundManager } from '../SoundManager.js';
 import { musicManager } from '../MusicManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK } from '../data/constants.js';
+import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -77,7 +79,7 @@ export class GameScene extends Phaser.Scene {
     this.BEAM_MID = 0x3a3a45;
     this.BEAM_LIGHT = 0x4a4a55;
     this.BEAM_HIGHLIGHT = 0x5a5a65;
-    this.NEON_PINK = 0xFF6B8A;
+    this.NEON_PINK = NEON_PINK;
     this.NEON_ORANGE = 0xee9933;
     this.NEON_MAGENTA = 0xdd33cc;
     this.NEON_GOLD = 0xFFEE88;
@@ -177,6 +179,15 @@ export class GameScene extends Phaser.Scene {
     this.prepTrack.create();
     this.customerVessels.create();
     this.revenueChallenges.create();
+
+    // Apply post-processing shaders (WebGL only)
+    if (this.renderer.pipelines) {
+      this.cameras.main.setPostPipeline(WarningPulsePostFX);
+      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
+      if (crtEnabled) {
+        this.cameras.main.setPostPipeline(CRTPostFX);
+      }
+    }
 
     // Start ambient music (no-op if already playing)
     musicManager.start();
@@ -315,6 +326,15 @@ export class GameScene extends Phaser.Scene {
 
     this.warningSystem.update();
     this.particleManager.update(delta);
+
+    // Drive warning pulse shader from urgency + strikes
+    const wp = this.cameras.main.getPostPipeline(WarningPulsePostFX);
+    const warningPipeline = Array.isArray(wp) ? wp[0] : wp;
+    if (warningPipeline) {
+      const strikeUrgency = this.ordersMissed >= 2 ? 0.4 : this.ordersMissed >= 1 ? 0.1 : 0;
+      const intensity = Math.min(1, Math.max(this.warningSystem.screenUrgency || 0, strikeUrgency));
+      warningPipeline.setIntensity(intensity);
+    }
 
     this.boidManager.update(delta);
     this.customerVessels.update(delta);

@@ -1,6 +1,8 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, HULL_DARK, NEON_CYAN } from '../data/constants.js';
+import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { createButton } from '../utils/uiHelpers.js';
 
 // Score-based performance ratings (checked in descending order)
 const RATINGS = [
@@ -21,13 +23,14 @@ export class WinScene extends Phaser.Scene {
   }
 
   create() {
-    // Space theme colors
-    const SPACE_BLACK = 0x0a0a12;
-    const HULL_DARK = 0x1a1a25;
-    const NEON_CYAN = 0x00ddff;
-    const NEON_MAGENTA = 0xff44aa;
-
+    soundManager.init();
     soundManager.fanfare();
+
+    // Apply CRT shader (WebGL only)
+    if (this.renderer.pipelines) {
+      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
+      if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
+    }
 
     // Background
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK);
@@ -100,37 +103,9 @@ export class WinScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Play again button
-    const btn = this.add.graphics();
-    btn.fillStyle(0x1a3a4a, 1);
-    btn.fillRoundedRect(382, 468, 260, 64, 12);
-    btn.lineStyle(3, NEON_CYAN, 1);
-    btn.strokeRoundedRect(382, 468, 260, 64, 12);
-
-    const btnHit = this.add.rectangle(512, 500, 260, 64)
-      .setInteractive({ useHandCursor: true });
-
-    const btnText = this.add.text(512, 500, 'PLAY AGAIN', {
-      fontSize: '26px', color: '#00ffff', fontFamily: 'Bungee, Arial',
-    }).setOrigin(0.5);
-
-    btnHit.on('pointerover', () => {
-      btn.clear();
-      btn.fillStyle(0x2a4a5a, 1);
-      btn.fillRoundedRect(382, 468, 260, 64, 12);
-      btn.lineStyle(3, 0x44ffff, 1);
-      btn.strokeRoundedRect(382, 468, 260, 64, 12);
-      btnText.setColor('#44ffff');
-    });
-    btnHit.on('pointerout', () => {
-      btn.clear();
-      btn.fillStyle(0x1a3a4a, 1);
-      btn.fillRoundedRect(382, 468, 260, 64, 12);
-      btn.lineStyle(3, NEON_CYAN, 1);
-      btn.strokeRoundedRect(382, 468, 260, 64, 12);
-      btnText.setColor('#00ffff');
-    });
-    btnHit.on('pointerdown', () => {
-      this.scene.start('SystemMap');
+    createButton(this, 382, 468, 260, 64, 'PLAY AGAIN', {
+      accentColor: NEON_CYAN,
+      onClick: () => this.scene.start('SystemMap'),
     });
   }
 }

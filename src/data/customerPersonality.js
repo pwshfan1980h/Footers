@@ -46,19 +46,3 @@ export const QUIPS = {
   ],
 };
 
-export const COMPLETION_QUIPS = {
-  happy: [
-    "Perfect, thanks!",
-    "Nailed it!",
-    "Worth the trip!",
-    "See you next orbit!",
-    "Five stars!",
-  ],
-  alien_happy: [
-    "ACCEPTABLE.",
-    "*happy gurgling*",
-    "MY PODS TINGLE.",
-    "WILL RETURN.",
-    "*translates to joy*",
-  ],
-};

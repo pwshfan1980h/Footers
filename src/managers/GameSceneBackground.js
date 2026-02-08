@@ -89,19 +89,28 @@ export class GameSceneBackground {
 
   createSpaceBackground() {
     const s = this.scene;
+    const loc = s.locationData;
+    const locColor = loc?.color || 0x442266;
+    const locType = loc?.type || 'station';
     const g = s.add.graphics().setDepth(0);
 
+    // Deep space fill
     g.fillStyle(s.SPACE_DEEP, 1);
     g.fillRect(0, s.WINDOW_TOP, 1024, s.WINDOW_HEIGHT);
     g.fillRect(0, 0, 1024, 145);
 
-    g.fillStyle(0x3a2255, 0.08);
-    g.fillEllipse(200, 240, 300, 150);
-    g.fillStyle(0x253555, 0.06);
-    g.fillEllipse(700, 300, 350, 140);
-    g.fillStyle(0x453355, 0.05);
-    g.fillEllipse(500, 200, 250, 100);
+    // Location-tinted ambient haze (large soft glow across the window)
+    g.fillStyle(locColor, 0.06);
+    g.fillEllipse(512, 270, 900, 300);
+    g.fillStyle(locColor, 0.04);
+    g.fillEllipse(300, 250, 500, 200);
+    g.fillStyle(locColor, 0.04);
+    g.fillEllipse(750, 290, 450, 180);
 
+    // Type-specific environmental elements
+    this._drawSpaceEnvironment(g, locType, locColor, s);
+
+    // Stars — bias color toward location tint
     const stars = [];
     for (let i = 0; i < 80; i++) {
       stars.push({
@@ -114,7 +123,11 @@ export class GameSceneBackground {
 
     stars.forEach(star => {
       const rand = Math.random();
-      const color = rand > 0.8 ? s.STAR_BLUE : rand > 0.6 ? s.STAR_WARM : s.STAR_WHITE;
+      // 25% chance of location-tinted star, rest normal distribution
+      const color = rand > 0.85 ? locColor
+        : rand > 0.7 ? s.STAR_BLUE
+        : rand > 0.55 ? s.STAR_WARM
+        : s.STAR_WHITE;
       g.fillStyle(color, star.alpha);
       g.fillCircle(star.x, star.y, star.size);
     });
@@ -122,11 +135,174 @@ export class GameSceneBackground {
     s.starPositions = stars;
   }
 
+  _drawSpaceEnvironment(g, type, color, s) {
+    const winTop = s.WINDOW_TOP;
+    const winBot = s.WINDOW_BOTTOM;
+    const midY = (winTop + winBot) / 2;
+
+    // Seeded RNG for deterministic placement
+    let seed = 77;
+    const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; };
+
+    switch (type) {
+      case 'station':
+        this._drawSpaceStation(g, color, midY, rand);
+        break;
+      case 'asteroid':
+        this._drawSpaceAsteroids(g, color, winTop, winBot, rand);
+        break;
+      case 'nebula':
+        this._drawSpaceNebula(g, color, winTop, winBot, rand);
+        break;
+      case 'planet':
+        this._drawSpacePlanet(g, color, winTop, winBot);
+        break;
+      case 'port':
+        this._drawSpacePort(g, color, midY, rand);
+        break;
+      case 'frontier':
+        this._drawSpaceDebris(g, color, winTop, winBot, rand);
+        break;
+    }
+  }
+
+  _drawSpaceStation(g, color, midY, rand) {
+    // Distant comm-array structure lines visible through window
+    for (let i = 0; i < 6; i++) {
+      const cx = 150 + rand() * 700;
+      const cy = midY - 40 + rand() * 80;
+      const len = 30 + rand() * 60;
+      const angle = rand() * Math.PI * 2;
+      g.lineStyle(1, color, 0.08 + rand() * 0.06);
+      g.lineBetween(
+        cx - Math.cos(angle) * len,
+        cy - Math.sin(angle) * len,
+        cx + Math.cos(angle) * len,
+        cy + Math.sin(angle) * len,
+      );
+    }
+    // Blinking nav lights (small bright dots)
+    for (let i = 0; i < 4; i++) {
+      g.fillStyle(color, 0.25 + rand() * 0.15);
+      g.fillCircle(100 + rand() * 824, midY - 60 + rand() * 120, 1 + rand());
+    }
+  }
+
+  _drawSpaceAsteroids(g, color, winTop, winBot, rand) {
+    // Scattered rock silhouettes drifting past
+    for (let i = 0; i < 12; i++) {
+      const rx = 60 + rand() * 904;
+      const ry = winTop + 20 + rand() * (winBot - winTop - 40);
+      const size = 2 + rand() * 6;
+      g.fillStyle(color, 0.08 + rand() * 0.07);
+      g.fillCircle(rx, ry, size);
+      g.fillCircle(rx + size * 0.3, ry - size * 0.25, size * 0.65);
+    }
+    // Amber dust band across window
+    g.fillStyle(color, 0.03);
+    g.fillEllipse(512, (winTop + winBot) / 2 + 20, 800, 80);
+  }
+
+  _drawSpaceNebula(g, color, winTop, winBot, rand) {
+    // Dense layered gas clouds filling the view
+    for (let i = 0; i < 6; i++) {
+      const cx = 100 + rand() * 824;
+      const cy = winTop + 30 + rand() * (winBot - winTop - 60);
+      const w = 120 + rand() * 250;
+      const h = 60 + rand() * 100;
+      g.fillStyle(color, 0.03 + rand() * 0.04);
+      g.fillEllipse(cx, cy, w, h);
+    }
+    // Brighter wisp streaks
+    for (let i = 0; i < 3; i++) {
+      const y = winTop + 40 + rand() * (winBot - winTop - 80);
+      const x1 = rand() * 300;
+      const x2 = x1 + 200 + rand() * 400;
+      g.lineStyle(2 + rand() * 3, color, 0.04 + rand() * 0.03);
+      g.lineBetween(x1, y, x2, y + (rand() - 0.5) * 40);
+    }
+  }
+
+  _drawSpacePlanet(g, color, winTop, winBot) {
+    // Large planetary body partially visible at bottom-right of window
+    const planetX = 820;
+    const planetY = winBot + 80;
+    const planetR = 200;
+
+    // Atmospheric glow arc visible above the planet edge
+    g.fillStyle(color, 0.08);
+    g.fillCircle(planetX, planetY, planetR + 30);
+    g.fillStyle(color, 0.05);
+    g.fillCircle(planetX, planetY, planetR + 60);
+
+    // The planet body itself (dark, just slightly lighter than space)
+    g.fillStyle(0x0a1510, 0.7);
+    g.fillCircle(planetX, planetY, planetR);
+
+    // Thin atmospheric rim highlight
+    g.lineStyle(2, color, 0.20);
+    g.beginPath();
+    for (let a = -1.8; a < -0.2; a += 0.04) {
+      const px = planetX + Math.cos(a) * planetR;
+      const py = planetY + Math.sin(a) * planetR;
+      if (py < winBot && py > winTop) {
+        if (a === -1.8) g.moveTo(px, py);
+        else g.lineTo(px, py);
+      }
+    }
+    g.strokePath();
+
+    // Faint green haze across entire window from atmospheric scatter
+    g.fillStyle(color, 0.02);
+    g.fillRect(0, winBot - 60, 1024, 60);
+  }
+
+  _drawSpacePort(g, color, midY, rand) {
+    // Docking beam lights — structured lines converging toward center
+    const beams = [[150, -0.15], [350, -0.08], [650, 0.08], [870, 0.15]];
+    beams.forEach(([bx, slope]) => {
+      g.lineStyle(1.5, color, 0.07);
+      g.lineBetween(bx, midY - 100, bx + slope * 200, midY + 100);
+      // Running lights along beam
+      for (let d = -80; d < 80; d += 30) {
+        g.fillStyle(color, 0.12 + rand() * 0.12);
+        g.fillCircle(bx + slope * (d + 100), midY + d, 1.5);
+      }
+    });
+    // Warm golden ambient glow at center
+    g.fillStyle(color, 0.04);
+    g.fillEllipse(512, midY, 400, 160);
+  }
+
+  _drawSpaceDebris(g, color, winTop, winBot, rand) {
+    // Wreckage chunks floating past
+    for (let i = 0; i < 10; i++) {
+      const dx = 60 + rand() * 904;
+      const dy = winTop + 20 + rand() * (winBot - winTop - 40);
+      const size = 3 + rand() * 7;
+      const rot = rand() * Math.PI;
+
+      g.fillStyle(color, 0.07 + rand() * 0.07);
+      g.beginPath();
+      g.moveTo(dx + Math.cos(rot) * size, dy + Math.sin(rot) * size);
+      g.lineTo(dx + Math.cos(rot + 1.5) * size * 0.6, dy + Math.sin(rot + 1.5) * size * 0.6);
+      g.lineTo(dx + Math.cos(rot + Math.PI) * size * 0.8, dy + Math.sin(rot + Math.PI) * size * 0.8);
+      g.lineTo(dx + Math.cos(rot + 4.5) * size * 0.5, dy + Math.sin(rot + 4.5) * size * 0.5);
+      g.closePath();
+      g.fillPath();
+    }
+    // Hazard haze band
+    g.fillStyle(color, 0.04);
+    g.fillEllipse(512, (winTop + winBot) / 2, 700, 100);
+  }
+
   createSpaceWindows() {
     const s = this.scene;
     const winTop = s.WINDOW_TOP;
     const winBottom = s.WINDOW_BOTTOM;
     const winHeight = s.WINDOW_HEIGHT;
+
+    const locColor = s.locationData?.color || 0x6688aa;
 
     const smokedGlass = s.add.graphics().setDepth(0.8);
     smokedGlass.fillStyle(s.SMOKED_GLASS, s.SMOKED_GLASS_ALPHA);
@@ -138,7 +314,8 @@ export class GameSceneBackground {
     smokedGlass.fillRect(0, winTop, 1024, 30);
     smokedGlass.fillRect(0, winBottom - 30, 1024, 30);
 
-    smokedGlass.fillStyle(0x6688aa, 0.06);
+    // Location-tinted light refraction on glass
+    smokedGlass.fillStyle(locColor, 0.06);
     smokedGlass.beginPath();
     smokedGlass.moveTo(100, winTop);
     smokedGlass.lineTo(400, winTop);

@@ -1,7 +1,9 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
 import { gameState } from '../data/GameState.js';
-import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, HULL_DARK } from '../data/constants.js';
+import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { createButton } from '../utils/uiHelpers.js';
 
 export class GameOverScene extends Phaser.Scene {
   constructor() {
@@ -22,8 +24,6 @@ export class GameOverScene extends Phaser.Scene {
   }
 
   create() {
-    // Space theme colors with red alert
-    const HULL_DARK = 0x1a1a25;
     const ALERT_RED = 0xff2244;
 
     // Update game state with partial earnings
@@ -31,7 +31,14 @@ export class GameOverScene extends Phaser.Scene {
       gameState.updateAfterShift(this.locationId, this.earnings, this.ordersCompleted, this.ordersMissed);
     }
 
+    soundManager.init();
     soundManager.fired();
+
+    // Apply CRT shader (WebGL only)
+    if (this.renderer.pipelines) {
+      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
+      if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
+    }
 
     // Dark background with red tint
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x150505);
@@ -86,7 +93,7 @@ export class GameOverScene extends Phaser.Scene {
     statsPanel.lineStyle(2, 0x442233, 0.6);
     statsPanel.strokeRoundedRect(262, 270, 500, 180, 12);
 
-    const dayNames = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+    const dayNames = DAY_NAMES;
     this.add.text(512, 290, `Lasted until: ${dayNames[this.day]}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: 'Arial',
     }).setOrigin(0.5);
@@ -112,71 +119,27 @@ export class GameOverScene extends Phaser.Scene {
     }).setOrigin(0.5);
 
     // Try again button
-    const btn = this.add.graphics();
-    btn.fillStyle(0x3a1a1a, 1);
-    btn.fillRoundedRect(282, 488, 220, 64, 12);
-    btn.lineStyle(3, ALERT_RED, 0.8);
-    btn.strokeRoundedRect(282, 488, 220, 64, 12);
-
-    const btnHit = this.add.rectangle(392, 520, 220, 64)
-      .setInteractive({ useHandCursor: true });
-
-    const btnText = this.add.text(392, 520, 'TRY AGAIN', {
-      fontSize: '24px', color: '#ff6666', fontFamily: 'Bungee, Arial',
-    }).setOrigin(0.5);
-
-    btnHit.on('pointerover', () => {
-      btn.clear();
-      btn.fillStyle(0x4a2a2a, 1);
-      btn.fillRoundedRect(282, 488, 220, 64, 12);
-      btn.lineStyle(3, 0xff4466, 1);
-      btn.strokeRoundedRect(282, 488, 220, 64, 12);
-      btnText.setColor('#ff8888');
-    });
-    btnHit.on('pointerout', () => {
-      btn.clear();
-      btn.fillStyle(0x3a1a1a, 1);
-      btn.fillRoundedRect(282, 488, 220, 64, 12);
-      btn.lineStyle(3, ALERT_RED, 0.8);
-      btn.strokeRoundedRect(282, 488, 220, 64, 12);
-      btnText.setColor('#ff6666');
-    });
-    btnHit.on('pointerdown', () => {
-      this.scene.start('Game');
+    createButton(this, 282, 488, 220, 64, 'TRY AGAIN', {
+      baseFill: 0x3a1a1a,
+      hoverFill: 0x4a2a2a,
+      accentColor: ALERT_RED,
+      hoverAccent: 0xff4466,
+      textColor: '#ff6666',
+      hoverTextColor: '#ff8888',
+      fontSize: '24px',
+      onClick: () => this.scene.start('Game'),
     });
 
     // Return to Map button
-    const mapBtn = this.add.graphics();
-    mapBtn.fillStyle(0x1a1a3a, 1);
-    mapBtn.fillRoundedRect(522, 488, 220, 64, 12);
-    mapBtn.lineStyle(3, 0x4488ff, 0.8);
-    mapBtn.strokeRoundedRect(522, 488, 220, 64, 12);
-
-    const mapBtnHit = this.add.rectangle(632, 520, 220, 64)
-      .setInteractive({ useHandCursor: true });
-
-    const mapBtnText = this.add.text(632, 520, 'RETURN TO MAP', {
-      fontSize: '18px', color: '#6688ff', fontFamily: 'Bungee, Arial',
-    }).setOrigin(0.5);
-
-    mapBtnHit.on('pointerover', () => {
-      mapBtn.clear();
-      mapBtn.fillStyle(0x2a2a4a, 1);
-      mapBtn.fillRoundedRect(522, 488, 220, 64, 12);
-      mapBtn.lineStyle(3, 0x6699ff, 1);
-      mapBtn.strokeRoundedRect(522, 488, 220, 64, 12);
-      mapBtnText.setColor('#88aaff');
-    });
-    mapBtnHit.on('pointerout', () => {
-      mapBtn.clear();
-      mapBtn.fillStyle(0x1a1a3a, 1);
-      mapBtn.fillRoundedRect(522, 488, 220, 64, 12);
-      mapBtn.lineStyle(3, 0x4488ff, 0.8);
-      mapBtn.strokeRoundedRect(522, 488, 220, 64, 12);
-      mapBtnText.setColor('#6688ff');
-    });
-    mapBtnHit.on('pointerdown', () => {
-      this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.earnings });
+    createButton(this, 522, 488, 220, 64, 'RETURN TO MAP', {
+      baseFill: 0x1a1a3a,
+      hoverFill: 0x2a2a4a,
+      accentColor: 0x4488ff,
+      hoverAccent: 0x6699ff,
+      textColor: '#6688ff',
+      hoverTextColor: '#88aaff',
+      fontSize: '18px',
+      onClick: () => this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.earnings }),
     });
   }
 }

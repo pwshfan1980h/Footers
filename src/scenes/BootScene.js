@@ -1,4 +1,7 @@
 import Phaser from 'phaser';
+import { CRTPostFX } from '../shaders/CRTPostFX.js';
+import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
+import { WarpPostFX } from '../shaders/WarpPostFX.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -6,6 +9,12 @@ export class BootScene extends Phaser.Scene {
   }
 
   preload() {
+    // Register post-processing shader pipelines (WebGL only)
+    if (this.renderer.pipelines) {
+      this.renderer.pipelines.addPostPipeline('CRTPostFX', CRTPostFX);
+      this.renderer.pipelines.addPostPipeline('WarningPulsePostFX', WarningPulsePostFX);
+      this.renderer.pipelines.addPostPipeline('WarpPostFX', WarpPostFX);
+    }
     // Helper to batch-load SVGs sharing the same dimensions
     const loadSVGs = (keys, dims) =>
       keys.forEach(k => this.load.svg(k, `assets/${k}.svg`, dims));
@@ -15,13 +24,11 @@ export class BootScene extends Phaser.Scene {
     this.load.image('wall_texture', 'assets/wall_texture.png');
 
     // Trays
-    this.load.svg('tray', 'assets/tray.svg', { width: 200, height: 140 });
     this.load.svg('tray_thin', 'assets/tray_thin.svg', { width: 200, height: 100 });
 
     // Bread slices (64x64)
     loadSVGs([
       'bread_white', 'bread_wheat', 'bread_sourdough',
-      'bread_white_toasted', 'bread_wheat_toasted', 'bread_sourdough_toasted',
     ], { width: 64, height: 64 });
 
     // Loaves -- counter display (200x100)
