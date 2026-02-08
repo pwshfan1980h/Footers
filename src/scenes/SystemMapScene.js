@@ -7,10 +7,9 @@ import { MapVessels } from '../managers/MapVessels.js';
 import { TravelManager } from '../managers/TravelManager.js';
 import { MapHUD } from '../managers/MapHUD.js';
 import { musicManager } from '../MusicManager.js';
-import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT } from '../data/constants.js';
+import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
-import { applyPalette } from '../utils/applyPalette.js';
 const SHIP_SPEED = 120; // px/s
 const DOCK_RANGE = 80;
 const CAMERA_LERP = 0.08;
@@ -78,10 +77,10 @@ export class SystemMapScene extends Phaser.Scene {
 
     // === CAMERA FOLLOW ===
     this.cameras.main.setZoom(BASE_ZOOM);
-    const initViewW = 1024 / BASE_ZOOM;
-    const initViewH = 768 / BASE_ZOOM;
-    this.cameras.main.scrollX = Phaser.Math.Clamp(this.shipX - 512 / BASE_ZOOM, 0, Math.max(0, WORLD_W - initViewW));
-    this.cameras.main.scrollY = Phaser.Math.Clamp(this.shipY - 384 / BASE_ZOOM, 0, Math.max(0, WORLD_H - initViewH));
+    const initViewW = GAME_WIDTH / BASE_ZOOM;
+    const initViewH = GAME_HEIGHT / BASE_ZOOM;
+    this.cameras.main.scrollX = Phaser.Math.Clamp(this.shipX - HALF_WIDTH / BASE_ZOOM, 0, Math.max(0, WORLD_W - initViewW));
+    this.cameras.main.scrollY = Phaser.Math.Clamp(this.shipY - HALF_HEIGHT / BASE_ZOOM, 0, Math.max(0, WORLD_H - initViewH));
 
     // === INPUT ===
     this.setupClickCatcher();
@@ -112,7 +111,6 @@ export class SystemMapScene extends Phaser.Scene {
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
-      applyPalette(this);
       this.cameras.main.setPostPipeline(WarpPostFX);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) {
@@ -340,8 +338,8 @@ export class SystemMapScene extends Phaser.Scene {
 
     // Camera follow (smooth lerp)
     const cam = this.cameras.main;
-    const targetCX = this.shipX - 512 / cam.zoom;
-    const targetCY = this.shipY - 384 / cam.zoom;
+    const targetCX = this.shipX - HALF_WIDTH / cam.zoom;
+    const targetCY = this.shipY - HALF_HEIGHT / cam.zoom;
     cam.scrollX += (targetCX - cam.scrollX) * CAMERA_LERP;
     cam.scrollY += (targetCY - cam.scrollY) * CAMERA_LERP;
 

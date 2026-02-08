@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, HULL_DARK, NEON_CYAN, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
-import { applyPalette } from '../utils/applyPalette.js';
 import { createButton } from '../utils/uiHelpers.js';
 
 // Score-based performance ratings (checked in descending order)
@@ -29,7 +28,6 @@ export class WinScene extends Phaser.Scene {
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
-      applyPalette(this);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
     }
@@ -56,21 +54,21 @@ export class WinScene extends Phaser.Scene {
 
     // Nebula glow behind title
     g.fillStyle(0x442266, 0.2);
-    g.fillEllipse(512, 130, 500, 150);
+    g.fillEllipse(HALF_WIDTH, 130, 500, 150);
     g.fillStyle(0x224466, 0.15);
-    g.fillEllipse(512, 130, 400, 100);
+    g.fillEllipse(HALF_WIDTH, 130, 400, 100);
 
     // Title
-    this.add.text(512, 100, 'EMPLOYEE OF', {
+    this.add.text(HALF_WIDTH, 100, 'EMPLOYEE OF', {
       fontSize: '40px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(512, 155, 'THE WEEK!', {
+    this.add.text(HALF_WIDTH, 155, 'THE WEEK!', {
       fontSize: '56px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Title glow animation
-    const titleGlow = this.add.text(512, 155, 'THE WEEK!', {
+    const titleGlow = this.add.text(HALF_WIDTH, 155, 'THE WEEK!', {
       fontSize: '56px', color: '#ffff00', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setAlpha(0);
 
@@ -82,7 +80,7 @@ export class WinScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.add.text(512, 230, 'You survived the whole week at the station!', {
+    this.add.text(HALF_WIDTH, 230, 'You survived the whole week at the station!', {
       fontSize: '22px', color: '#8899bb', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
@@ -93,7 +91,7 @@ export class WinScene extends Phaser.Scene {
     panel.lineStyle(2, NEON_CYAN, 0.6);
     panel.strokeRoundedRect(312, 270, 400, 100, 12);
 
-    this.add.text(512, 320, `Final Score: ${this.totalScore}`, {
+    this.add.text(HALF_WIDTH, 320, `Final Score: ${this.totalScore}`, {
       fontSize: '36px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 

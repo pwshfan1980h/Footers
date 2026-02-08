@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { HUMAN_NAMES, ALIEN_NAME_PARTS, QUIPS } from '../data/customerPersonality.js';
 import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, BASE_PATIENCE, MIN_PATIENCE, PATIENCE_DECREASE } from '../data/constants.js';
+import { darkenColor, lightenColor } from '../utils/colorUtils.js';
 
 /**
  * CustomerVessels — Customers enter through an airlock into an interior customer deck,
@@ -75,7 +76,7 @@ export class CustomerVessels {
       const suitBase = Phaser.Utils.Array.GetRandom(this.suitVariants);
       const suitColors = [0x5577AA, 0x887766, 0xAA6677, 0x669966, 0xAA8844];
       const suitTint = Phaser.Utils.Array.GetRandom(suitColors);
-      suitDef = { ...suitBase, suitColor: this.darkenColor(suitTint, 0.85) };
+      suitDef = { ...suitBase, suitColor: darkenColor(suitTint, 0.85) };
     }
 
     const name = this.generateName(isAlien);
@@ -93,7 +94,7 @@ export class CustomerVessels {
 
       // Person (walks through interior deck)
       personX: this.scene.AIRLOCK_X,
-      personY: this.scene.AIRLOCK_Y + this.scene.AIRLOCK_HEIGHT,
+      personY: this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS,
       personTargetX: slot.counterX,
       personTargetY: slot.counterY,
       personScale: 0.5,
@@ -140,13 +141,13 @@ export class CustomerVessels {
       c.personState = 'walking_to_airlock';
       c.personFacing = -1;
       c.personTargetX = this.scene.AIRLOCK_X;
-      c.personTargetY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_HEIGHT;
+      c.personTargetY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS;
       c.personTargetScale = 0.5;
     } else if (c.personState === 'walking_to_counter' || c.personState === 'entering_airlock') {
       c.personState = 'walking_to_airlock';
       c.personFacing = -1;
       c.personTargetX = this.scene.AIRLOCK_X;
-      c.personTargetY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_HEIGHT;
+      c.personTargetY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS;
       c.personTargetScale = 0.5;
     } else {
       c.personState = 'boarded';
@@ -231,7 +232,7 @@ export class CustomerVessels {
 
   updatePerson(c, dt) {
     const airlockX = this.scene.AIRLOCK_X;
-    const airlockBottomY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_HEIGHT;
+    const airlockBottomY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS;
 
     if (c.personState === 'entering_airlock') {
       // Wait for airlock to open, then start walking
@@ -258,12 +259,9 @@ export class CustomerVessels {
         c.personState = 'at_counter';
         // Close airlock behind them
         this.scene.customerDeck.requestAirlockClose();
-        // Set patience timer
+        // Set patience timer (scales down with game time)
         const minutesPlayed = this.scene.gameTime / 60;
-        const basePat = 40;
-        const minPat = 20;
-        const patDecrease = 3;
-        c.patienceMax = Math.max(minPat, basePat - minutesPlayed * patDecrease);
+        c.patienceMax = Math.max(MIN_PATIENCE, BASE_PATIENCE - minutesPlayed * PATIENCE_DECREASE);
         c.patience = c.patienceMax;
         // Fire arrival callback — reveals the order
         if (c.onArrive) c.onArrive();
@@ -560,8 +558,8 @@ export class CustomerVessels {
 
   drawBlobAlien(g, x, y, sc, color, happiness) {
     const t = Date.now();
-    const dark = this.darkenColor(color, 0.6);
-    const light = this.lightenColor(color, 0.4);
+    const dark = darkenColor(color, 0.6);
+    const light = lightenColor(color, 0.4);
     const breathe = Math.sin(t * 0.002) * 0.04;
 
     // Outer glow / aura
@@ -674,8 +672,8 @@ export class CustomerVessels {
 
   drawTentacleAlien(g, x, y, sc, color, happiness) {
     const t = Date.now();
-    const dark = this.darkenColor(color, 0.5);
-    const light = this.lightenColor(color, 0.35);
+    const dark = darkenColor(color, 0.5);
+    const light = lightenColor(color, 0.35);
 
     // 5 organic tentacles (drawn behind body)
     for (let i = 0; i < 5; i++) {
@@ -813,8 +811,8 @@ export class CustomerVessels {
 
   drawEyeAlien(g, x, y, sc, color, happiness) {
     const t = Date.now();
-    const dark = this.darkenColor(color, 0.5);
-    const light = this.lightenColor(color, 0.4);
+    const dark = darkenColor(color, 0.5);
+    const light = lightenColor(color, 0.4);
 
     // Energy trail particles (below body)
     for (let i = 0; i < 5; i++) {
@@ -905,8 +903,8 @@ export class CustomerVessels {
 
   drawCrystalAlien(g, x, y, sc, color, happiness) {
     const t = Date.now();
-    const dark = this.darkenColor(color, 0.5);
-    const light = this.lightenColor(color, 0.45);
+    const dark = darkenColor(color, 0.5);
+    const light = lightenColor(color, 0.45);
 
     // Base glow (golden glow beneath)
     const glowPulse = 0.15 + Math.sin(t * 0.003) * 0.05;
@@ -1099,20 +1097,6 @@ export class CustomerVessels {
     this.scene.notificationManager.show(`${c.name}: "${c.quip}"`, {
       borderColor: c.isAlien ? 0x44ff88 : 0x6688cc,
     });
-  }
-
-  darkenColor(color, factor) {
-    const r = Math.floor(((color >> 16) & 0xFF) * factor);
-    const g = Math.floor(((color >> 8) & 0xFF) * factor);
-    const b = Math.floor((color & 0xFF) * factor);
-    return (r << 16) | (g << 8) | b;
-  }
-
-  lightenColor(color, factor) {
-    const r = Math.min(255, Math.floor(((color >> 16) & 0xFF) + (255 - ((color >> 16) & 0xFF)) * factor));
-    const g = Math.min(255, Math.floor(((color >> 8) & 0xFF) + (255 - ((color >> 8) & 0xFF)) * factor));
-    const b = Math.min(255, Math.floor((color & 0xFF) + (255 - (color & 0xFF)) * factor));
-    return (r << 16) | (g << 8) | b;
   }
 
   destroy() {

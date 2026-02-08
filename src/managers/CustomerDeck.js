@@ -69,33 +69,53 @@ export class CustomerDeck {
     g.fillEllipse(525, lightY + 20, 300, 40);
     g.fillEllipse(850, lightY + 20, 240, 40);
 
-    // === AIRLOCK FRAME ===
+    // === CIRCULAR AIRLOCK FRAME ===
     const alX = s.AIRLOCK_X;
     const alY = s.AIRLOCK_Y;
-    const alW = s.AIRLOCK_WIDTH;
-    const alH = s.AIRLOCK_HEIGHT;
+    const alR = s.AIRLOCK_RADIUS;
 
-    // Chrome frame around airlock
-    g.fillStyle(0x606878, 1);
-    g.fillRect(alX - alW / 2 - 6, alY - 4, alW + 12, alH + 8);
-    g.fillStyle(0x505060, 1);
-    g.fillRect(alX - alW / 2 - 4, alY - 2, alW + 8, alH + 4);
+    // Outer warning ring
+    g.lineStyle(3, 0xCCAA00, 0.3);
+    g.strokeCircle(alX, alY, alR + 10);
 
-    // Frame highlights
-    g.fillStyle(0x707888, 0.6);
-    g.fillRect(alX - alW / 2 - 6, alY - 4, alW + 12, 2);
-    g.fillStyle(0x404858, 0.8);
-    g.fillRect(alX - alW / 2 - 6, alY + alH + 2, alW + 12, 2);
+    // Heavy chrome outer ring
+    g.lineStyle(6, 0x606878, 1);
+    g.strokeCircle(alX, alY, alR + 5);
+    // Inner chrome ring
+    g.lineStyle(3, 0x505060, 1);
+    g.strokeCircle(alX, alY, alR + 1);
+
+    // Highlight arc (top half — catches light)
+    g.lineStyle(2, 0x707888, 0.6);
+    g.beginPath();
+    g.arc(alX, alY, alR + 6, -Math.PI * 0.85, -Math.PI * 0.15);
+    g.strokePath();
+
+    // Shadow arc (bottom half)
+    g.lineStyle(2, 0x404858, 0.8);
+    g.beginPath();
+    g.arc(alX, alY, alR + 6, Math.PI * 0.15, Math.PI * 0.85);
+    g.strokePath();
+
+    // Bolts at 8 positions around the frame
+    for (let i = 0; i < 8; i++) {
+      const angle = (i / 8) * Math.PI * 2;
+      const bx = alX + Math.cos(angle) * (alR + 6);
+      const by = alY + Math.sin(angle) * (alR + 6);
+      g.fillStyle(0x505060, 1);
+      g.fillCircle(bx, by, 2.5);
+      g.fillStyle(0x707888, 0.6);
+      g.fillCircle(bx - 0.5, by - 0.5, 1);
+    }
+
+    // Inner rim (recessed edge visible when door is open)
+    g.lineStyle(1, 0x2A3545, 0.6);
+    g.strokeCircle(alX, alY, alR - 1);
 
     // "AIRLOCK" label above
     const labelGfx = s.add.graphics().setDepth(1.2);
     labelGfx.fillStyle(0x404050, 0.8);
-    labelGfx.fillRoundedRect(alX - 30, alY - 16, 60, 12, 3);
-
-    // Warning stripes around airlock
-    g.fillStyle(0xCCAA00, 0.3);
-    g.fillRect(alX - alW / 2 - 8, alY + alH + 4, alW + 16, 3);
-    g.fillRect(alX - alW / 2 - 8, alY - 7, alW + 16, 3);
+    labelGfx.fillRoundedRect(alX - 30, alY - alR - 22, 60, 12, 3);
 
     // === HANDRAILS ===
     const railY = deckTop + 55;
@@ -157,45 +177,68 @@ export class CustomerDeck {
     const g = this.airlockGfx;
     g.clear();
 
-    const alX = s.AIRLOCK_X;
-    const alY = s.AIRLOCK_Y;
-    const alW = s.AIRLOCK_WIDTH;
-    const alH = s.AIRLOCK_HEIGHT;
-    const halfW = alW / 2;
+    const cx = s.AIRLOCK_X;
+    const cy = s.AIRLOCK_Y;
+    const R = s.AIRLOCK_RADIUS;
+    const progress = this.airlockProgress;
 
-    // Door opening offset (0 = closed, halfW = fully open)
-    const openOffset = this.airlockProgress * halfW;
+    if (progress >= 1) return; // fully open — nothing to draw
 
-    // Left door
-    const leftX = alX - halfW;
-    const leftW = halfW - openOffset;
-    if (leftW > 0) {
-      g.fillStyle(0x606878, 1);
-      g.fillRect(leftX, alY, leftW, alH);
-      // Door panel details
-      g.lineStyle(1, 0x707888, 0.5);
-      g.lineBetween(leftX + leftW / 2, alY + 4, leftX + leftW / 2, alY + alH - 4);
-      g.fillStyle(0x505060, 0.5);
-      g.fillRect(leftX + leftW - 3, alY + alH / 2 - 4, 2, 8);
+    // Iris aperture: 8 overlapping blades that rotate open
+    const numBlades = 8;
+    const bladeArc = (Math.PI * 2) / numBlades;
+    // Inner tip retreats from center toward edge as door opens
+    const innerR = R * progress * 0.95;
+
+    for (let i = 0; i < numBlades; i++) {
+      const baseAngle = i * bladeArc - Math.PI / 2;
+      // Blades rotate outward as door opens
+      const rotAngle = baseAngle + progress * bladeArc * 0.6;
+      // Blade angular width (overlap when closed, shrinks slightly when opening)
+      const halfArc = bladeArc * 0.7 * (1 - progress * 0.2);
+
+      // Alternate blade shade for depth
+      g.fillStyle(i % 2 === 0 ? 0x606878 : 0x586070, 1);
+      g.beginPath();
+
+      // Inner tip point
+      const tipX = cx + Math.cos(rotAngle) * innerR;
+      const tipY = cy + Math.sin(rotAngle) * innerR;
+      g.moveTo(tipX, tipY);
+
+      // Arc along the outer edge of the airlock
+      const startAngle = rotAngle - halfArc;
+      const endAngle = rotAngle + halfArc;
+      const steps = 10;
+      for (let j = 0; j <= steps; j++) {
+        const a = startAngle + (endAngle - startAngle) * (j / steps);
+        g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
+      }
+
+      g.closePath();
+      g.fillPath();
+
+      // Blade edge line (structural detail)
+      g.lineStyle(1, 0x707888, 0.35);
+      g.lineBetween(
+        tipX, tipY,
+        cx + Math.cos(startAngle) * R,
+        cy + Math.sin(startAngle) * R
+      );
     }
 
-    // Right door
-    const rightX = alX + openOffset;
-    const rightW = halfW - openOffset;
-    if (rightW > 0) {
-      g.fillStyle(0x606878, 1);
-      g.fillRect(rightX, alY, rightW, alH);
-      // Door panel details
-      g.lineStyle(1, 0x707888, 0.5);
-      g.lineBetween(rightX + rightW / 2, alY + 4, rightX + rightW / 2, alY + alH - 4);
-      g.fillStyle(0x505060, 0.5);
-      g.fillRect(rightX + 1, alY + alH / 2 - 4, 2, 8);
+    // Center hub (visible when partially open)
+    if (progress > 0.05 && progress < 0.95) {
+      const hubR = Math.max(2, innerR * 0.15);
+      g.fillStyle(0x505060, 0.7);
+      g.fillCircle(cx, cy, hubR);
     }
 
-    // Door seam glow when opening/closing
-    if (this.airlockProgress > 0 && this.airlockProgress < 1) {
-      g.fillStyle(0x88DDFF, 0.15 + this.airlockProgress * 0.2);
-      g.fillRect(alX - openOffset, alY, openOffset * 2, alH);
+    // Glow ring around iris opening when animating
+    if (progress > 0 && progress < 1) {
+      const openR = R * progress;
+      g.lineStyle(2, 0x88DDFF, 0.12 + progress * 0.18);
+      g.strokeCircle(cx, cy, openR);
     }
   }
 

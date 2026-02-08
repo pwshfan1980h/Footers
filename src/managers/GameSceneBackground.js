@@ -2,6 +2,7 @@
  * GameSceneBackground - Hull plating with oval portholes, service counter, kitchen surface
  */
 import Phaser from 'phaser';
+import { darkenColor, lightenColor } from '../utils/colorUtils.js';
 
 export class GameSceneBackground {
   constructor(scene) {
@@ -124,20 +125,6 @@ export class GameSceneBackground {
       g.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
       g.fillCircle(x - 0.5, counterY + counterH / 2, 1.2);
     }
-  }
-
-  _darken(color, factor) {
-    const r = Math.floor(((color >> 16) & 0xFF) * factor);
-    const g = Math.floor(((color >> 8) & 0xFF) * factor);
-    const b = Math.floor((color & 0xFF) * factor);
-    return (r << 16) | (g << 8) | b;
-  }
-
-  _lighten(color, factor) {
-    const r = Math.min(255, Math.floor(((color >> 16) & 0xFF) + (255 - ((color >> 16) & 0xFF)) * factor));
-    const g = Math.min(255, Math.floor(((color >> 8) & 0xFF) + (255 - ((color >> 8) & 0xFF)) * factor));
-    const b = Math.min(255, Math.floor((color & 0xFF) + (255 - (color & 0xFF)) * factor));
-    return (r << 16) | (g << 8) | b;
   }
 
   createSpaceBackground() {
@@ -341,8 +328,8 @@ export class GameSceneBackground {
     }
 
     // Rivet rows along top and bottom
-    const rivetDark = this._darken(s.HULL_MID, 0.65);
-    const rivetLight = this._lighten(s.HULL_MID, 0.25);
+    const rivetDark = darkenColor(s.HULL_MID, 0.65);
+    const rivetLight = lightenColor(s.HULL_MID, 0.25);
     for (let x = 30; x < 1024; x += 50) {
       hull.fillStyle(rivetDark, 1);
       hull.fillCircle(x, winTop + 8, 2.5);

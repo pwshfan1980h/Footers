@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
-import { PalettePostFX } from '../shaders/PalettePostFX.js';
 
 export class BootScene extends Phaser.Scene {
   constructor() {
@@ -15,7 +14,6 @@ export class BootScene extends Phaser.Scene {
       this.renderer.pipelines.addPostPipeline('CRTPostFX', CRTPostFX);
       this.renderer.pipelines.addPostPipeline('WarningPulsePostFX', WarningPulsePostFX);
       this.renderer.pipelines.addPostPipeline('WarpPostFX', WarpPostFX);
-      this.renderer.pipelines.addPostPipeline('PalettePostFX', PalettePostFX);
     }
     // Helper to batch-load SVGs sharing the same dimensions
     const loadSVGs = (keys, dims) =>

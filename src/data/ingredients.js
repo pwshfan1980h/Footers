@@ -33,7 +33,7 @@ export const TREATMENTS = {
   oil_vinegar: { name: 'O&V', label: '#B8D458', description: 'Oil & vinegar drizzle' },
 };
 
-// Progressive difficulty config for endless mode
+// Progressive difficulty config
 // Difficulty increases based on game time (seconds)
 export const DIFFICULTY_PROGRESSION = {
   // Starting values
@@ -43,7 +43,7 @@ export const DIFFICULTY_PROGRESSION = {
   initialTreatmentChance: 0.1,
 
   // Progression rates (per 60 seconds of game time)
-  speedIncrease: 0.08,           // Belt speed increases
+  speedIncrease: 0.08,           // Speed multiplier increases
   spawnIntervalDecrease: 500,    // Orders spawn faster
   maxToppingsIncrease: 0.15,     // More toppings per sandwich
   treatmentChanceIncrease: 0.08, // More treatment requests

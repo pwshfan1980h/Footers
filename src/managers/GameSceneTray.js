@@ -8,7 +8,7 @@ import {
   BASE_PRICE, DEFAULT_INGREDIENT_PRICE, TREATMENT_PRICE,
   LAYER_HEIGHT_SAUCE, LAYER_HEIGHT_TOPPING, LAYER_HEIGHT_CHEESE,
   LAYER_HEIGHT_MEAT, LAYER_HEIGHT_BREAD,
-  GAME_FONT,
+  GAME_FONT, SEQUENTIAL_ORDER_CAP,
 } from '../data/constants.js';
 
 export class GameSceneTray {
@@ -89,7 +89,7 @@ export class GameSceneTray {
       s.refreshHUD();
     });
 
-    if (s.ordersSpawned === 3) {
+    if (s.ordersSpawned === SEQUENTIAL_ORDER_CAP) {
       s.spawnTimer = s.spawnInterval * 0.5;
     }
 

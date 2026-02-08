@@ -21,10 +21,14 @@ import { RadioChatter } from '../managers/RadioChatter.js';
 import { NotificationManager } from '../managers/NotificationManager.js';
 import { soundManager } from '../SoundManager.js';
 import { musicManager } from '../MusicManager.js';
-import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK, GAME_FONT } from '../data/constants.js';
+import {
+  HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK, GAME_FONT,
+  FIRST_ORDER_DELAY, NEXT_ORDER_DELAY, SEQUENTIAL_ORDER_CAP,
+} from '../data/constants.js';
+import { THEME, LAYOUT } from '../data/theme.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
-import { applyPalette } from '../utils/applyPalette.js';
+
 
 export class GameScene extends Phaser.Scene {
   constructor() {
@@ -59,60 +63,8 @@ export class GameScene extends Phaser.Scene {
     const diff = DIFFICULTY_PROGRESSION;
 
     // --- constants ---
-    this.ISO_SKEW = 0.25;
-    this.TABLE_SKEW = 50;
-    this.SPACE_BLACK = 0x050510;
-    this.SPACE_DEEP = 0x030308;
-    this.STAR_WHITE = 0xdddddd;
-    this.STAR_BLUE = 0x88bbdd;
-    this.STAR_WARM = 0xddccbb;
-    this.SMOKED_GLASS = 0x0f1520;
-    this.SMOKED_GLASS_ALPHA = 0.45;
-    this.HULL_DARK = 0x2A3545;
-    this.HULL_MID = 0x3A4A5A;
-    this.HULL_LIGHT = 0x5A6A7A;
-    this.HULL_BRIGHT = 0x7A8A9A;
-    this.HULL_WARM = 0x4A5A6A;
-    this.PANEL_SEAM = 0x1A2535;
-    this.CHROME_DARK = 0x3a3a48;
-    this.CHROME_MID = 0x5a5a68;
-    this.CHROME_LIGHT = 0x7a7a88;
-    this.CHROME_HIGHLIGHT = 0x9a9aaa;
-    this.BEAM_DARK = 0x2a2a35;
-    this.BEAM_MID = 0x3a3a45;
-    this.BEAM_LIGHT = 0x4a4a55;
-    this.BEAM_HIGHLIGHT = 0x5a5a65;
+    Object.assign(this, THEME, LAYOUT);
     this.NEON_PINK = NEON_PINK;
-    this.NEON_ORANGE = 0xee9933;
-    this.NEON_MAGENTA = 0xdd33cc;
-    this.NEON_GOLD = 0xFFEE88;
-    this.GLASS_TINT = 0x3a4a60;
-    this.GLASS_HIGHLIGHT = 0x5a7090;
-    this.GLASS_EDGE = 0x2a3550;
-    this.FRAME_DARK = 0x2a2a35;
-    this.FRAME_LIGHT = 0x3a3a45;
-    this.TABLE_TOP = 0x8B6A4A;
-    this.TABLE_FRONT = 0x6B4A3A;
-    this.TABLE_HIGHLIGHT = 0xC8A878;
-    this.TABLE_SHADOW = 0x3A2A1A;
-    this.SHELF_TOP = 0x6a8898;
-    this.SHELF_FRONT = 0x4a6878;
-    this.SHELF_GLASS = 0x5a7a8a;
-    this.LAND_Y = 365;
-    this.WINDOW_TOP = 100;
-    this.WINDOW_BOTTOM = 185;
-    this.WINDOW_HEIGHT = 85;
-    this.BEAM_WIDTH = 45;
-    this.BEAM_POSITIONS = [0, 230, 512 - 22, 794 - 45, 1024 - 45];
-
-    // Customer deck interior layout
-    this.CUSTOMER_DECK_TOP = 185;
-    this.CUSTOMER_DECK_BOTTOM = 340;
-    this.COUNTER_Y = 350;
-    this.AIRLOCK_X = 512;
-    this.AIRLOCK_Y = 180;
-    this.AIRLOCK_WIDTH = 80;
-    this.AIRLOCK_HEIGHT = 40;
 
     this.gameMoney = 0;
     this.trays = [];
@@ -189,8 +141,6 @@ export class GameScene extends Phaser.Scene {
     this.particleManager.create();
     this.settingsMenu.create();
 
-    this.createEndShiftButton();
-
     this.prepTrack.create();
     this.customerVessels.create();
     this.revenueChallenges.create();
@@ -199,7 +149,6 @@ export class GameScene extends Phaser.Scene {
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
-      applyPalette(this);
       this.cameras.main.setPostPipeline(WarningPulsePostFX);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) {
@@ -269,44 +218,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  createEndShiftButton() {
-    const btnX = 920;
-    const btnY = 4;
-    const btnW = 95;
-    const btnH = 24;
-
-    const btnG = this.add.graphics().setDepth(5);
-    btnG.fillStyle(0x3a1a1a, 0.9);
-    btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
-    btnG.lineStyle(1.5, 0xff6666, 0.6);
-    btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
-
-    const btnText = this.add.text(btnX + btnW / 2, btnY + btnH / 2, 'END SHIFT', {
-      fontSize: '13px', color: '#ff8888', fontFamily: GAME_FONT,
-    }).setOrigin(0.5).setDepth(5);
-
-    const btnHit = this.add.rectangle(btnX + btnW / 2, btnY + btnH / 2, btnW, btnH)
-      .setInteractive({ useHandCursor: true }).setAlpha(0.001).setDepth(5);
-
-    btnHit.on('pointerover', () => {
-      btnG.clear();
-      btnG.fillStyle(0x4a2a2a, 1);
-      btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
-      btnG.lineStyle(1.5, 0xff8888, 1);
-      btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
-      btnText.setColor('#ffaaaa');
-    });
-    btnHit.on('pointerout', () => {
-      btnG.clear();
-      btnG.fillStyle(0x3a1a1a, 0.9);
-      btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
-      btnG.lineStyle(1.5, 0xff6666, 0.6);
-      btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
-      btnText.setColor('#ff8888');
-    });
-    btnHit.on('pointerdown', () => this.endShift());
-  }
-
   endShift() {
     if (this.isPaused) return;
     this.isPaused = true;
@@ -360,10 +271,10 @@ export class GameScene extends Phaser.Scene {
     this.radioChatter.update(delta);
 
     if (this.isStoreOpen && this.prepTrack.findEmptySlot()) {
-      if (this.ordersSpawned < 3) {
+      if (this.ordersSpawned < SEQUENTIAL_ORDER_CAP) {
         if (this.waitingForNext) {
           this.sequentialDelay += delta;
-          const delay = this.ordersSpawned === 0 ? 800 : 1500;
+          const delay = this.ordersSpawned === 0 ? FIRST_ORDER_DELAY : NEXT_ORDER_DELAY;
           if (this.sequentialDelay >= delay) {
             this.trayManager.spawnTray();
             this.waitingForNext = false;

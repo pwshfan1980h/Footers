@@ -20,7 +20,7 @@ No test runner, linter, or formatter is configured.
 
 **Entry:** `index.html` loads `src/main.js`, which initializes a 1024x768 Phaser game with FIT scaling.
 
-**Scene flow:** `BootScene` → `SystemMapScene` → `GameScene` ↔ `DayEndScene` → `SystemMapScene`. `GameOverScene` triggers on 3 strikes. `WinScene` after completing all days.
+**Scene flow:** `BootScene` → `TitleScene` → `SystemMapScene` ↔ `GameScene` → `SystemMapScene`. `GameOverScene` triggers on 3 strikes. `DayEndScene` and `WinScene` are registered but not yet wired into the current freeplay loop (reserved for campaign).
 
 **Key files:**
 
@@ -33,10 +33,10 @@ No test runner, linter, or formatter is configured.
 - `src/data/customerPersonality.js` — Customer personality data.
 - `src/SoundManager.js` — Singleton (`soundManager`) using Web Audio API to procedurally generate all SFX. No audio files.
 - `src/MusicManager.js` — Procedural ambient engine drone using Web Audio API.
-- `src/utils/colorUtils.js` — Shared color utilities.
+- `src/utils/colorUtils.js` — Shared color utilities (`darkenColor`, `lightenColor`).
 - `src/utils/ShipDrawing.js` — Procedural ship rendering for the system map.
 
-**Dead code:** `GameSceneBelt.js` exists but is not imported anywhere. `RobotArm.js` and `BoidManager.js` were deleted.
+**Dead code:** `GameSceneBelt.js`, `RobotArm.js`, and `BoidManager.js` have been deleted. `DayEndScene.js` and `WinScene.js` are registered but currently unreachable (no scene transitions to them); they will be wired up during campaign implementation.
 
 **Graphics:** SVG assets in `public/assets/` for ingredients, trays, and bin contents (breads, meats, cheeses, toppings, sauces). Scene chrome (walls, windows, bins, prep station) drawn with Phaser Graphics primitives. No sprite sheets or image atlas.
 
@@ -47,30 +47,6 @@ No test runner, linter, or formatter is configured.
 **Order system:** Orders are randomly generated: bread → meat → optional cheese → optional toppings → optional sauce → top bread. Ingredients must be placed in exact ticket order. Treatments (toasted, to-go, salt & pepper, oil & vinegar) are unlocked on later days.
 
 **Scoring:** Order value is based on ingredient prices (`BASE_PRICE` + per-ingredient + treatment prices) multiplied by location tip modifier. Score = `orderValue * SCORE_MULTIPLIER`. Penalty of -25 score for placing the wrong ingredient.
-
-## Palette Shader System
-
-A post-processing shader that restricts all rendered output to a fixed color palette. Every pixel is snapped to the nearest color in the active palette using Euclidean RGB distance.
-
-**Files:**
-- `src/shaders/PalettePostFX.js` — The WebGL PostFX pipeline class and GLSL fragment shader.
-- `src/data/palettes.js` — Palette definitions (hex color arrays) and the `DEFAULT_PALETTE` constant.
-- `src/utils/applyPalette.js` — Helper that reads `localStorage` preference and applies the pipeline to a scene's camera.
-
-**Pipeline order:** PalettePostFX is applied first (before WarningPulse, Warp, CRT) so it processes raw rendered colors. Subsequent effects (scanlines, barrel distortion, etc.) operate on the already-snapped palette output.
-
-**localStorage key:** `footers_palette`. Values: a palette key name (e.g. `'gameboy'`) to enable that palette, `'off'` to disable, or absent/null to use `DEFAULT_PALETTE`.
-
-**Adding a new palette:** Add a key to `PALETTES` in `src/data/palettes.js` with an array of up to 64 hex colors (`0xRRGGBB`), then add a matching entry to `PALETTE_LIST`. The shader picks it up automatically.
-
-**Runtime switching:** Get the pipeline from the camera and call `setPalette()`:
-```
-const pp = scene.cameras.main.getPostPipeline(PalettePostFX);
-const pipeline = Array.isArray(pp) ? pp[0] : pp;
-pipeline.setPalette(PALETTES.someKey);
-```
-
-**Shader limits:** Max 64 colors per palette (WebGL1 fixed-loop constraint). Uses RGB Euclidean distance (not perceptual LAB). WebGL renderer required (Canvas fallback not supported, but Phaser defaults to WebGL). Currently ships with 60 palettes from Lospec (2 to 64 colors each).
 
 ## Campaign System (Planned — "The Golden Spatula Tour")
 

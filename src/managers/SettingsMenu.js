@@ -5,7 +5,7 @@
 import { musicManager } from '../MusicManager.js';
 import { soundManager } from '../SoundManager.js';
 import { GAME_FONT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
-import { PALETTES, PALETTE_LIST, DEFAULT_PALETTE } from '../data/palettes.js';
+import { gameState } from '../data/GameState.js';
 
 export class SettingsMenu {
   constructor(scene) {
@@ -26,8 +26,7 @@ export class SettingsMenu {
     // Create container for all settings UI
     this.container = this.scene.add.container(0, 0).setDepth(201).setVisible(false);
 
-    // Dedicated camera for settings UI — no post-processing shaders
-    // so palette swatches render in true color.
+    // Dedicated camera for settings UI — no post-processing shaders.
     this.settingsCamera = this.scene.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
     this.settingsCamera.setVisible(false);
 
@@ -41,7 +40,7 @@ export class SettingsMenu {
     const centerX = 512;
     const centerY = 384;
     const panelWidth = 500;
-    const panelHeight = 560;
+    const panelHeight = 500;
 
     // Panel background
     const panel = this.scene.add.graphics();
@@ -133,11 +132,88 @@ export class SettingsMenu {
       soundManager.plop();
     });
 
-    // Palette Selector
-    this.buildPaletteSelector(centerX, centerY + 100);
+    // === RESET ALL DATA ===
+    // Divider line
+    const divider = this.scene.add.graphics();
+    divider.lineStyle(1, 0x444455, 0.5);
+    divider.lineBetween(centerX - 200, centerY + 95, centerX + 200, centerY + 95);
+    this.container.add(divider);
+
+    // Warning icon + label
+    const resetLabel = this.scene.add.text(centerX - 180, centerY + 108, '\u26A0  Danger Zone', {
+      fontSize: '16px',
+      fontFamily: GAME_FONT,
+      color: '#ff6666'
+    });
+    this.container.add(resetLabel);
+
+    // Reset button
+    this.resetBtn = this.scene.add.text(centerX, centerY + 145, 'RESET ALL DATA', {
+      fontSize: '18px',
+      fontFamily: GAME_FONT,
+      fontStyle: 'bold',
+      color: '#ff4444',
+      backgroundColor: '#3a1a1a',
+      padding: { x: 20, y: 8 },
+    }).setOrigin(0.5).setInteractive({ useHandCursor: true });
+    this.container.add(this.resetBtn);
+
+    this.resetConfirmPending = false;
+    this.resetConfirmTimer = null;
+
+    this.resetBtn.on('pointerover', () => this.resetBtn.setScale(1.05));
+    this.resetBtn.on('pointerout', () => this.resetBtn.setScale(1.0));
+
+    this.resetBtn.on('pointerdown', () => {
+      soundManager.init();
+      if (!this.resetConfirmPending) {
+        // First click — ask for confirmation
+        this.resetConfirmPending = true;
+        this.resetBtn.setText('\u26A0 ARE YOU SURE? CLICK AGAIN \u26A0');
+        this.resetBtn.setColor('#ffcc00');
+        this.resetBtn.setBackgroundColor('#4a3a10');
+
+        // Auto-revert after 4 seconds
+        this.resetConfirmTimer = this.scene.time.delayedCall(4000, () => {
+          this.cancelResetConfirm();
+        });
+
+        soundManager.ding();
+      } else {
+        // Second click — perform the reset
+        this.resetConfirmPending = false;
+        if (this.resetConfirmTimer) {
+          this.resetConfirmTimer.remove();
+          this.resetConfirmTimer = null;
+        }
+
+        // Clear all game localStorage keys
+        localStorage.removeItem('footers_gamestate');
+        localStorage.removeItem('footers_crt');
+        localStorage.removeItem('footers_highscore');
+        localStorage.removeItem('footers_challenges');
+
+        // Reset in-memory state
+        gameState.reset();
+
+        // Visual feedback
+        this.resetBtn.setText('\u2713 DATA CLEARED');
+        this.resetBtn.setColor('#44ff88');
+        this.resetBtn.setBackgroundColor('#1a3a2a');
+        this.resetBtn.disableInteractive();
+
+        soundManager.cancelSound();
+
+        // Restart the game from BootScene after brief delay
+        this.scene.time.delayedCall(1200, () => {
+          musicManager.stop();
+          this.scene.scene.start('Boot');
+        });
+      }
+    });
 
     // Close button
-    const closeBtn = this.scene.add.text(centerX, centerY + 210, 'CLOSE (ESC)', {
+    const closeBtn = this.scene.add.text(centerX, centerY + 195, 'CLOSE (ESC)', {
       fontSize: '24px',
       fontFamily: GAME_FONT,
       fontStyle: 'bold',
@@ -161,7 +237,7 @@ export class SettingsMenu {
     this.container.add(closeBtn);
 
     // Instructions
-    const instructions = this.scene.add.text(centerX, centerY + 250, 'Press ESC to toggle settings', {
+    const instructions = this.scene.add.text(centerX, centerY + 235, 'Press ESC to toggle settings', {
       fontSize: '14px',
       fontFamily: GAME_FONT,
       color: '#888888'
@@ -169,95 +245,18 @@ export class SettingsMenu {
     this.container.add(instructions);
   }
 
-  buildPaletteSelector(centerX, y) {
-    const label = this.scene.add.text(centerX - 180, y, 'Palette', {
-      fontSize: '20px',
-      fontFamily: GAME_FONT,
-      color: '#ffffff'
-    });
-    this.container.add(label);
-
-    // Determine current selection index
-    const stored = localStorage.getItem('footers_palette') || DEFAULT_PALETTE;
-    this.paletteIndex = PALETTE_LIST.findIndex(p => p.key === stored);
-    if (this.paletteIndex < 0) this.paletteIndex = 0;
-
-    // Name text (centered between arrows)
-    const nameX = centerX + 60;
-    this.paletteNameText = this.scene.add.text(nameX, y + 2, PALETTE_LIST[this.paletteIndex].name, {
-      fontSize: '18px',
-      fontFamily: GAME_FONT,
-      fontStyle: 'bold',
-      color: '#00ddee',
-    }).setOrigin(0.5, 0);
-    this.container.add(this.paletteNameText);
-
-    // Left arrow
-    const leftBtn = this.scene.add.text(nameX - 100, y, '<', {
-      fontSize: '24px',
-      fontFamily: GAME_FONT,
-      fontStyle: 'bold',
-      color: '#00ddee',
-      padding: { x: 8, y: 2 },
-    }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-    this.container.add(leftBtn);
-
-    leftBtn.on('pointerover', () => leftBtn.setColor('#88ffee'));
-    leftBtn.on('pointerout', () => leftBtn.setColor('#00ddee'));
-    leftBtn.on('pointerdown', () => this.cyclePalette(-1));
-
-    // Right arrow
-    const rightBtn = this.scene.add.text(nameX + 100, y, '>', {
-      fontSize: '24px',
-      fontFamily: GAME_FONT,
-      fontStyle: 'bold',
-      color: '#00ddee',
-      padding: { x: 8, y: 2 },
-    }).setOrigin(0.5, 0).setInteractive({ useHandCursor: true });
-    this.container.add(rightBtn);
-
-    rightBtn.on('pointerover', () => rightBtn.setColor('#88ffee'));
-    rightBtn.on('pointerout', () => rightBtn.setColor('#00ddee'));
-    rightBtn.on('pointerdown', () => this.cyclePalette(1));
-
-    // Color swatch row
-    this.swatchGraphics = this.scene.add.graphics();
-    this.container.add(this.swatchGraphics);
-    this.swatchY = y + 35;
-    this.swatchCenterX = centerX;
-    this.drawSwatches();
-  }
-
-  cyclePalette(dir) {
-    this.paletteIndex = (this.paletteIndex + dir + PALETTE_LIST.length) % PALETTE_LIST.length;
-    const entry = PALETTE_LIST[this.paletteIndex];
-
-    this.paletteNameText.setText(entry.name);
-    localStorage.setItem('footers_palette', entry.key);
-    this.drawSwatches();
-    this.showRestartNote();
-
-    soundManager.init();
-    soundManager.plop();
-  }
-
-  drawSwatches() {
-    this.swatchGraphics.clear();
-    const entry = PALETTE_LIST[this.paletteIndex];
-    if (entry.key === 'off') return;
-
-    const colors = PALETTES[entry.key];
-    if (!colors) return;
-
-    const swatchSize = 14;
-    const gap = 2;
-    const totalW = colors.length * (swatchSize + gap) - gap;
-    const startX = this.swatchCenterX - totalW / 2;
-
-    for (let i = 0; i < colors.length; i++) {
-      const sx = startX + i * (swatchSize + gap);
-      this.swatchGraphics.fillStyle(colors[i], 1);
-      this.swatchGraphics.fillRect(sx, this.swatchY, swatchSize, swatchSize);
+  cancelResetConfirm() {
+    if (this.resetConfirmPending) {
+      this.resetConfirmPending = false;
+      if (this.resetConfirmTimer) {
+        this.resetConfirmTimer.remove();
+        this.resetConfirmTimer = null;
+      }
+      if (this.resetBtn) {
+        this.resetBtn.setText('RESET ALL DATA');
+        this.resetBtn.setColor('#ff4444');
+        this.resetBtn.setBackgroundColor('#3a1a1a');
+      }
     }
   }
 
@@ -378,6 +377,9 @@ export class SettingsMenu {
 
     this.isOpen = false;
     this.scene.isPaused = false;
+
+    // Reset any pending confirmation
+    this.cancelResetConfirm();
 
     this.overlay.setVisible(false);
     this.container.setVisible(false);

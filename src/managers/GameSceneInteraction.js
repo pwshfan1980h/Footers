@@ -3,7 +3,12 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT } from '../data/constants.js';
+import {
+  GAME_FONT, WRONG_INGREDIENT_PENALTY,
+  HELD_ITEM_WIDTH, HELD_ITEM_HEIGHT,
+  SCALE_MEAT_CHEESE, SCALE_TOPPING, SCALE_BREAD, SCALE_SAUCE,
+  TRAY_MAGNET_RADIUS
+} from '../data/constants.js';
 
 export class GameSceneInteraction {
   constructor(scene) {
@@ -19,14 +24,14 @@ export class GameSceneInteraction {
     const s = this.scene;
     const ing = INGREDIENTS[key];
     const c = s.add.container(x, y).setDepth(100);
-    c.setSize(130, 56);
+    c.setSize(HELD_ITEM_WIDTH, HELD_ITEM_HEIGHT);
 
     const textureKey = key.includes('sauce') ? key + '_bottle' : key;
     const img = s.add.image(0, 0, textureKey).setOrigin(0.5);
-    if (key.includes('meat') || key.includes('cheese')) img.setScale(0.65);
-    else if (key.includes('top')) img.setScale(0.7);
-    else if (key.includes('bread')) img.setScale(0.75);
-    else if (key.includes('sauce')) img.setScale(0.4);
+    if (key.includes('meat') || key.includes('cheese')) img.setScale(SCALE_MEAT_CHEESE);
+    else if (key.includes('top')) img.setScale(SCALE_TOPPING);
+    else if (key.includes('bread')) img.setScale(SCALE_BREAD);
+    else if (key.includes('sauce')) img.setScale(SCALE_SAUCE);
 
     c.add(img);
 
@@ -124,7 +129,7 @@ export class GameSceneInteraction {
           const trayY = tray.container.y - 20;
           const distX = Math.abs(pointer.x - trayX);
           const distY = Math.abs(pointer.y - trayY);
-          const magnetRadius = 100;
+          const magnetRadius = TRAY_MAGNET_RADIUS;
 
           if (distX < magnetRadius && distY < 120) {
             const dist = Math.sqrt(distX * distX + distY * distY);
@@ -303,7 +308,7 @@ export class GameSceneInteraction {
               s.particleManager.ingredientPlaced(tray.container.x, landY, ing.color);
             } else if (result === 'wrong') {
               soundManager.buzz();
-              s.currentScore = Math.max(0, s.currentScore - 25);
+              s.currentScore = Math.max(0, s.currentScore - WRONG_INGREDIENT_PENALTY);
               s.refreshHUD();
               s.flashTray(tray, 0xff0000);
               s.particleManager.errorSparks(tray.container.x, landY);
@@ -311,7 +316,7 @@ export class GameSceneInteraction {
               const expectedKey = tray.order.ingredients[tray.placed.length];
               const expectedName = expectedKey ? INGREDIENTS[expectedKey].name : '?';
               const needTxt = s.add.text(tray.container.x, tray.container.y - 60,
-                `Need ${expectedName}!\n-25`, {
+                `Need ${expectedName}!\n-${WRONG_INGREDIENT_PENALTY}`, {
                 fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
                 align: 'center',
               }).setOrigin(0.5).setDepth(100);

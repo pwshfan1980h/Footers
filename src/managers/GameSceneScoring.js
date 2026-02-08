@@ -5,7 +5,7 @@ import { soundManager } from '../SoundManager.js';
 import {
   HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT,
   MAX_MISSES, GAME_OVER_DELAY, DEFAULT_ORDER_VALUE, SCORE_MULTIPLIER,
-  GAME_FONT,
+  GAME_FONT, SEQUENTIAL_ORDER_CAP,
 } from '../data/constants.js';
 
 export class GameSceneScoring {
@@ -167,7 +167,7 @@ export class GameSceneScoring {
 
   resolveSequential() {
     const s = this.scene;
-    if (s.ordersSpawned < 3) {
+    if (s.ordersSpawned < SEQUENTIAL_ORDER_CAP) {
       s.waitingForNext = true;
       s.sequentialDelay = 0;
     }

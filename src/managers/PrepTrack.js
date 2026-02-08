@@ -1,6 +1,5 @@
 /**
  * PrepTrack - Static preparation area where players build sandwiches
- * before moving them to the delivery belt
  */
 import { GAME_FONT } from '../data/constants.js';
 

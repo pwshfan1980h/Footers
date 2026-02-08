@@ -3,7 +3,6 @@ import { soundManager } from '../SoundManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, NEON_CYAN, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
-import { applyPalette } from '../utils/applyPalette.js';
 import { SettingsMenu } from '../managers/SettingsMenu.js';
 
 const NEON_CYAN_CSS = '#00ddff';
@@ -35,7 +34,6 @@ export class TitleScene extends Phaser.Scene {
 
     // Apply shaders
     if (this.renderer.pipelines) {
-      applyPalette(this);
       this.cameras.main.setPostPipeline(WarpPostFX);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);

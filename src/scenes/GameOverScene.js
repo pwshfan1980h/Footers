@@ -3,7 +3,6 @@ import { soundManager } from '../SoundManager.js';
 import { gameState } from '../data/GameState.js';
 import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, HULL_DARK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
-import { applyPalette } from '../utils/applyPalette.js';
 import { createButton } from '../utils/uiHelpers.js';
 
 export class GameOverScene extends Phaser.Scene {
@@ -37,7 +36,6 @@ export class GameOverScene extends Phaser.Scene {
 
     // Apply post-processing shaders (WebGL only)
     if (this.renderer.pipelines) {
-      applyPalette(this);
       const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
       if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
     }
@@ -48,7 +46,7 @@ export class GameOverScene extends Phaser.Scene {
     // Red alert glow
     const glow = this.add.graphics();
     glow.fillStyle(0x440000, 0.3);
-    glow.fillEllipse(512, 200, 800, 400);
+    glow.fillEllipse(HALF_WIDTH, 200, 800, 400);
 
     // Starfield (dimmer for alert)
     const g = this.add.graphics();
@@ -70,12 +68,12 @@ export class GameOverScene extends Phaser.Scene {
     panel.strokeRoundedRect(212, 100, 600, 120, 12);
 
     // Title
-    this.add.text(512, 140, "YOU'RE FIRED!", {
+    this.add.text(HALF_WIDTH, 140, "YOU'RE FIRED!", {
       fontSize: '68px', color: '#ff2244', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Pulsing alert effect
-    const alertFlash = this.add.rectangle(512, 140, 500, 80, ALERT_RED, 0);
+    const alertFlash = this.add.rectangle(HALF_WIDTH, 140, 500, 80, ALERT_RED, 0);
     this.tweens.add({
       targets: alertFlash,
       alpha: 0.2,
@@ -84,7 +82,7 @@ export class GameOverScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.add.text(512, 230, 'Too many orders missed!', {
+    this.add.text(HALF_WIDTH, 230, 'Too many orders missed!', {
       fontSize: '24px', color: '#ff8888', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
@@ -96,27 +94,27 @@ export class GameOverScene extends Phaser.Scene {
     statsPanel.strokeRoundedRect(262, 270, 500, 180, 12);
 
     const dayNames = DAY_NAMES;
-    this.add.text(512, 290, `Lasted until: ${dayNames[this.day]}`, {
+    this.add.text(HALF_WIDTH, 290, `Lasted until: ${dayNames[this.day]}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(512, 316, `Orders completed: ${this.ordersCompleted}`, {
+    this.add.text(HALF_WIDTH, 316, `Orders completed: ${this.ordersCompleted}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(512, 346, `Shift earnings: $${this.rawEarnings.toFixed(2)}`, {
+    this.add.text(HALF_WIDTH, 346, `Shift earnings: $${this.rawEarnings.toFixed(2)}`, {
       fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(512, 372, `Termination penalty: -$${this.penaltyAmount.toFixed(2)}`, {
+    this.add.text(HALF_WIDTH, 372, `Termination penalty: -$${this.penaltyAmount.toFixed(2)}`, {
       fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.add.text(512, 404, `Amount kept: $${this.earnings.toFixed(2)}`, {
+    this.add.text(HALF_WIDTH, 404, `Amount kept: $${this.earnings.toFixed(2)}`, {
       fontSize: '22px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(512, 434, `Final score: ${this.finalScore}`, {
+    this.add.text(HALF_WIDTH, 434, `Final score: ${this.finalScore}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 

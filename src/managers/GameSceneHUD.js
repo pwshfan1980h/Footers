@@ -1,7 +1,7 @@
 /**
  * GameSceneHUD - Score display, hotkey hints, speed indicators
  */
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, MAX_MISSES } from '../data/constants.js';
 
 export class GameSceneHUD {
   constructor(scene) {
@@ -64,6 +64,46 @@ export class GameSceneHUD {
 
     this.createHotkeyMemo();
     this.createHotkeyLegend();
+    this.createEndShiftButton();
+  }
+
+  createEndShiftButton() {
+    const s = this.scene;
+    const btnX = 920;
+    const btnY = 4;
+    const btnW = 95;
+    const btnH = 24;
+
+    const btnG = s.add.graphics().setDepth(5);
+    btnG.fillStyle(0x3a1a1a, 0.9);
+    btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
+    btnG.lineStyle(1.5, 0xff6666, 0.6);
+    btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
+
+    const btnText = s.add.text(btnX + btnW / 2, btnY + btnH / 2, 'END SHIFT', {
+      fontSize: '13px', color: '#ff8888', fontFamily: GAME_FONT,
+    }).setOrigin(0.5).setDepth(5);
+
+    const btnHit = s.add.rectangle(btnX + btnW / 2, btnY + btnH / 2, btnW, btnH)
+      .setInteractive({ useHandCursor: true }).setAlpha(0.001).setDepth(5);
+
+    btnHit.on('pointerover', () => {
+      btnG.clear();
+      btnG.fillStyle(0x4a2a2a, 1);
+      btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnG.lineStyle(1.5, 0xff8888, 1);
+      btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnText.setColor('#ffaaaa');
+    });
+    btnHit.on('pointerout', () => {
+      btnG.clear();
+      btnG.fillStyle(0x3a1a1a, 0.9);
+      btnG.fillRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnG.lineStyle(1.5, 0xff6666, 0.6);
+      btnG.strokeRoundedRect(btnX, btnY, btnW, btnH, 5);
+      btnText.setColor('#ff8888');
+    });
+    btnHit.on('pointerdown', () => s.endShift());
   }
 
   createHotkeyMemo() {
@@ -106,10 +146,10 @@ export class GameSceneHUD {
     const controls = [
       { key: 'ESC', desc: 'Cancel pickup' },
       { key: 'Z/X/C', desc: 'Breads' },
-      { key: '1-4', desc: 'Meats' },
-      { key: '5-7', desc: 'Veggies' },
-      { key: '8-9', desc: 'Cheese' },
-      { key: 'Q/E', desc: 'Sauces' },
+      { key: '1-4/Q', desc: 'Meats' },
+      { key: '5-0', desc: 'Veggies' },
+      { key: 'W/E', desc: 'Cheese' },
+      { key: 'A/S', desc: 'Sauces' },
       { key: 'R/F', desc: 'Toast/ToGo' },
       { key: 'G/H', desc: 'Salt/Pepper' },
       { key: 'V', desc: 'Oil & Vinegar' },
@@ -207,8 +247,7 @@ export class GameSceneHUD {
     this.drawStrikeIndicators(missed);
 
     // Risk warning after first miss
-    const maxStrikes = 3;
-    if (missed > 0 && missed < maxStrikes) {
+    if (missed > 0 && missed < MAX_MISSES) {
       const penaltyAmount = s.gameMoney * 0.5;
       s.riskText.setText(`AT RISK: -$${penaltyAmount.toFixed(2)}`);
       s.riskText.setAlpha(1);
@@ -224,12 +263,11 @@ export class GameSceneHUD {
     }
     this.strikeGraphics = s.add.graphics().setDepth(5);
     const g = this.strikeGraphics;
-    const maxStrikes = 3;
     const baseX = 705;
     const baseY = 16;
     const spacing = 22;
 
-    for (let i = 0; i < maxStrikes; i++) {
+    for (let i = 0; i < MAX_MISSES; i++) {
       const cx = baseX + i * spacing;
       if (i < missed) {
         // Red X for missed

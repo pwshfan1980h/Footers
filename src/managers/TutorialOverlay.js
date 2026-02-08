@@ -1,5 +1,5 @@
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, HALF_WIDTH, GAME_WIDTH, GAME_HEIGHT, HALF_HEIGHT } from '../data/constants.js';
 
 export class TutorialOverlay {
   constructor(scene) {
@@ -14,7 +14,7 @@ export class TutorialOverlay {
     const overlay = this.scene.add.container(0, 0).setDepth(250);
     this.overlay = overlay;
 
-    const backdrop = this.scene.add.rectangle(512, 384, 1024, 768, 0x000000, 0.7);
+    const backdrop = this.scene.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.7);
     overlay.add(backdrop);
 
     const steps = [
@@ -30,17 +30,17 @@ export class TutorialOverlay {
       {
         title: 'How to Build',
         lines: [
-          'DRAG ingredients from the bins below.',
-          'DROP them onto the matching tray on the belt.',
-          'Ingredients must go in ticket order!',
+          'CLICK an ingredient in the bins below to pick it up.',
+          'CLICK the prep tray to place it on the sandwich.',
+          'Ingredients must go in ticket order! ESC cancels.',
         ],
         icon: '\u{1F96A}',
       },
       {
-        title: 'Watch the Belt!',
+        title: 'Watch the Clock!',
         lines: [
-          'Trays move left \u2014 finish before they pass the line!',
-          'SPACE speeds up the belt, SHIFT slows it.',
+          'Customers lose patience \u2014 finish before they leave!',
+          'Press F1 to see keyboard shortcuts.',
           '3 missed orders = Game Over. Good luck!',
         ],
         icon: '\u26A0',
@@ -69,7 +69,7 @@ export class TutorialOverlay {
     const s = this.steps[this.step];
     const y = 260;
 
-    const title = this.scene.add.text(512, y, s.title, {
+    const title = this.scene.add.text(HALF_WIDTH, y, s.title, {
       fontSize: '36px', color: '#00ddff', fontFamily: GAME_FONT,
       stroke: '#003344', strokeThickness: 3,
     }).setOrigin(0.5);
@@ -77,7 +77,7 @@ export class TutorialOverlay {
     overlay.add(title);
 
     s.lines.forEach((line, i) => {
-      const txt = this.scene.add.text(512, y + 55 + i * 36, line, {
+      const txt = this.scene.add.text(HALF_WIDTH, y + 55 + i * 36, line, {
         fontSize: '20px', color: '#ddeeff', fontFamily: GAME_FONT,
       }).setOrigin(0.5);
       txt.setData('tutStep', true);
@@ -85,13 +85,13 @@ export class TutorialOverlay {
     });
 
     const pageNum = `${this.step + 1} / ${this.steps.length}`;
-    const page = this.scene.add.text(512, y + 200, pageNum, {
+    const page = this.scene.add.text(HALF_WIDTH, y + 200, pageNum, {
       fontSize: '14px', color: '#668899', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
     page.setData('tutStep', true);
     overlay.add(page);
 
-    const prompt = this.scene.add.text(512, y + 230, 'click to continue', {
+    const prompt = this.scene.add.text(HALF_WIDTH, y + 230, 'click to continue', {
       fontSize: '18px', color: '#88aacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setAlpha(0.6);
     prompt.setData('tutStep', true);
@@ -117,7 +117,9 @@ export class TutorialOverlay {
       onComplete: () => {
         this.overlay.destroy();
         this.overlay = null;
-        this.scene.onTutorialDismissed();
+        if (typeof this.scene.onTutorialDismissed === 'function') {
+          this.scene.onTutorialDismissed();
+        }
       }
     });
   }
