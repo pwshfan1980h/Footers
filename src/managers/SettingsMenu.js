@@ -4,9 +4,8 @@
 
 import { musicManager } from '../MusicManager.js';
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { PALETTES, PALETTE_LIST, DEFAULT_PALETTE } from '../data/palettes.js';
-import { PalettePostFX } from '../shaders/PalettePostFX.js';
 
 export class SettingsMenu {
   constructor(scene) {
@@ -26,6 +25,14 @@ export class SettingsMenu {
 
     // Create container for all settings UI
     this.container = this.scene.add.container(0, 0).setDepth(201).setVisible(false);
+
+    // Dedicated camera for settings UI — no post-processing shaders
+    // so palette swatches render in true color.
+    this.settingsCamera = this.scene.cameras.add(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    this.settingsCamera.setVisible(false);
+
+    // Main camera skips settings objects entirely
+    this.scene.cameras.main.ignore([this.overlay, this.container]);
 
     this.buildUI();
   }
@@ -352,13 +359,14 @@ export class SettingsMenu {
     this.isOpen = true;
     this.scene.isPaused = true;
 
-    // Draw overlay
+    // Draw overlay (high opacity hides unprocessed scene on settings camera)
     this.overlay.clear();
-    this.overlay.fillStyle(0x000000, 0.7);
-    this.overlay.fillRect(0, 0, 1024, 768);
+    this.overlay.fillStyle(0x000000, 0.92);
+    this.overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     this.overlay.setVisible(true);
 
     this.container.setVisible(true);
+    this.settingsCamera.setVisible(true);
 
     // Play open sound
     soundManager.init();
@@ -373,6 +381,7 @@ export class SettingsMenu {
 
     this.overlay.setVisible(false);
     this.container.setVisible(false);
+    this.settingsCamera.setVisible(false);
 
     // Play close sound
     soundManager.cancelSound();

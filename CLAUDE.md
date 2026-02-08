@@ -25,7 +25,7 @@ No test runner, linter, or formatter is configured.
 **Key files:**
 
 - `src/scenes/GameScene.js` (~360 lines) — Core gameplay scene. Most logic is delegated to manager classes.
-- `src/managers/` — Gameplay managers: `GameSceneBackground`, `GameSceneBins`, `GameSceneHUD`, `GameSceneTicketBar`, `GameSceneInteraction`, `GameSceneScoring`, `GameSceneTray`, `PrepTrack`, `ParticleManager`, `WarningSystem`, `TutorialOverlay`, `SettingsMenu`, `RevenueChallenges`, `CustomerVessels`, `BoidManager`. System map managers: `MapBackground`, `MapHUD`, `MapVessels`, `TravelManager`.
+- `src/managers/` — Gameplay managers: `GameSceneBackground`, `GameSceneBins`, `GameSceneHUD`, `GameSceneTicketBar`, `GameSceneInteraction`, `GameSceneScoring`, `GameSceneTray`, `PrepTrack`, `ParticleManager`, `WarningSystem`, `TutorialOverlay`, `SettingsMenu`, `RevenueChallenges`, `CustomerVessels`, `CustomerDeck`. System map managers: `MapBackground`, `MapHUD`, `MapVessels`, `TravelManager`.
 - `src/data/ingredients.js` — Ingredient definitions (colors, categories), bin layout, treatment definitions, and `DIFFICULTY_PROGRESSION` (spawn intervals).
 - `src/data/constants.js` — Shared constants: layout dimensions, scoring values, order generation parameters.
 - `src/data/GameState.js` — Persistent game state across scenes (money, day, unlocks). Uses `localStorage`.
@@ -36,7 +36,7 @@ No test runner, linter, or formatter is configured.
 - `src/utils/colorUtils.js` — Shared color utilities.
 - `src/utils/ShipDrawing.js` — Procedural ship rendering for the system map.
 
-**Dead code:** `GameSceneBelt.js` exists but is not imported anywhere. `RobotArm.js` was deleted.
+**Dead code:** `GameSceneBelt.js` exists but is not imported anywhere. `RobotArm.js` and `BoidManager.js` were deleted.
 
 **Graphics:** SVG assets in `public/assets/` for ingredients, trays, and bin contents (breads, meats, cheeses, toppings, sauces). Scene chrome (walls, windows, bins, prep station) drawn with Phaser Graphics primitives. No sprite sheets or image atlas.
 
@@ -61,7 +61,7 @@ A post-processing shader that restricts all rendered output to a fixed color pal
 
 **localStorage key:** `footers_palette`. Values: a palette key name (e.g. `'gameboy'`) to enable that palette, `'off'` to disable, or absent/null to use `DEFAULT_PALETTE`.
 
-**Adding a new palette:** Add a key to `PALETTES` in `src/data/palettes.js` with an array of up to 32 hex colors (`0xRRGGBB`). No other changes needed — the shader picks it up automatically.
+**Adding a new palette:** Add a key to `PALETTES` in `src/data/palettes.js` with an array of up to 64 hex colors (`0xRRGGBB`), then add a matching entry to `PALETTE_LIST`. The shader picks it up automatically.
 
 **Runtime switching:** Get the pipeline from the camera and call `setPalette()`:
 ```
@@ -70,7 +70,7 @@ const pipeline = Array.isArray(pp) ? pp[0] : pp;
 pipeline.setPalette(PALETTES.someKey);
 ```
 
-**Shader limits:** Max 32 colors per palette (WebGL1 fixed-loop constraint). Uses RGB Euclidean distance (not perceptual LAB). WebGL renderer required (Canvas fallback not supported, but Phaser defaults to WebGL).
+**Shader limits:** Max 64 colors per palette (WebGL1 fixed-loop constraint). Uses RGB Euclidean distance (not perceptual LAB). WebGL renderer required (Canvas fallback not supported, but Phaser defaults to WebGL). Currently ships with 60 palettes from Lospec (2 to 64 colors each).
 
 ## Campaign System (Planned — "The Golden Spatula Tour")
 

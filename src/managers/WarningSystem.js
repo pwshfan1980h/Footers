@@ -15,7 +15,7 @@ export class WarningSystem {
     let maxUrgency = 0;
 
     for (const c of customers) {
-      if (c.personState !== 'at_window' || !c.tray || c.tray.done) continue;
+      if (c.personState !== 'at_counter' || !c.tray || c.tray.done) continue;
       const id = c.tray.orderNum;
       activeIds.add(id);
 

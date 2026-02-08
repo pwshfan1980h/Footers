@@ -1,6 +1,8 @@
 /**
- * GameSceneBackground - Space station interior visuals: space, windows, metal surface, floor
+ * GameSceneBackground - Hull plating with oval portholes, service counter, kitchen surface
  */
+import Phaser from 'phaser';
+
 export class GameSceneBackground {
   constructor(scene) {
     this.scene = scene;
@@ -8,21 +10,21 @@ export class GameSceneBackground {
 
   create() {
     this.createSpaceBackground();
-    this.createSpaceWindows();
+    this.createHullWithPortholes();
   }
 
   createMetalSurface() {
     const s = this.scene;
-    const g = s.add.graphics().setDepth(0);
+    const g = s.add.graphics().setDepth(4);
 
-    const surfaceY = 437;
-    const surfaceH = 331;
+    const surfaceY = 360;
+    const surfaceH = 408;
     const surfaceW = 1024;
 
-    g.fillStyle(0x6B3A2A, 1);
+    g.fillStyle(0x4A5868, 1);
     g.fillRect(0, surfaceY, surfaceW, surfaceH);
 
-    g.lineStyle(1, 0x7A4A3A, 0.15);
+    g.lineStyle(1, 0x5A6878, 0.15);
     for (let y = surfaceY + 3; y < surfaceY + surfaceH; y += 5) {
       g.lineBetween(0, y, surfaceW, y);
     }
@@ -60,31 +62,82 @@ export class GameSceneBackground {
     g.fillRect(200, surfaceY + 60, 624, 200);
   }
 
-  createFloor() {
+  createServiceCounter() {
     const s = this.scene;
-    const g = s.add.graphics().setDepth(1);
-    const floorY = s.WINDOW_BOTTOM;
-    const floorH = 28;
+    const g = s.add.graphics().setDepth(3);
+    const counterY = s.COUNTER_Y - 10;
+    const counterH = 20;
 
-    g.fillStyle(0x5A3A2A, 1);
-    g.fillRect(0, floorY, 1024, floorH);
-
+    // Counter top surface
     g.fillStyle(s.CHROME_MID, 1);
-    g.fillRect(0, floorY, 1024, 3);
-    g.fillStyle(s.CHROME_HIGHLIGHT, 0.5);
-    g.fillRect(0, floorY, 1024, 1);
+    g.fillRect(0, counterY, 1024, counterH);
 
-    g.lineStyle(1, 0x6A4A3A, 0.15);
-    for (let y = floorY + 6; y < floorY + floorH - 4; y += 4) {
+    // Top highlight
+    g.fillStyle(s.CHROME_HIGHLIGHT, 0.7);
+    g.fillRect(0, counterY, 1024, 2);
+
+    // Counter face
+    g.fillStyle(s.CHROME_DARK, 1);
+    g.fillRect(0, counterY + 2, 1024, counterH - 2);
+
+    // Brushed metal lines
+    g.lineStyle(1, s.CHROME_LIGHT, 0.1);
+    for (let y = counterY + 4; y < counterY + counterH - 2; y += 3) {
       g.lineBetween(0, y, 1024, y);
     }
 
-    g.fillStyle(0x2A1A10, 0.6);
-    g.fillRect(0, floorY + floorH - 3, 1024, 3);
+    // Bottom shadow
+    g.fillStyle(0x000000, 0.3);
+    g.fillRect(0, counterY + counterH, 1024, 3);
 
-    g.fillStyle(0xFFEE88, 0.3);
-    g.fillRect(0, floorY + 3, 3, floorH - 3);
-    g.fillRect(1021, floorY + 3, 3, floorH - 3);
+    // "ORDER HERE" neon sign
+    const signX = 512;
+    const signY = counterY + 6;
+
+    // Neon glow behind text
+    g.fillStyle(s.NEON_PINK, 0.15);
+    g.fillEllipse(signX, signY + 3, 120, 14);
+
+    // Neon line
+    g.fillStyle(s.NEON_PINK, 0.6);
+    g.fillRect(signX - 55, counterY + counterH - 2, 110, 2);
+
+    // Yellow-black safety chevrons
+    const chevY = counterY - 5;
+    g.fillStyle(0x222222, 0.8);
+    g.fillRect(0, chevY, 1024, 5);
+    for (let x = 0; x < 1024; x += 20) {
+      g.fillStyle(0xCCAA00, 0.6);
+      g.beginPath();
+      g.moveTo(x, chevY);
+      g.lineTo(x + 10, chevY);
+      g.lineTo(x + 15, chevY + 5);
+      g.lineTo(x + 5, chevY + 5);
+      g.closePath();
+      g.fillPath();
+    }
+
+    // Rivets along counter
+    for (let x = 30; x < 1024; x += 60) {
+      g.fillStyle(s.CHROME_DARK, 1);
+      g.fillCircle(x, counterY + counterH / 2 + 1, 3);
+      g.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
+      g.fillCircle(x - 0.5, counterY + counterH / 2, 1.2);
+    }
+  }
+
+  _darken(color, factor) {
+    const r = Math.floor(((color >> 16) & 0xFF) * factor);
+    const g = Math.floor(((color >> 8) & 0xFF) * factor);
+    const b = Math.floor((color & 0xFF) * factor);
+    return (r << 16) | (g << 8) | b;
+  }
+
+  _lighten(color, factor) {
+    const r = Math.min(255, Math.floor(((color >> 16) & 0xFF) + (255 - ((color >> 16) & 0xFF)) * factor));
+    const g = Math.min(255, Math.floor(((color >> 8) & 0xFF) + (255 - ((color >> 8) & 0xFF)) * factor));
+    const b = Math.min(255, Math.floor((color & 0xFF) + (255 - (color & 0xFF)) * factor));
+    return (r << 16) | (g << 8) | b;
   }
 
   createSpaceBackground() {
@@ -94,29 +147,29 @@ export class GameSceneBackground {
     const locType = loc?.type || 'station';
     const g = s.add.graphics().setDepth(0);
 
-    // Deep space fill
+    // Deep space fill behind portholes
     g.fillStyle(s.SPACE_DEEP, 1);
     g.fillRect(0, s.WINDOW_TOP, 1024, s.WINDOW_HEIGHT);
-    g.fillRect(0, 0, 1024, 145);
 
-    // Location-tinted ambient haze (large soft glow across the window)
-    g.fillStyle(locColor, 0.06);
-    g.fillEllipse(512, 270, 900, 300);
-    g.fillStyle(locColor, 0.04);
-    g.fillEllipse(300, 250, 500, 200);
-    g.fillStyle(locColor, 0.04);
-    g.fillEllipse(750, 290, 450, 180);
+    // Location-tinted ambient haze (scaled to porthole area)
+    const midY = (s.WINDOW_TOP + s.WINDOW_BOTTOM) / 2;
+    g.fillStyle(locColor, 0.08);
+    g.fillEllipse(512, midY, 900, s.WINDOW_HEIGHT);
+    g.fillStyle(locColor, 0.05);
+    g.fillEllipse(300, midY, 500, s.WINDOW_HEIGHT * 0.8);
+    g.fillStyle(locColor, 0.05);
+    g.fillEllipse(750, midY, 450, s.WINDOW_HEIGHT * 0.7);
 
     // Type-specific environmental elements
     this._drawSpaceEnvironment(g, locType, locColor, s);
 
-    // Stars — bias color toward location tint, each as its own Graphics for twinkle
+    // Stars — fewer, constrained to porthole strip
     const stars = [];
-    for (let i = 0; i < 80; i++) {
+    for (let i = 0; i < 30; i++) {
       stars.push({
         x: Phaser.Math.Between(50, 974),
-        y: Phaser.Math.Between(s.WINDOW_TOP + 15, s.WINDOW_BOTTOM - 15),
-        size: Phaser.Math.FloatBetween(0.5, 1.5),
+        y: Phaser.Math.Between(s.WINDOW_TOP + 5, s.WINDOW_BOTTOM - 5),
+        size: Phaser.Math.FloatBetween(0.4, 1.2),
         alpha: Phaser.Math.FloatBetween(0.3, 0.8),
       });
     }
@@ -136,7 +189,7 @@ export class GameSceneBackground {
       starGraphics.push(sg);
     });
 
-    // Add twinkle tweens to ~35% of stars
+    // Twinkle
     starGraphics.forEach(sg => {
       if (Math.random() < 0.35) {
         s.tweens.add({
@@ -159,7 +212,6 @@ export class GameSceneBackground {
     const winBot = s.WINDOW_BOTTOM;
     const midY = (winTop + winBot) / 2;
 
-    // Seeded RNG for deterministic placement
     let seed = 77;
     const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; };
 
@@ -186,11 +238,10 @@ export class GameSceneBackground {
   }
 
   _drawSpaceStation(g, color, midY, rand) {
-    // Distant comm-array structure lines visible through window
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       const cx = 150 + rand() * 700;
-      const cy = midY - 40 + rand() * 80;
-      const len = 30 + rand() * 60;
+      const cy = midY - 15 + rand() * 30;
+      const len = 15 + rand() * 30;
       const angle = rand() * Math.PI * 2;
       g.lineStyle(1, color, 0.08 + rand() * 0.06);
       g.lineBetween(
@@ -200,237 +251,206 @@ export class GameSceneBackground {
         cy + Math.sin(angle) * len,
       );
     }
-    // Blinking nav lights (small bright dots)
-    for (let i = 0; i < 4; i++) {
+    for (let i = 0; i < 3; i++) {
       g.fillStyle(color, 0.25 + rand() * 0.15);
-      g.fillCircle(100 + rand() * 824, midY - 60 + rand() * 120, 1 + rand());
+      g.fillCircle(100 + rand() * 824, midY - 20 + rand() * 40, 1 + rand());
     }
   }
 
   _drawSpaceAsteroids(g, color, winTop, winBot, rand) {
-    // Scattered rock silhouettes drifting past
-    for (let i = 0; i < 12; i++) {
+    for (let i = 0; i < 6; i++) {
       const rx = 60 + rand() * 904;
-      const ry = winTop + 20 + rand() * (winBot - winTop - 40);
-      const size = 2 + rand() * 6;
+      const ry = winTop + 8 + rand() * (winBot - winTop - 16);
+      const size = 1.5 + rand() * 4;
       g.fillStyle(color, 0.08 + rand() * 0.07);
       g.fillCircle(rx, ry, size);
-      g.fillCircle(rx + size * 0.3, ry - size * 0.25, size * 0.65);
     }
-    // Amber dust band across window
     g.fillStyle(color, 0.03);
-    g.fillEllipse(512, (winTop + winBot) / 2 + 20, 800, 80);
+    g.fillEllipse(512, (winTop + winBot) / 2, 600, 30);
   }
 
   _drawSpaceNebula(g, color, winTop, winBot, rand) {
-    // Dense layered gas clouds filling the view
-    for (let i = 0; i < 6; i++) {
+    for (let i = 0; i < 4; i++) {
       const cx = 100 + rand() * 824;
-      const cy = winTop + 30 + rand() * (winBot - winTop - 60);
-      const w = 120 + rand() * 250;
-      const h = 60 + rand() * 100;
-      g.fillStyle(color, 0.03 + rand() * 0.04);
+      const cy = winTop + 10 + rand() * (winBot - winTop - 20);
+      const w = 80 + rand() * 150;
+      const h = 20 + rand() * 30;
+      g.fillStyle(color, 0.04 + rand() * 0.04);
       g.fillEllipse(cx, cy, w, h);
-    }
-    // Brighter wisp streaks
-    for (let i = 0; i < 3; i++) {
-      const y = winTop + 40 + rand() * (winBot - winTop - 80);
-      const x1 = rand() * 300;
-      const x2 = x1 + 200 + rand() * 400;
-      g.lineStyle(2 + rand() * 3, color, 0.04 + rand() * 0.03);
-      g.lineBetween(x1, y, x2, y + (rand() - 0.5) * 40);
     }
   }
 
   _drawSpacePlanet(g, color, winTop, winBot) {
-    // Large planetary body partially visible at bottom-right of window
-    const planetX = 820;
-    const planetY = winBot + 80;
-    const planetR = 200;
-
-    // Atmospheric glow arc visible above the planet edge
+    const planetX = 750;
+    const planetY = winBot + 60;
+    const planetR = 80;
     g.fillStyle(color, 0.08);
-    g.fillCircle(planetX, planetY, planetR + 30);
-    g.fillStyle(color, 0.05);
-    g.fillCircle(planetX, planetY, planetR + 60);
-
-    // The planet body itself (dark, just slightly lighter than space)
+    g.fillCircle(planetX, planetY, planetR + 15);
     g.fillStyle(0x0a1510, 0.7);
     g.fillCircle(planetX, planetY, planetR);
-
-    // Thin atmospheric rim highlight
-    g.lineStyle(2, color, 0.20);
-    g.beginPath();
-    for (let a = -1.8; a < -0.2; a += 0.04) {
-      const px = planetX + Math.cos(a) * planetR;
-      const py = planetY + Math.sin(a) * planetR;
-      if (py < winBot && py > winTop) {
-        if (a === -1.8) g.moveTo(px, py);
-        else g.lineTo(px, py);
-      }
-    }
-    g.strokePath();
-
-    // Faint green haze across entire window from atmospheric scatter
-    g.fillStyle(color, 0.02);
-    g.fillRect(0, winBot - 60, 1024, 60);
   }
 
   _drawSpacePort(g, color, midY, rand) {
-    // Docking beam lights — structured lines converging toward center
-    const beams = [[150, -0.15], [350, -0.08], [650, 0.08], [870, 0.15]];
+    const beams = [[200, -0.1], [500, 0], [800, 0.1]];
     beams.forEach(([bx, slope]) => {
-      g.lineStyle(1.5, color, 0.07);
-      g.lineBetween(bx, midY - 100, bx + slope * 200, midY + 100);
-      // Running lights along beam
-      for (let d = -80; d < 80; d += 30) {
-        g.fillStyle(color, 0.12 + rand() * 0.12);
-        g.fillCircle(bx + slope * (d + 100), midY + d, 1.5);
-      }
+      g.lineStyle(1, color, 0.07);
+      g.lineBetween(bx, midY - 25, bx + slope * 50, midY + 25);
+      g.fillStyle(color, 0.15 + rand() * 0.1);
+      g.fillCircle(bx, midY, 1.5);
     });
-    // Warm golden ambient glow at center
     g.fillStyle(color, 0.04);
-    g.fillEllipse(512, midY, 400, 160);
+    g.fillEllipse(512, midY, 300, 40);
   }
 
   _drawSpaceDebris(g, color, winTop, winBot, rand) {
-    // Wreckage chunks floating past
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 6; i++) {
       const dx = 60 + rand() * 904;
-      const dy = winTop + 20 + rand() * (winBot - winTop - 40);
-      const size = 3 + rand() * 7;
+      const dy = winTop + 8 + rand() * (winBot - winTop - 16);
+      const size = 2 + rand() * 4;
       const rot = rand() * Math.PI;
-
       g.fillStyle(color, 0.07 + rand() * 0.07);
       g.beginPath();
       g.moveTo(dx + Math.cos(rot) * size, dy + Math.sin(rot) * size);
       g.lineTo(dx + Math.cos(rot + 1.5) * size * 0.6, dy + Math.sin(rot + 1.5) * size * 0.6);
       g.lineTo(dx + Math.cos(rot + Math.PI) * size * 0.8, dy + Math.sin(rot + Math.PI) * size * 0.8);
-      g.lineTo(dx + Math.cos(rot + 4.5) * size * 0.5, dy + Math.sin(rot + 4.5) * size * 0.5);
       g.closePath();
       g.fillPath();
     }
-    // Hazard haze band
-    g.fillStyle(color, 0.04);
-    g.fillEllipse(512, (winTop + winBot) / 2, 700, 100);
   }
 
-  createSpaceWindows() {
+  createHullWithPortholes() {
     const s = this.scene;
     const winTop = s.WINDOW_TOP;
-    const winBottom = s.WINDOW_BOTTOM;
-    const winHeight = s.WINDOW_HEIGHT;
+    const winBot = s.WINDOW_BOTTOM;
+    const winH = s.WINDOW_HEIGHT;
 
+    // Hull plating background (covers the full porthole strip)
+    const hull = s.add.graphics().setDepth(0.5);
+    hull.fillStyle(s.HULL_MID, 1);
+    hull.fillRect(0, winTop, 1024, winH);
+
+    // Panel seams (horizontal)
+    hull.lineStyle(1, s.PANEL_SEAM, 0.4);
+    hull.lineBetween(0, winTop + 25, 1024, winTop + 25);
+    hull.lineBetween(0, winBot - 20, 1024, winBot - 20);
+
+    // Panel seams (vertical)
+    for (let x = 128; x < 1024; x += 256) {
+      hull.lineStyle(1, s.PANEL_SEAM, 0.3);
+      hull.lineBetween(x, winTop, x, winBot);
+    }
+
+    // Rivet rows along top and bottom
+    const rivetDark = this._darken(s.HULL_MID, 0.65);
+    const rivetLight = this._lighten(s.HULL_MID, 0.25);
+    for (let x = 30; x < 1024; x += 50) {
+      hull.fillStyle(rivetDark, 1);
+      hull.fillCircle(x, winTop + 8, 2.5);
+      hull.fillStyle(rivetLight, 0.6);
+      hull.fillCircle(x - 0.5, winTop + 7.5, 1);
+
+      hull.fillStyle(rivetDark, 1);
+      hull.fillCircle(x, winBot - 8, 2.5);
+      hull.fillStyle(rivetLight, 0.6);
+      hull.fillCircle(x - 0.5, winBot - 8.5, 1);
+    }
+
+    // 4 oval portholes
+    const portholePositions = [160, 390, 634, 864];
+    const portW = 120;
+    const portH = 60;
+    const midY = (winTop + winBot) / 2;
+
+    const portGlass = s.add.graphics().setDepth(0.6);
+    const portFrame = s.add.graphics().setDepth(0.7);
+
+    portholePositions.forEach(px => {
+      // Cut-out: dark space visible through glass
+      portGlass.fillStyle(s.SMOKED_GLASS, s.SMOKED_GLASS_ALPHA);
+      portGlass.fillEllipse(px, midY, portW, portH);
+
+      // Glass tint
+      const locColor = s.locationData?.color || 0x6688aa;
+      portGlass.fillStyle(locColor, 0.06);
+      portGlass.fillEllipse(px, midY, portW - 4, portH - 4);
+
+      // Glass highlight reflection
+      portGlass.fillStyle(0xffffff, 0.08);
+      portGlass.fillEllipse(px - 10, midY - 6, portW * 0.5, portH * 0.3);
+
+      // Chrome frame — outer ring
+      portFrame.lineStyle(4, s.CHROME_MID, 1);
+      portFrame.strokeEllipse(px, midY, portW + 4, portH + 4);
+      // Inner rim highlight
+      portFrame.lineStyle(1, s.CHROME_HIGHLIGHT, 0.6);
+      portFrame.strokeEllipse(px, midY, portW, portH);
+      // Outer rim shadow
+      portFrame.lineStyle(1, s.CHROME_DARK, 0.5);
+      portFrame.strokeEllipse(px, midY, portW + 8, portH + 8);
+
+      // Bolts at 4 cardinal points
+      const boltPositions = [
+        [px - portW / 2 - 8, midY],
+        [px + portW / 2 + 8, midY],
+        [px, midY - portH / 2 - 7],
+        [px, midY + portH / 2 + 7],
+      ];
+      boltPositions.forEach(([bx, by]) => {
+        portFrame.fillStyle(s.CHROME_DARK, 1);
+        portFrame.fillCircle(bx, by, 3);
+        portFrame.fillStyle(s.CHROME_HIGHLIGHT, 0.7);
+        portFrame.fillCircle(bx - 0.5, by - 0.5, 1.2);
+      });
+    });
+
+    // Porthole stars — twinkling stars drawn on top of glass, inside each ellipse
     const locColor = s.locationData?.color || 0x6688aa;
-
-    const smokedGlass = s.add.graphics().setDepth(0.8);
-    smokedGlass.fillStyle(s.SMOKED_GLASS, s.SMOKED_GLASS_ALPHA);
-    smokedGlass.fillRect(0, winTop, 1024, winHeight);
-    smokedGlass.fillStyle(0x101520, 0.15);
-    smokedGlass.fillRect(0, winTop, 60, winHeight);
-    smokedGlass.fillRect(964, winTop, 60, winHeight);
-    smokedGlass.fillStyle(0x101520, 0.1);
-    smokedGlass.fillRect(0, winTop, 1024, 30);
-    smokedGlass.fillRect(0, winBottom - 30, 1024, 30);
-
-    // Location-tinted light refraction on glass
-    smokedGlass.fillStyle(locColor, 0.06);
-    smokedGlass.beginPath();
-    smokedGlass.moveTo(100, winTop);
-    smokedGlass.lineTo(400, winTop);
-    smokedGlass.lineTo(200, winBottom);
-    smokedGlass.lineTo(0, winBottom);
-    smokedGlass.closePath();
-    smokedGlass.fillPath();
-
-    const g = s.add.graphics().setDepth(1);
-    const beamW = 35;
-    const beamPositions = [0, 250, 512 - beamW/2, 774 - beamW, 1024 - beamW];
-
-    beamPositions.forEach((bx) => {
-      g.fillStyle(s.CHROME_MID, 1);
-      g.fillRect(bx, winTop, beamW, winHeight);
-      g.fillStyle(s.CHROME_HIGHLIGHT, 0.7);
-      g.fillRect(bx, winTop, 2, winHeight);
-      g.fillStyle(s.CHROME_LIGHT, 0.5);
-      g.fillRect(bx + 2, winTop, 4, winHeight);
-      g.fillStyle(s.CHROME_DARK, 0.8);
-      g.fillRect(bx + beamW - 4, winTop, 4, winHeight);
-      g.lineStyle(1, s.CHROME_LIGHT, 0.15);
-      for (let lx = bx + 8; lx < bx + beamW - 8; lx += 4) {
-        g.lineBetween(lx, winTop, lx, winBottom);
-      }
-      for (let ry = winTop + 25; ry < winBottom - 20; ry += 50) {
-        g.fillStyle(s.CHROME_DARK, 1);
-        g.fillCircle(bx + beamW/2, ry, 4);
-        g.fillStyle(s.CHROME_HIGHLIGHT, 0.8);
-        g.fillCircle(bx + beamW/2 - 1, ry - 1, 2);
+    const starColors = [0xffffff, s.STAR_WARM, s.STAR_BLUE, locColor];
+    portholePositions.forEach(px => {
+      const halfW = portW / 2 - 4;
+      const halfH = portH / 2 - 4;
+      const numStars = Phaser.Math.Between(5, 7);
+      for (let i = 0; i < numStars; i++) {
+        // Random point inside ellipse
+        const angle = Math.random() * Math.PI * 2;
+        const r = Math.sqrt(Math.random());
+        const sx = px + Math.cos(angle) * halfW * r;
+        const sy = midY + Math.sin(angle) * halfH * r;
+        const starSize = Phaser.Math.FloatBetween(0.5, 1.5);
+        const starColor = Phaser.Utils.Array.GetRandom(starColors);
+        const sg = s.add.graphics().setDepth(0.65);
+        sg.fillStyle(starColor, 1);
+        sg.fillCircle(0, 0, starSize);
+        sg.setPosition(sx, sy);
+        sg.setAlpha(Phaser.Math.FloatBetween(0.4, 0.9));
+        // Twinkle tween
+        s.tweens.add({
+          targets: sg,
+          alpha: Phaser.Math.FloatBetween(0.1, 0.3),
+          duration: Phaser.Math.Between(1500, 4000),
+          delay: Phaser.Math.Between(0, 3000),
+          ease: 'Sine.easeInOut',
+          yoyo: true,
+          repeat: -1,
+        });
       }
     });
 
-    g.fillStyle(s.CHROME_MID, 1);
-    g.fillRect(0, winTop, 1024, 10);
-    g.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
-    g.fillRect(0, winTop, 1024, 2);
-    g.fillStyle(s.CHROME_DARK, 0.6);
-    g.fillRect(0, winTop + 8, 1024, 2);
+    // Store porthole positions
+    s.portholePositions = portholePositions;
+    s.portholeMidY = midY;
 
-    g.fillStyle(s.CHROME_MID, 1);
-    g.fillRect(0, winBottom - 10, 1024, 12);
-    g.fillStyle(s.CHROME_HIGHLIGHT, 0.5);
-    g.fillRect(0, winBottom - 10, 1024, 2);
+    // Top chrome trim (above hull)
+    const trim = s.add.graphics().setDepth(0.8);
+    trim.fillStyle(s.CHROME_MID, 1);
+    trim.fillRect(0, winTop, 1024, 4);
+    trim.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
+    trim.fillRect(0, winTop, 1024, 1);
 
-    g.fillStyle(s.NEON_PINK, 0.6);
-    g.fillRect(0, winBottom, 1024, 2);
-
-    const glassEdge = s.add.graphics().setDepth(1);
-    glassEdge.lineStyle(1, s.GLASS_HIGHLIGHT, 0.25);
-    for (let i = 0; i < beamPositions.length - 1; i++) {
-      const left = beamPositions[i] + beamW + 3;
-      const right = beamPositions[i + 1] - 3;
-      glassEdge.strokeRect(left, winTop + 14, right - left, winHeight - 28);
-    }
-
-    const smallWinY = 8;
-    const smallWinH = 100;
-    const frameThickness = 10;
-    const numWindows = 4;
-    const totalWidth = 1024 - 40;
-    const windowWidth = (totalWidth - (numWindows + 1) * frameThickness) / numWindows;
-
-    g.fillStyle(s.CHROME_MID, 1);
-    g.fillRect(0, 0, 1024, 8);
-    g.fillStyle(s.CHROME_HIGHLIGHT, 0.5);
-    g.fillRect(0, 0, 1024, 2);
-
-    g.fillStyle(s.CHROME_MID, 1);
-    g.fillRect(0, smallWinY + smallWinH, 1024, frameThickness + 28);
-    g.fillStyle(s.CHROME_HIGHLIGHT, 0.4);
-    g.fillRect(0, smallWinY + smallWinH, 1024, 2);
-
-    for (let i = 0; i <= numWindows; i++) {
-      const frameX = 20 + i * (windowWidth + frameThickness);
-      g.fillStyle(s.CHROME_MID, 1);
-      g.fillRect(frameX - frameThickness, smallWinY, frameThickness, smallWinH);
-      g.fillStyle(s.CHROME_HIGHLIGHT, 0.4);
-      g.fillRect(frameX - frameThickness, smallWinY, 2, smallWinH);
-    }
-
-    for (let i = 0; i < numWindows; i++) {
-      const paneX = 20 + frameThickness + i * (windowWidth + frameThickness);
-      g.fillStyle(s.GLASS_TINT, 0.2);
-      g.fillRect(paneX, smallWinY, windowWidth, smallWinH);
-      g.lineStyle(1, s.GLASS_HIGHLIGHT, 0.3);
-      g.strokeRect(paneX + 2, smallWinY + 2, windowWidth - 4, smallWinH - 4);
-      g.fillStyle(s.CHROME_DARK, 0.9);
-      g.fillCircle(paneX - 5, smallWinY + 10, 3);
-      g.fillCircle(paneX + windowWidth + 5, smallWinY + 10, 3);
-      g.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
-      g.fillCircle(paneX - 6, smallWinY + 9, 1.5);
-      g.fillCircle(paneX + windowWidth + 4, smallWinY + 9, 1.5);
-    }
-
-    g.fillStyle(s.NEON_PINK, 0.5);
-    g.fillRect(20, smallWinY + smallWinH + 3, totalWidth, 2);
+    // Bottom chrome trim (below hull, above customer deck)
+    trim.fillStyle(s.CHROME_MID, 1);
+    trim.fillRect(0, winBot - 3, 1024, 3);
+    trim.fillStyle(s.CHROME_HIGHLIGHT, 0.4);
+    trim.fillRect(0, winBot - 3, 1024, 1);
   }
 }

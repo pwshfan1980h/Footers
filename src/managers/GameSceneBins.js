@@ -31,7 +31,7 @@ export class GameSceneBins {
     s.meatPileItems = [];
 
     const baseX = 95;
-    const baseY = 480;
+    const baseY = 420;
     const spacingX = 100;
     const spacingY = 70;
     const day = s.day ?? 99;
@@ -95,7 +95,7 @@ export class GameSceneBins {
   createLoaves() {
     const s = this.scene;
     const baseX = 820;
-    const baseY = 490;
+    const baseY = 430;
     const spacingY = 70;
 
     const breads = [
@@ -149,7 +149,7 @@ export class GameSceneBins {
 
   createTreatments() {
     const s = this.scene;
-    const shelfY = 695;
+    const shelfY = 630;
     const startX = 120;
     const spacing = 85;
 
@@ -165,7 +165,7 @@ export class GameSceneBins {
   createCheeseStacks() {
     const s = this.scene;
     const baseX = 620;
-    const baseY = 500;
+    const baseY = 440;
     const spacingY = 85;
 
     const cheeses = [
@@ -215,10 +215,10 @@ export class GameSceneBins {
     s.veggieBowlItems = [];
     const day = s.day ?? 99;
 
-    const row1Y = 510;
+    const row1Y = 450;
     const row1StartX = 340;
     const spacingX = 75;
-    const row2Y = 575;
+    const row2Y = 515;
     const row2StartX = 340;
 
     const row1Veggies = [

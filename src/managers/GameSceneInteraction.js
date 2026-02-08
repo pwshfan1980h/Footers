@@ -217,10 +217,10 @@ export class GameSceneInteraction {
       const y = gameObject.y;
 
       // Deliver completed tray by dragging upward into customer/window area
-      if (tray.onPrepTrack && tray.completed && y < 400) {
+      if (tray.onPrepTrack && tray.completed && y < 350) {
         // Find the linked customer for this tray
         const customer = s.customerVessels.customers.find(c => c.tray === tray);
-        if (customer && customer.personState === 'at_window') {
+        if (customer && customer.personState === 'at_counter') {
           // Remove from prep track
           if (tray.prepSlot) {
             s.prepTrack.removeTray(tray.prepSlot);

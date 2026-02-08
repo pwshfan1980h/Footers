@@ -13,25 +13,25 @@ export class GameSceneTicketBar {
   create() {
     const s = this.scene;
 
-    s.add.rectangle(512, 95, 1024, 88, s.HULL_MID).setDepth(35);
-    s.add.rectangle(512, 52, 1024, 2, s.HULL_LIGHT).setDepth(35);
-    s.add.rectangle(512, 138, 1024, 2, s.HULL_LIGHT).setDepth(35);
+    s.add.rectangle(512, 70, 1024, 60, s.HULL_MID).setDepth(35);
+    s.add.rectangle(512, 40, 1024, 2, s.HULL_LIGHT).setDepth(35);
+    s.add.rectangle(512, 99, 1024, 2, s.HULL_LIGHT).setDepth(35);
 
     const ticketLip = s.add.graphics().setDepth(35);
     ticketLip.fillStyle(s.HULL_DARK, 1);
-    ticketLip.fillRect(0, 139, 1024, 4);
+    ticketLip.fillRect(0, 99, 1024, 3);
     ticketLip.fillStyle(s.HULL_LIGHT, 1);
     ticketLip.beginPath();
-    ticketLip.moveTo(0, 139);
-    ticketLip.lineTo(1024, 139);
-    ticketLip.lineTo(1024 + 3, 143);
-    ticketLip.lineTo(3, 143);
+    ticketLip.moveTo(0, 99);
+    ticketLip.lineTo(1024, 99);
+    ticketLip.lineTo(1024 + 3, 102);
+    ticketLip.lineTo(3, 102);
     ticketLip.closePath();
     ticketLip.fillPath();
     ticketLip.fillStyle(s.NEON_PINK, 0.3);
-    ticketLip.fillRect(0, 139, 1024, 1);
+    ticketLip.fillRect(0, 99, 1024, 1);
 
-    s.add.text(8, 55, 'ORDERS:', {
+    s.add.text(8, 43, 'ORDERS:', {
       fontSize: '10px', color: '#00bbdd', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(36);
 
@@ -41,16 +41,16 @@ export class GameSceneTicketBar {
   addTicket(order, orderNum) {
     const s = this.scene;
     const ticketFont = GAME_FONT;
-    const cardW = 140;
-    const lineH = 13;
+    const cardW = 130;
+    const lineH = 12;
     const ingLines = order.ingredients.length;
     const treatLines = order.treatments ? order.treatments.length : 0;
     const footerLine = 0;
     const contentH = 22 + footerLine + ingLines * lineH + (treatLines > 0 ? 10 + treatLines * lineH : 0);
-    const cardH = Math.max(90, contentH + 8);
+    const cardH = Math.max(80, contentH + 8);
     const overlapStep = 100;
     const targetX = 65 + (orderNum - 1) * overlapStep;
-    const targetY = 55;
+    const targetY = 43;
     const cardDepth = 36 + orderNum;
 
     const spawnX = 512;
@@ -89,9 +89,10 @@ export class GameSceneTicketBar {
       const displayName = isTopBread ? `${ing.name} \u2191` : ing.name;
       const isNext = (i === 0);
       const txt = s.add.text(10, yOff + 3 + i * lineH, displayName, {
-        fontSize: '13px',
-        color: isNext ? '#111' : '#999',
+        fontSize: '11px',
+        color: isNext ? '#111' : '#665544',
         fontFamily: ticketFont,
+        fontStyle: isNext ? 'bold' : 'normal',
       });
       card.add(txt);
       entries.push({ key, text: txt, done: false });
@@ -108,7 +109,7 @@ export class GameSceneTicketBar {
       order.treatments.forEach((tKey, i) => {
         const treat = TREATMENTS[tKey];
         const txt = s.add.text(10, treatStartY + 4 + i * lineH, `[${treat.name}]`, {
-          fontSize: '13px',
+          fontSize: '11px',
           color: '#cc0000',
           fontFamily: ticketFont,
         });
@@ -172,7 +173,7 @@ export class GameSceneTicketBar {
     const entry = ticket.entries.find((e) => e.key === ingredientKey && !e.done);
     if (entry) {
       entry.done = true;
-      entry.text.setColor('#0a0');
+      entry.text.setColor('#006600');
       entry.text.setFontStyle('bold');
       entry.text.setText('\u2713 ' + INGREDIENTS[ingredientKey].name);
     }
@@ -191,7 +192,7 @@ export class GameSceneTicketBar {
         entry.text.setColor('#111');
         entry.text.setFontStyle('bold');
       } else {
-        entry.text.setColor('#999');
+        entry.text.setColor('#665544');
         entry.text.setFontStyle('normal');
       }
     }
@@ -204,7 +205,7 @@ export class GameSceneTicketBar {
     const entry = ticket.treatEntries.find((e) => e.key === treatmentKey && !e.done);
     if (entry) {
       entry.done = true;
-      entry.text.setColor('#0a0');
+      entry.text.setColor('#006600');
       entry.text.setText('\u2713 ' + TREATMENTS[treatmentKey].name);
     }
   }
@@ -221,8 +222,8 @@ export class GameSceneTicketBar {
     overlay.fillRoundedRect(0, 0, w, h, 5);
     ticket.card.add(overlay);
     const check = s.add.text(w / 2, h / 2, '\u2713', {
-      fontSize: '36px', color: '#0a0', fontFamily: GAME_FONT, fontStyle: 'bold',
-    }).setOrigin(0.5).setAlpha(0.6);
+      fontSize: '36px', color: '#006600', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setAlpha(0.7);
     ticket.card.add(check);
   }
 
@@ -238,8 +239,8 @@ export class GameSceneTicketBar {
     overlay.fillRoundedRect(0, 0, w, h, 5);
     ticket.card.add(overlay);
     const xMark = s.add.text(w / 2, h / 2, '\u2717', {
-      fontSize: '36px', color: '#f33', fontFamily: GAME_FONT, fontStyle: 'bold',
-    }).setOrigin(0.5).setAlpha(0.6);
+      fontSize: '36px', color: '#cc1111', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setAlpha(0.7);
     ticket.card.add(xMark);
   }
 }

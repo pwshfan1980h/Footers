@@ -15,51 +15,51 @@ export class GameSceneHUD {
 
     const hudBg = s.add.graphics().setDepth(4);
     hudBg.fillStyle(s.HULL_DARK, 0.85);
-    hudBg.fillRect(0, 0, 1024, 56);
+    hudBg.fillRect(0, 0, 1024, 40);
     hudBg.fillStyle(s.NEON_PINK, 0.4);
-    hudBg.fillRect(0, 54, 1024, 2);
+    hudBg.fillRect(0, 38, 1024, 2);
 
     // Background panels behind HUD groups
     const panels = s.add.graphics().setDepth(4.5);
     panels.fillStyle(0xffffff, 0.06);
-    panels.fillRoundedRect(6, 6, 175, 40, 6);
-    panels.fillRoundedRect(190, 6, 200, 40, 6);
-    panels.fillRoundedRect(400, 6, 140, 40, 6);
-    panels.fillRoundedRect(690, 4, 86, 46, 6);
+    panels.fillRoundedRect(6, 4, 175, 32, 5);
+    panels.fillRoundedRect(190, 4, 200, 32, 5);
+    panels.fillRoundedRect(400, 4, 140, 32, 5);
+    panels.fillRoundedRect(690, 3, 86, 34, 5);
 
     // Star icon next to score
     const icons = s.add.graphics().setDepth(5);
     icons.fillStyle(0xffd700, 0.9);
-    icons.fillTriangle(20, 20, 16, 26, 24, 26);
-    icons.fillTriangle(20, 30, 16, 24, 24, 24);
+    icons.fillTriangle(18, 13, 14, 19, 22, 19);
+    icons.fillTriangle(18, 23, 14, 17, 22, 17);
 
     // Coin icon next to money
     icons.lineStyle(2, 0x44ff88, 0.9);
-    icons.strokeCircle(414, 26, 7);
+    icons.strokeCircle(412, 20, 6);
     icons.fillStyle(0x44ff88, 0.3);
-    icons.fillCircle(414, 26, 7);
+    icons.fillCircle(412, 20, 6);
 
-    s.scoreText = s.add.text(32, 15, `Score: ${s.currentScore}`, {
-      fontSize: '18px', color: '#ffd700', fontFamily: GAME_FONT,
+    s.scoreText = s.add.text(30, 10, `Score: ${s.currentScore}`, {
+      fontSize: '16px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setDepth(5);
 
-    s.highScoreText = s.add.text(200, 15, `High Score: ${s.highScore}`, {
-      fontSize: '18px', color: '#00ddff', fontFamily: GAME_FONT,
+    s.highScoreText = s.add.text(198, 10, `High Score: ${s.highScore}`, {
+      fontSize: '16px', color: '#00ddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
-    s.ordersText = s.add.text(780, 17, s.ordersDisplay(), {
-      fontSize: '12px', color: '#aaddff', fontFamily: GAME_FONT,
+    s.ordersText = s.add.text(780, 12, s.ordersDisplay(), {
+      fontSize: '11px', color: '#aaddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
-    s.moneyText = s.add.text(426, 15, '$0.00', {
-      fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
+    s.moneyText = s.add.text(424, 10, '$0.00', {
+      fontSize: '16px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setDepth(5);
 
     // Strike indicators drawn as graphics instead of text
     this.strikeGraphics = null;
 
-    s.riskText = s.add.text(700, 36, '', {
-      fontSize: '13px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
+    s.riskText = s.add.text(700, 26, '', {
+      fontSize: '11px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(5).setAlpha(0);
 
     this.createHotkeyMemo();
@@ -69,16 +69,16 @@ export class GameSceneHUD {
   createHotkeyMemo() {
     const s = this.scene;
     const memoX = 600;
-    const memoY = 22;
+    const memoY = 18;
 
     const memo = s.add.graphics().setDepth(5);
     memo.fillStyle(s.HULL_LIGHT, 0.95);
-    memo.fillRoundedRect(memoX, memoY - 12, 70, 24, 4);
+    memo.fillRoundedRect(memoX, memoY - 10, 66, 22, 4);
     memo.lineStyle(1, s.NEON_PINK, 0.8);
-    memo.strokeRoundedRect(memoX, memoY - 12, 70, 24, 4);
+    memo.strokeRoundedRect(memoX, memoY - 10, 66, 22, 4);
 
-    s.add.text(memoX + 35, memoY, 'F1=Help', {
-      fontSize: '13px', color: '#00ddff', fontFamily: GAME_FONT, fontStyle: 'bold',
+    s.add.text(memoX + 33, memoY + 1, 'F1=Help', {
+      fontSize: '12px', color: '#00ddff', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(5);
   }
 
@@ -226,8 +226,8 @@ export class GameSceneHUD {
     const g = this.strikeGraphics;
     const maxStrikes = 3;
     const baseX = 705;
-    const baseY = 20;
-    const spacing = 24;
+    const baseY = 16;
+    const spacing = 22;
 
     for (let i = 0; i < maxStrikes; i++) {
       const cx = baseX + i * spacing;

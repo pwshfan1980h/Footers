@@ -2,7 +2,6 @@ import Phaser from 'phaser';
 import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { gameState } from '../data/GameState.js';
 import { DEBUG } from '../config.js';
-import { BoidManager } from '../managers/BoidManager.js';
 import { TutorialOverlay } from '../managers/TutorialOverlay.js';
 import { WarningSystem } from '../managers/WarningSystem.js';
 import { ParticleManager } from '../managers/ParticleManager.js';
@@ -10,6 +9,7 @@ import { SettingsMenu } from '../managers/SettingsMenu.js';
 import { PrepTrack } from '../managers/PrepTrack.js';
 import { CustomerVessels } from '../managers/CustomerVessels.js';
 import { RevenueChallenges } from '../managers/RevenueChallenges.js';
+import { CustomerDeck } from '../managers/CustomerDeck.js';
 import { GameSceneBackground } from '../managers/GameSceneBackground.js';
 import { GameSceneHUD } from '../managers/GameSceneHUD.js';
 import { GameSceneTicketBar } from '../managers/GameSceneTicketBar.js';
@@ -68,12 +68,12 @@ export class GameScene extends Phaser.Scene {
     this.STAR_WARM = 0xddccbb;
     this.SMOKED_GLASS = 0x0f1520;
     this.SMOKED_GLASS_ALPHA = 0.45;
-    this.HULL_DARK = 0x3A2218;
-    this.HULL_MID = 0x5A3A28;
-    this.HULL_LIGHT = 0x7A5A3A;
-    this.HULL_BRIGHT = 0x9A7A5A;
-    this.HULL_WARM = 0x8B5A3A;
-    this.PANEL_SEAM = 0x2A1810;
+    this.HULL_DARK = 0x2A3545;
+    this.HULL_MID = 0x3A4A5A;
+    this.HULL_LIGHT = 0x5A6A7A;
+    this.HULL_BRIGHT = 0x7A8A9A;
+    this.HULL_WARM = 0x4A5A6A;
+    this.PANEL_SEAM = 0x1A2535;
     this.CHROME_DARK = 0x3a3a48;
     this.CHROME_MID = 0x5a5a68;
     this.CHROME_LIGHT = 0x7a7a88;
@@ -98,12 +98,21 @@ export class GameScene extends Phaser.Scene {
     this.SHELF_TOP = 0x6a8898;
     this.SHELF_FRONT = 0x4a6878;
     this.SHELF_GLASS = 0x5a7a8a;
-    this.LAND_Y = 385;
-    this.WINDOW_TOP = 145;
-    this.WINDOW_BOTTOM = 390;
-    this.WINDOW_HEIGHT = 245;
+    this.LAND_Y = 365;
+    this.WINDOW_TOP = 100;
+    this.WINDOW_BOTTOM = 185;
+    this.WINDOW_HEIGHT = 85;
     this.BEAM_WIDTH = 45;
     this.BEAM_POSITIONS = [0, 230, 512 - 22, 794 - 45, 1024 - 45];
+
+    // Customer deck interior layout
+    this.CUSTOMER_DECK_TOP = 185;
+    this.CUSTOMER_DECK_BOTTOM = 340;
+    this.COUNTER_Y = 350;
+    this.AIRLOCK_X = 512;
+    this.AIRLOCK_Y = 180;
+    this.AIRLOCK_WIDTH = 80;
+    this.AIRLOCK_HEIGHT = 40;
 
     this.gameMoney = 0;
     this.trays = [];
@@ -126,7 +135,6 @@ export class GameScene extends Phaser.Scene {
     this.magnetActive = false;
     this.fastestOrderThisShift = null;
 
-    this.boidManager = new BoidManager(this);
     this.tutorialOverlay = new TutorialOverlay(this);
     this.warningSystem = new WarningSystem(this);
     this.particleManager = new ParticleManager(this);
@@ -135,6 +143,7 @@ export class GameScene extends Phaser.Scene {
     this.customerVessels = new CustomerVessels(this);
     this.revenueChallenges = new RevenueChallenges(this);
 
+    this.customerDeck = new CustomerDeck(this);
     this.backgroundManager = new GameSceneBackground(this);
     this.hudManager = new GameSceneHUD(this);
     this.ticketBar = new GameSceneTicketBar(this);
@@ -161,8 +170,9 @@ export class GameScene extends Phaser.Scene {
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, this.HULL_DARK);
 
     this.backgroundManager.create();
+    this.customerDeck.create();
     this.backgroundManager.createMetalSurface();
-    this.backgroundManager.createFloor();
+    this.backgroundManager.createServiceCounter();
 
     this.hudManager.create();
 
@@ -176,7 +186,6 @@ export class GameScene extends Phaser.Scene {
 
     if (DEBUG) this.drawDebugHitboxes();
 
-    this.boidManager.create();
     this.particleManager.create();
     this.settingsMenu.create();
 
@@ -262,9 +271,9 @@ export class GameScene extends Phaser.Scene {
 
   createEndShiftButton() {
     const btnX = 920;
-    const btnY = 6;
+    const btnY = 4;
     const btnW = 95;
-    const btnH = 26;
+    const btnH = 24;
 
     const btnG = this.add.graphics().setDepth(5);
     btnG.fillStyle(0x3a1a1a, 0.9);
@@ -345,7 +354,7 @@ export class GameScene extends Phaser.Scene {
       warningPipeline.setIntensity(rawIntensity * 0.5);
     }
 
-    this.boidManager.update(delta);
+    this.customerDeck.update(delta);
     this.customerVessels.update(delta);
     this.revenueChallenges.update(delta);
     this.radioChatter.update(delta);

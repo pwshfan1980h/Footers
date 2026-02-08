@@ -4,7 +4,7 @@ import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, NEON_CYA
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
 import { applyPalette } from '../utils/applyPalette.js';
-import { createButton } from '../utils/uiHelpers.js';
+import { SettingsMenu } from '../managers/SettingsMenu.js';
 
 const NEON_CYAN_CSS = '#00ddff';
 const SUBTITLE_COLOR = '#FFE8CC';
@@ -52,6 +52,19 @@ export class TitleScene extends Phaser.Scene {
     this.glows = [];
     this.letterTargets = [];
     this.createTitleLetters();
+
+    // Settings menu
+    this.isPaused = false;
+    this.settingsMenu = new SettingsMenu(this);
+    this.settingsMenu.create();
+
+    this.input.keyboard.on('keydown-ESC', () => {
+      if (this.settingsMenu.isOpen) {
+        this.settingsMenu.close();
+      } else {
+        this.settingsMenu.open();
+      }
+    });
 
     // After 1s delay, begin warp entrance
     this.time.delayedCall(1000, () => this.startWarpEntrance());
@@ -177,13 +190,14 @@ export class TitleScene extends Phaser.Scene {
       onUpdate: () => this.setWarpIntensity(warpObj.intensity),
     });
 
-    // Spawn horizontal speed lines
+    // Spawn radial speed lines (emanating from center)
     for (let i = 0; i < 60; i++) {
+      const angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
       this.speedLines.push({
-        x: Phaser.Math.Between(-200, GAME_WIDTH + 200),
-        y: Phaser.Math.Between(0, GAME_HEIGHT),
-        length: Phaser.Math.Between(40, 200),
-        speed: Phaser.Math.Between(800, 2000),
+        angle,
+        dist: Phaser.Math.FloatBetween(0.05, 0.8),
+        length: Phaser.Math.FloatBetween(0.03, 0.12),
+        speed: Phaser.Math.FloatBetween(0.4, 1.2),
         alpha: Phaser.Math.FloatBetween(0.15, 0.5),
       });
     }
@@ -251,19 +265,34 @@ export class TitleScene extends Phaser.Scene {
     if (!this.warpActive || this.speedLines.length === 0) return;
 
     const dt = delta / 1000;
+    const cx = HALF_WIDTH;
+    const cy = HALF_HEIGHT;
     this.speedLinesGfx.clear();
 
     for (const line of this.speedLines) {
-      line.x += line.speed * dt;
+      line.dist += line.speed * dt;
 
-      // Wrap around when off-screen right
-      if (line.x > GAME_WIDTH + 300) {
-        line.x = -line.length - Phaser.Math.Between(0, 200);
-        line.y = Phaser.Math.Between(0, GAME_HEIGHT);
+      // Respawn near center when past screen edge
+      if (line.dist > 1.2) {
+        line.dist = Phaser.Math.FloatBetween(0.02, 0.15);
+        line.angle = Phaser.Math.FloatBetween(0, Math.PI * 2);
+        line.alpha = Phaser.Math.FloatBetween(0.15, 0.5);
       }
 
-      this.speedLinesGfx.lineStyle(1.5, 0xaaddff, line.alpha);
-      this.speedLinesGfx.lineBetween(line.x, line.y, line.x + line.length, line.y);
+      const cosA = Math.cos(line.angle);
+      const sinA = Math.sin(line.angle);
+      const maxR = Math.max(GAME_WIDTH, GAME_HEIGHT);
+      const r1 = line.dist * maxR;
+      const r2 = (line.dist + line.length) * maxR;
+      const x1 = cx + cosA * r1;
+      const y1 = cy + sinA * r1;
+      const x2 = cx + cosA * r2;
+      const y2 = cy + sinA * r2;
+
+      // Fade in as lines move outward
+      const fade = Math.min(1, line.dist * 3);
+      this.speedLinesGfx.lineStyle(1.5, 0xaaddff, line.alpha * fade);
+      this.speedLinesGfx.lineBetween(x1, y1, x2, y2);
     }
   }
 
@@ -320,86 +349,106 @@ export class TitleScene extends Phaser.Scene {
   }
 
   showMenu() {
-    const btnW = 260;
-    const btnH = 50;
-    const btnX = HALF_WIDTH - btnW / 2;
-    const gap = 16;
+    const gap = 58;
+    const menuItems = [
+      { label: 'Campaign',  fontSize: '22px', enabled: false, action: null },
+      { label: 'Freeplay',  fontSize: '22px', enabled: true,  action: () => this.transition() },
+      { label: 'Settings',  fontSize: '16px', enabled: true,  action: () => this.settingsMenu.open() },
+    ];
 
-    // Campaign button (placeholder — disabled)
-    const campaign = createButton(this, btnX, MENU_Y, btnW, btnH, 'Campaign', {
-      baseFill: 0x111118,
-      hoverFill: 0x111118,
-      accentColor: 0x444455,
-      hoverAccent: 0x444455,
-      textColor: '#555566',
-      hoverTextColor: '#555566',
-      fontSize: '22px',
+    // Create menu text labels
+    this.menuTexts = [];
+    const fadeTargets = [];
+
+    menuItems.forEach((item, i) => {
+      const y = MENU_Y + i * gap;
+      const txt = this.add.text(HALF_WIDTH, y, item.label, {
+        fontFamily: GAME_FONT,
+        fontSize: item.fontSize,
+        fontStyle: 'bold',
+        color: item.enabled ? '#FFE8CC' : '#555566',
+      }).setOrigin(0.5).setDepth(2).setAlpha(0);
+      this.menuTexts.push(txt);
+      fadeTargets.push(txt);
+
+      if (!item.enabled) {
+        const sub = this.add.text(HALF_WIDTH, y + 24, 'Coming Soon', {
+          fontFamily: GAME_FONT,
+          fontSize: '13px',
+          color: '#444455',
+        }).setOrigin(0.5, 0).setAlpha(0);
+        fadeTargets.push(sub);
+      }
     });
-    campaign.btnHit.disableInteractive();
-    [campaign.btn, campaign.btnHit, campaign.btnText].forEach(o => o.setAlpha(0));
 
-    const comingSoon = this.add.text(HALF_WIDTH, MENU_Y + btnH + 6, 'Coming Soon', {
-      fontFamily: GAME_FONT,
-      fontSize: '13px',
-      color: '#444455',
-    }).setOrigin(0.5, 0).setAlpha(0);
-
-    // Freeplay button — bread loaf with text
-    const freeplayY = MENU_Y + btnH + gap + 20 + 25;
-
-    // Bread loaf textures cycle with W/S
-    const breadKeys = ['loaf_white', 'loaf_wheat', 'loaf_sourdough'];
-    this.breadIndex = 0;
-
-    const loaf = this.add.image(HALF_WIDTH, freeplayY, breadKeys[0])
-      .setDepth(1)
-      .setInteractive({ useHandCursor: true })
-      .setAlpha(0);
+    // Bread loaf cursor
+    this.menuIndex = 1; // Start on Freeplay
+    const loaf = this.add.image(HALF_WIDTH, MENU_Y, 'loaf_white')
+      .setDepth(1).setAlpha(0);
     this.menuLoaf = loaf;
+    fadeTargets.push(loaf);
 
-    const freeplayText = this.add.text(HALF_WIDTH, freeplayY, 'Freeplay', {
-      fontFamily: GAME_FONT,
-      fontSize: '22px',
-      fontStyle: 'bold',
-      color: '#4a2810',
-    }).setOrigin(0.5).setDepth(2).setAlpha(0);
-
-    loaf.on('pointerover', () => {
-      this.tweens.add({ targets: loaf, scaleX: 1.05, scaleY: 1.05, duration: 100, ease: 'Sine.easeOut' });
-      loaf.setTint(0xffeedd);
-    });
-    loaf.on('pointerout', () => {
-      this.tweens.add({ targets: loaf, scaleX: 1, scaleY: 1, duration: 100, ease: 'Sine.easeOut' });
-      loaf.clearTint();
-    });
-    loaf.on('pointerdown', () => this.transition());
-
-    // W/S keys cycle bread texture
+    // W/S to navigate menu
     const wKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.W);
     const sKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+
     wKey.on('down', () => {
-      this.breadIndex = (this.breadIndex - 1 + breadKeys.length) % breadKeys.length;
-      loaf.setTexture(breadKeys[this.breadIndex]);
+      if (this.settingsMenu.isOpen) return;
+      this.menuIndex = (this.menuIndex - 1 + menuItems.length) % menuItems.length;
+      this.updateMenuCursor(menuItems);
       soundManager.init();
       soundManager.hotkeySelect();
     });
     sKey.on('down', () => {
-      this.breadIndex = (this.breadIndex + 1) % breadKeys.length;
-      loaf.setTexture(breadKeys[this.breadIndex]);
+      if (this.settingsMenu.isOpen) return;
+      this.menuIndex = (this.menuIndex + 1) % menuItems.length;
+      this.updateMenuCursor(menuItems);
       soundManager.init();
       soundManager.hotkeySelect();
     });
 
-    const allTargets = [
-      campaign.btn, campaign.btnHit, campaign.btnText,
-      comingSoon,
-      loaf, freeplayText,
-    ];
+    // Enter/Space to confirm
+    const enterKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ENTER);
+    const spaceKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
+    const confirm = () => {
+      if (this.settingsMenu.isOpen) return;
+      const item = menuItems[this.menuIndex];
+      if (item.enabled && item.action) item.action();
+    };
+    enterKey.on('down', confirm);
+    spaceKey.on('down', confirm);
+
+    // Fade everything in, then position cursor
     this.tweens.add({
-      targets: allTargets,
+      targets: fadeTargets,
       alpha: 1,
       duration: 500,
       ease: 'Sine.easeOut',
+      onComplete: () => this.updateMenuCursor(menuItems),
+    });
+
+    // Set initial cursor position (no tween)
+    this.updateMenuCursor(menuItems, true);
+  }
+
+  updateMenuCursor(menuItems, instant) {
+    const targetY = MENU_Y + this.menuIndex * 58;
+
+    // Highlight selected, dim others
+    this.menuTexts.forEach((txt, i) => {
+      if (!menuItems[i].enabled) return;
+      txt.setColor(i === this.menuIndex ? '#ffffff' : '#FFE8CC');
+    });
+
+    if (instant) {
+      this.menuLoaf.y = targetY;
+      return;
+    }
+    this.tweens.add({
+      targets: this.menuLoaf,
+      y: targetY,
+      duration: 150,
+      ease: 'Back.easeOut',
     });
   }
 

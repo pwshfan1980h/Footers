@@ -2,7 +2,7 @@
 // PalettePostFX — Color-palette restriction post-processing shader
 // ---------------------------------------------------------------------------
 // Snaps every rendered pixel to the nearest color in a user-supplied palette.
-// Supports up to 32 colors. Distance is Euclidean in RGB space.
+// Supports up to 64 colors. Distance is Euclidean in RGB space.
 //
 // USAGE
 // -----
@@ -29,7 +29,7 @@
 
 import Phaser from 'phaser';
 
-const MAX_COLORS = 32;
+const MAX_COLORS = 64;
 
 const fragShader = `
 precision mediump float;
