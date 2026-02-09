@@ -106,6 +106,13 @@ export class SystemMapScene extends Phaser.Scene {
       if (event && event.originalEvent) event.originalEvent.preventDefault();
     });
 
+    // Tab key for cargo panel
+    this.tabKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+    this.tabKey.on('down', (event) => {
+      if (event?.originalEvent) event.originalEvent.preventDefault();
+      this.hud.toggleCargoPanel();
+    });
+
     // Show return notification
     if (this.returnFromShift && this.shiftEarnings > 0) {
       this.hud.showEarningsNotification(this.shiftEarnings);
@@ -357,8 +364,8 @@ export class SystemMapScene extends Phaser.Scene {
     cam.scrollY += (targetCY - cam.scrollY) * CAMERA_LERP;
 
     // Clamp to world bounds
-    const viewW = 1024 / cam.zoom;
-    const viewH = 768 / cam.zoom;
+    const viewW = GAME_WIDTH / cam.zoom;
+    const viewH = GAME_HEIGHT / cam.zoom;
     cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, Math.max(0, WORLD_W - viewW));
     cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, Math.max(0, WORLD_H - viewH));
 

@@ -118,6 +118,13 @@ export class GameScene extends Phaser.Scene {
     this.f1Key.on('up', () => this.hudManager.showHotkeyHints(false));
     this.input.keyboard.on('keydown-F1', (event) => event.preventDefault());
 
+    // Tab key for cargo panel
+    this.tabKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
+    this.tabKey.on('down', (event) => {
+      if (event?.originalEvent) event.originalEvent.preventDefault();
+      this.hudManager.toggleCargoPanel();
+    });
+
     // --- build scene ---
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, this.HULL_DARK);
 

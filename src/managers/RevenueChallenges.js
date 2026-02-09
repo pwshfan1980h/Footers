@@ -1,5 +1,5 @@
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, HALF_WIDTH } from '../data/constants.js';
 
 /**
  * RevenueChallenges — timed revenue goals that provide optional progression.
@@ -31,7 +31,7 @@ export class RevenueChallenges {
     this.completedSet = this.loadCompleted();
 
     // UI position
-    this.panelX = 850;
+    this.panelX = 1594;
     this.panelY = 55;
     this.panelW = 160;
     this.panelH = 72;
@@ -195,7 +195,7 @@ export class RevenueChallenges {
     this.timerText.setText('');
 
     // Gold flash + floating text
-    const celebText = this.scene.add.text(512, 200, `${name} Complete!`, {
+    const celebText = this.scene.add.text(HALF_WIDTH, 200, `${name} Complete!`, {
       fontSize: '32px', color: '#FFD700', fontFamily: GAME_FONT,
       fontStyle: 'bold', stroke: '#000000', strokeThickness: 4,
     }).setOrigin(0.5).setDepth(150);
@@ -212,7 +212,7 @@ export class RevenueChallenges {
 
     // Particle burst
     if (this.scene.particleManager) {
-      this.scene.particleManager.orderCompleted(512, 200);
+      this.scene.particleManager.orderCompleted(HALF_WIDTH, 200);
     }
   }
 
@@ -222,7 +222,7 @@ export class RevenueChallenges {
     this.goalText.setText('');
     this.timerText.setText('');
 
-    const timeoutText = this.scene.add.text(512, 200, "Time's up! Retrying...", {
+    const timeoutText = this.scene.add.text(HALF_WIDTH, 200, "Time's up! Retrying...", {
       fontSize: '22px', color: '#C8A878', fontFamily: GAME_FONT,
       stroke: '#000000', strokeThickness: 3,
     }).setOrigin(0.5).setDepth(150);

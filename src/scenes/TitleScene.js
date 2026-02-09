@@ -9,9 +9,9 @@ const NEON_CYAN_CSS = '#00ddff';
 const SUBTITLE_COLOR = '#FFE8CC';
 const LETTER_DELAY = 120;
 const TITLE_FONT_SIZE = 72;
-const TITLE_Y = 260;
-const SUBTITLE_Y = 340;
-const MENU_Y = 440;
+const TITLE_Y = 366;
+const SUBTITLE_Y = 478;
+const MENU_Y = 619;
 
 export class TitleScene extends Phaser.Scene {
   constructor() {

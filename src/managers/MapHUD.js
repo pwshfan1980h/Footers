@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { LOCATIONS } from '../data/locations.js';
-import { GAME_FONT, MAX_STOCK_PER_INGREDIENT, RESTOCK_BUNDLE_SIZE, WORLD_W, WORLD_H } from '../data/constants.js';
+import { GAME_FONT, MAX_STOCK_PER_INGREDIENT, RESTOCK_BUNDLE_SIZE, WORLD_W, WORLD_H, GAME_WIDTH, HALF_WIDTH } from '../data/constants.js';
 import { INGREDIENTS, INGREDIENTS_BY_CATEGORY } from '../data/ingredients.js';
 import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
@@ -28,6 +28,7 @@ export class MapHUD {
     this.createUI();
     this.createHelpOverlay();
     this.createStatsPanel();
+    this.createCargoPanel();
   }
 
   createUI() {
@@ -36,14 +37,14 @@ export class MapHUD {
     // Top bar
     const bar = scene.add.graphics();
     bar.fillStyle(0x0a0a15, 0.85);
-    bar.fillRect(0, 0, 1024, 44);
+    bar.fillRect(0, 0, GAME_WIDTH, 44);
     bar.fillStyle(scene.NEON_PINK, 0.3);
-    bar.fillRect(0, 42, 1024, 2);
+    bar.fillRect(0, 42, GAME_WIDTH, 2);
     // Stock strip background
     bar.fillStyle(0x0a0a15, 0.7);
-    bar.fillRect(0, 44, 1024, 22);
+    bar.fillRect(0, 44, GAME_WIDTH, 22);
     bar.fillStyle(0x334455, 0.15);
-    bar.fillRect(0, 64, 1024, 1);
+    bar.fillRect(0, 64, GAME_WIDTH, 1);
     scene.uiContainer.add(bar);
 
     // Money display
@@ -72,14 +73,20 @@ export class MapHUD {
     });
     scene.uiContainer.add(this.probeBtn.container);
 
+    // Cargo button
+    this.cargoBtn = this.createButton(520, 8, 80, 28, 'CARGO', 0x1a2a2a, 0x44ddaa, () => {
+      this.toggleCargoPanel();
+    });
+    scene.uiContainer.add(this.cargoBtn.container);
+
     // Probe status text
-    this.probeStatusText = scene.add.text(520, 14, '', {
+    this.probeStatusText = scene.add.text(620, 14, '', {
       fontSize: '11px', color: '#00ddff', fontFamily: GAME_FONT,
     });
     scene.uiContainer.add(this.probeStatusText);
 
     // Current status
-    this.statusText = scene.add.text(750, 14, '', {
+    this.statusText = scene.add.text(1406, 14, '', {
       fontSize: '14px', color: '#FFE8CC', fontFamily: GAME_FONT,
     }).setOrigin(0.5, 0);
     scene.uiContainer.add(this.statusText);
@@ -118,7 +125,7 @@ export class MapHUD {
     scene.uiContainer.add(this.depotHintText);
 
     // F1=Help memo indicator
-    const memoX = 910;
+    const memoX = 1706;
     const memoY = 22;
     const memo = scene.add.graphics();
     memo.fillStyle(0x5A3A28, 0.95);
@@ -132,7 +139,7 @@ export class MapHUD {
     scene.uiContainer.add(memoText);
 
     // "Open Shop" button (only visible when docked)
-    this.openShopBtn = this.createButton(910, 8, 100, 28, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, () => {
+    this.openShopBtn = this.createButton(1706, 8, 100, 28, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, () => {
       if (scene.dockedAt) {
         soundManager.ding();
         scene.scene.start('Game', {
@@ -348,11 +355,117 @@ export class MapHUD {
   }
 
   toggleStatsPanel() {
+    if (this.cargoPanelVisible) {
+      this.cargoPanelVisible = false;
+      this.cargoPanel.setVisible(false);
+    }
     this.statsPanelVisible = !this.statsPanelVisible;
     if (this.statsPanelVisible) {
       this.refreshStats();
     }
     this.statsPanel.setVisible(this.statsPanelVisible);
+  }
+
+  createCargoPanel() {
+    const scene = this.scene;
+    const panelW = 240;
+    const panelX = 372;
+    const panelY = 60;
+
+    const categories = [
+      { key: 'bread', label: 'BREAD' },
+      { key: 'meat', label: 'MEAT' },
+      { key: 'cheese', label: 'CHEESE' },
+      { key: 'topping', label: 'TOPPINGS' },
+      { key: 'sauce', label: 'SAUCE' },
+    ];
+
+    this.cargoPanel = scene.add.container(panelX, panelY).setDepth(100);
+    this.cargoPanelVisible = false;
+    this.cargoCountTexts = [];
+
+    let cy = 12;
+
+    const title = scene.add.text(panelW / 2, cy, 'CARGO HOLD', {
+      fontSize: '16px', color: '#44ddaa', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    this.cargoPanel.add(title);
+    cy += 24;
+
+    const div = scene.add.graphics();
+    div.lineStyle(1, 0x44ddaa, 0.3);
+    div.lineBetween(12, cy, panelW - 12, cy);
+    this.cargoPanel.add(div);
+    cy += 8;
+
+    categories.forEach(cat => {
+      const catTitle = scene.add.text(10, cy, cat.label, {
+        fontSize: '11px', color: '#667788', fontFamily: GAME_FONT, fontStyle: 'bold',
+      });
+      this.cargoPanel.add(catTitle);
+      cy += 16;
+
+      const keys = INGREDIENTS_BY_CATEGORY[cat.key] || [];
+      keys.forEach(ingKey => {
+        const ing = INGREDIENTS[ingKey];
+        const nameTxt = scene.add.text(20, cy, ing.name, {
+          fontSize: '12px', color: '#ccddee', fontFamily: GAME_FONT,
+        });
+        this.cargoPanel.add(nameTxt);
+
+        const countTxt = scene.add.text(panelW - 14, cy, '', {
+          fontSize: '12px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+        }).setOrigin(1, 0);
+        this.cargoPanel.add(countTxt);
+
+        this.cargoCountTexts.push({ key: ingKey, text: countTxt });
+        cy += 16;
+      });
+      cy += 4;
+    });
+
+    const hint = scene.add.text(panelW / 2, cy + 2, 'TAB to close', {
+      fontSize: '9px', color: '#556677', fontFamily: GAME_FONT,
+    }).setOrigin(0.5, 0);
+    this.cargoPanel.add(hint);
+    cy += 18;
+
+    const bg = scene.add.graphics();
+    bg.fillStyle(0x0a0a18, 0.95);
+    bg.fillRoundedRect(0, 0, panelW, cy, 10);
+    bg.lineStyle(2, 0x44ddaa, 0.8);
+    bg.strokeRoundedRect(0, 0, panelW, cy, 10);
+    this.cargoPanel.addAt(bg, 0);
+
+    this.cargoPanel.setVisible(false);
+    scene.uiContainer.add(this.cargoPanel);
+  }
+
+  toggleCargoPanel() {
+    if (this.statsPanelVisible) {
+      this.statsPanelVisible = false;
+      this.statsPanel.setVisible(false);
+    }
+    this.cargoPanelVisible = !this.cargoPanelVisible;
+    if (this.cargoPanelVisible) {
+      this.refreshCargo();
+    }
+    this.cargoPanel.setVisible(this.cargoPanelVisible);
+  }
+
+  refreshCargo() {
+    if (!this.cargoCountTexts) return;
+    this.cargoCountTexts.forEach(item => {
+      const count = gameState.getIngredientCount(item.key);
+      item.text.setText(`${count}/${MAX_STOCK_PER_INGREDIENT}`);
+      if (count > 5) {
+        item.text.setColor('#44ff88');
+      } else if (count >= 2) {
+        item.text.setColor('#ffaa44');
+      } else {
+        item.text.setColor('#ff4444');
+      }
+    });
   }
 
   refreshStockStrip() {
@@ -373,6 +486,8 @@ export class MapHUD {
         anyLow = true;
       }
     });
+
+    if (this.cargoPanelVisible) this.refreshCargo();
 
     // Show depot hint when low on stock
     if (this.depotHintText) {
@@ -534,7 +649,7 @@ export class MapHUD {
         keys.forEach(ingKey => {
           const ing = INGREDIENTS[ingKey];
           const count = gameState.getIngredientCount(ingKey);
-          const countColor = count >= 10 ? '#44ff88' : count >= 3 ? '#ffaa44' : '#ff4444';
+          const countColor = count > 5 ? '#44ff88' : count >= 2 ? '#ffaa44' : '#ff4444';
           const isFull = count >= MAX_STOCK_PER_INGREDIENT;
 
           // Ingredient name
@@ -731,7 +846,7 @@ export class MapHUD {
   showEarningsNotification(amount) {
     const scene = this.scene;
     const cam = scene.cameras.main;
-    const centerWorldX = cam.scrollX + 512 / cam.zoom;
+    const centerWorldX = cam.scrollX + HALF_WIDTH / cam.zoom;
     const centerWorldY = cam.scrollY + 120 / cam.zoom;
     const text = scene.add.text(centerWorldX, centerWorldY, `+$${amount.toFixed(2)} earned!`, {
       fontSize: '44px', color: '#44ff88', fontFamily: GAME_FONT,

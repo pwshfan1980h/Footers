@@ -173,6 +173,7 @@ class GameState {
   getRestockAllCost() {
     let cost = 0;
     ALL_INGREDIENT_KEYS.forEach(k => {
+      if (INGREDIENTS[k].category === 'sauce') return;
       const current = this.inventory[k] || 0;
       const needed = MAX_STOCK_PER_INGREDIENT - current;
       if (needed > 0) {
@@ -188,6 +189,7 @@ class GameState {
     if (this.totalMoney < cost) return false;
     this.totalMoney -= cost;
     ALL_INGREDIENT_KEYS.forEach(k => {
+      if (INGREDIENTS[k].category === 'sauce') return;
       this.inventory[k] = MAX_STOCK_PER_INGREDIENT;
     });
     this.save();
@@ -195,7 +197,9 @@ class GameState {
   }
 
   isFullyStocked() {
-    return ALL_INGREDIENT_KEYS.every(k => (this.inventory[k] || 0) >= MAX_STOCK_PER_INGREDIENT);
+    return ALL_INGREDIENT_KEYS.every(k =>
+      INGREDIENTS[k].category === 'sauce' || (this.inventory[k] || 0) >= MAX_STOCK_PER_INGREDIENT
+    );
   }
 }
 

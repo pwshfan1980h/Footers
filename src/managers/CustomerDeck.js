@@ -2,6 +2,8 @@
  * CustomerDeck - Interior customer reception area with airlock, standing positions,
  * and decorative elements drawn between the hull portholes and the service counter.
  */
+import { GAME_WIDTH } from '../data/constants.js';
+
 export class CustomerDeck {
   constructor(scene) {
     this.scene = scene;
@@ -26,15 +28,15 @@ export class CustomerDeck {
     // === WALLS ===
     // Cool blue-gray interior walls
     g.fillStyle(0x3A4555, 1);
-    g.fillRect(0, deckTop, 1024, deckH);
+    g.fillRect(0, deckTop, GAME_WIDTH, deckH);
 
     // Wall panel seams (horizontal)
     g.lineStyle(1, 0x2A3545, 0.3);
-    g.lineBetween(0, deckTop + 30, 1024, deckTop + 30);
-    g.lineBetween(0, deckTop + deckH * 0.6, 1024, deckTop + deckH * 0.6);
+    g.lineBetween(0, deckTop + 30, GAME_WIDTH, deckTop + 30);
+    g.lineBetween(0, deckTop + deckH * 0.6, GAME_WIDTH, deckTop + deckH * 0.6);
 
     // Wall panel seams (vertical)
-    for (let x = 170; x < 1024; x += 215) {
+    for (let x = 170; x < GAME_WIDTH; x += 215) {
       g.lineStyle(1, 0x2A3545, 0.25);
       g.lineBetween(x, deckTop, x, deckBot);
     }
@@ -43,14 +45,14 @@ export class CustomerDeck {
     // Dark blue-gray deck plating at the bottom half
     const floorY = deckTop + deckH * 0.45;
     g.fillStyle(0x2A3545, 1);
-    g.fillRect(0, floorY, 1024, deckBot - floorY);
+    g.fillRect(0, floorY, GAME_WIDTH, deckBot - floorY);
 
     // Floor panel lines
     g.lineStyle(1, 0x1A2535, 0.25);
     for (let y = floorY + 10; y < deckBot; y += 15) {
-      g.lineBetween(0, y, 1024, y);
+      g.lineBetween(0, y, GAME_WIDTH, y);
     }
-    for (let x = 50; x < 1024; x += 128) {
+    for (let x = 50; x < GAME_WIDTH; x += 128) {
       g.lineStyle(1, 0x1A2535, 0.2);
       g.lineBetween(x, floorY, x, deckBot);
     }
@@ -59,15 +61,15 @@ export class CustomerDeck {
     // Warm fluorescent glow strips
     const lightY = deckTop + 8;
     g.fillStyle(0xFFEECC, 0.12);
-    g.fillRect(80, lightY, 200, 4);
-    g.fillRect(400, lightY, 250, 4);
-    g.fillRect(750, lightY, 200, 4);
+    g.fillRect(150, lightY, 375, 4);
+    g.fillRect(750, lightY, 469, 4);
+    g.fillRect(1406, lightY, 375, 4);
 
     // Light glow halos
     g.fillStyle(0xFFEECC, 0.06);
-    g.fillEllipse(180, lightY + 20, 240, 40);
-    g.fillEllipse(525, lightY + 20, 300, 40);
-    g.fillEllipse(850, lightY + 20, 240, 40);
+    g.fillEllipse(338, lightY + 20, 450, 40);
+    g.fillEllipse(984, lightY + 20, 563, 40);
+    g.fillEllipse(1594, lightY + 20, 450, 40);
 
     // === CIRCULAR AIRLOCK FRAME ===
     const alX = s.AIRLOCK_X;
@@ -120,18 +122,18 @@ export class CustomerDeck {
     // === HANDRAILS ===
     const railY = deckTop + 55;
     g.fillStyle(0x707888, 0.7);
-    g.fillRect(60, railY, 380, 3);
-    g.fillRect(584, railY, 380, 3);
+    g.fillRect(112, railY, 713, 3);
+    g.fillRect(1095, railY, 713, 3);
     // Rail highlight
     g.fillStyle(0x909AA8, 0.4);
-    g.fillRect(60, railY, 380, 1);
-    g.fillRect(584, railY, 380, 1);
+    g.fillRect(112, railY, 713, 1);
+    g.fillRect(1095, railY, 713, 1);
     // Rail supports
-    for (let x = 60; x <= 440; x += 95) {
+    for (let x = 112; x <= 825; x += 178) {
       g.fillStyle(0x606878, 0.8);
       g.fillRect(x, railY, 4, 12);
     }
-    for (let x = 584; x <= 964; x += 95) {
+    for (let x = 1095; x <= 1808; x += 178) {
       g.fillStyle(0x606878, 0.8);
       g.fillRect(x, railY, 4, 12);
     }
@@ -140,17 +142,17 @@ export class CustomerDeck {
 
     // Ceiling camera dome (top left)
     g.fillStyle(0x333344, 0.9);
-    g.fillCircle(80, deckTop + 14, 6);
+    g.fillCircle(150, deckTop + 14, 6);
     g.fillStyle(0x555566, 0.7);
-    g.fillCircle(80, deckTop + 13, 3);
+    g.fillCircle(150, deckTop + 13, 3);
     g.fillStyle(0xFF4444, 0.6);
-    g.fillCircle(82, deckTop + 12, 1.5);
+    g.fillCircle(152, deckTop + 12, 1.5);
 
     // "NO SMOKING" sign (tiny, right wall)
     g.fillStyle(0xCC2222, 0.5);
-    g.fillCircle(950, deckTop + 22, 5);
+    g.fillCircle(1781, deckTop + 22, 5);
     g.lineStyle(1.5, 0xffffff, 0.5);
-    g.lineBetween(947, deckTop + 19, 953, deckTop + 25);
+    g.lineBetween(1778, deckTop + 19, 1784, deckTop + 25);
 
     // Standing position markers (subtle floor dots)
     const positions = this.getStandingPositions();
@@ -165,10 +167,10 @@ export class CustomerDeck {
 
   getStandingPositions() {
     return [
-      { x: 160, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
-      { x: 390, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
-      { x: 634, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
-      { x: 864, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
+      { x: 300, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
+      { x: 731, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
+      { x: 1189, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
+      { x: 1620, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
     ];
   }
 

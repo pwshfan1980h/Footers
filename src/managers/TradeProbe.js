@@ -2,7 +2,7 @@ import Phaser from 'phaser';
 import { LOCATIONS, TRADE_ROUTES } from '../data/locations.js';
 import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, HALF_WIDTH } from '../data/constants.js';
 import { ALL_INGREDIENT_KEYS, INGREDIENTS } from '../data/ingredients.js';
 
 const PROBE_COST = 5;
@@ -173,7 +173,7 @@ export class TradeProbe {
   _showNotification(msg) {
     const scene = this.scene;
     const cam = scene.cameras.main;
-    const centerWorldX = cam.scrollX + 512 / cam.zoom;
+    const centerWorldX = cam.scrollX + HALF_WIDTH / cam.zoom;
     const centerWorldY = cam.scrollY + 160 / cam.zoom;
     const text = scene.add.text(centerWorldX, centerWorldY, msg, {
       fontSize: '32px', color: '#00ddff', fontFamily: GAME_FONT,

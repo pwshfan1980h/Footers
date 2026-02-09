@@ -31,10 +31,10 @@ export class GameSceneBins {
     const keys = BIN_LAYOUT[0];
     s.meatPileItems = [];
 
-    const baseX = 95;
-    const baseY = 420;
-    const spacingX = 100;
-    const spacingY = 70;
+    const baseX = 178;
+    const baseY = 590;
+    const spacingX = 188;
+    const spacingY = 98;
     const day = s.day ?? 99;
 
     const hints = { 'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4', 'meat_prosciutto': 'Q' };
@@ -106,9 +106,9 @@ export class GameSceneBins {
   createLoaves() {
     const s = this.scene;
     s.loafItems = [];
-    const baseX = 820;
-    const baseY = 430;
-    const spacingY = 70;
+    const baseX = 1538;
+    const baseY = 605;
+    const spacingY = 98;
 
     const breads = [
       { key: 'bread_white', label: 'White', asset: 'loaf_white' },
@@ -175,9 +175,9 @@ export class GameSceneBins {
 
   createTreatments() {
     const s = this.scene;
-    const shelfY = 630;
-    const startX = 120;
-    const spacing = 85;
+    const shelfY = 886;
+    const startX = 225;
+    const spacing = 159;
 
     const treatKeys = ['toasted', 'togo', 'salt', 'pepper', 'oil_vinegar'];
     treatKeys.forEach((key, i) => {
@@ -191,9 +191,9 @@ export class GameSceneBins {
   createCheeseStacks() {
     const s = this.scene;
     s.cheeseStackItems = [];
-    const baseX = 620;
-    const baseY = 440;
-    const spacingY = 85;
+    const baseX = 1163;
+    const baseY = 619;
+    const spacingY = 120;
 
     const cheeses = [
       { key: 'cheese_american', label: 'American' },
@@ -256,11 +256,11 @@ export class GameSceneBins {
     s.veggieBowlItems = [];
     const day = s.day ?? 99;
 
-    const row1Y = 450;
-    const row1StartX = 340;
-    const spacingX = 75;
-    const row2Y = 515;
-    const row2StartX = 340;
+    const row1Y = 633;
+    const row1StartX = 638;
+    const spacingX = 141;
+    const row2Y = 724;
+    const row2StartX = 638;
 
     const row1Veggies = [
       { key: 'top_lettuce', label: 'Lettuce', asset: 'bowl_content_lettuce', hotkey: '5' },
@@ -367,24 +367,12 @@ export class GameSceneBins {
       s.createHotkeyHint(x + radius + 4, y - radius - 4, sauceHints[key], 31);
     }
 
-    const stockLabel = s.add.text(x + radius + 4, y + radius + 4, '', {
-      fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
-    }).setOrigin(0.5).setDepth(31);
-
-    s.sauceBottleItems.push({ container, key, stockLabel });
+    s.sauceBottleItems.push({ container, key });
   }
 
   pickupSauce(key) {
     const s = this.scene;
-    const ing = INGREDIENTS[key];
-    if (!gameState.hasIngredientStock(key)) {
-      soundManager.buzz();
-      return;
-    }
     soundManager.robotPickup();
-    gameState.useIngredient(key);
-    const item = (s.sauceBottleItems || []).find(it => it.key === key);
-    if (item) this.checkDepletion(key, item.container);
     const pointer = s.input.activePointer;
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = {
@@ -408,6 +396,27 @@ export class GameSceneBins {
       }).setOrigin(0.5).setDepth(25);
       visual._emptyLabel = emptyLabel;
     }
+    this.scene.hudManager.refreshStock();
+  }
+
+  checkDepletionByKey(key) {
+    const s = this.scene;
+    let visual = null;
+    const meatItem = (s.meatPileItems || []).find(it => it.key === key);
+    if (meatItem) visual = meatItem.img;
+    if (!visual) {
+      const loafItem = (s.loafItems || []).find(it => it.key === key);
+      if (loafItem) visual = loafItem.img;
+    }
+    if (!visual) {
+      const cheeseItem = (s.cheeseStackItems || []).find(it => it.key === key);
+      if (cheeseItem) visual = cheeseItem.img;
+    }
+    if (!visual) {
+      const veggieItem = (s.veggieBowlItems || []).find(it => it.key === key);
+      if (veggieItem) visual = veggieItem.img;
+    }
+    this.checkDepletion(key, visual);
   }
 
   createTreatmentItem(tKey, x, y) {

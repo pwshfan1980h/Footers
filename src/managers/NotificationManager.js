@@ -1,4 +1,4 @@
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, HALF_WIDTH } from '../data/constants.js';
 
 /**
  * NotificationManager — top-of-screen notification queue.
@@ -12,7 +12,7 @@ export class NotificationManager {
     this.baseY = 55;
     this.spacing = 50;
     this.width = 400;
-    this.centerX = 512;
+    this.centerX = HALF_WIDTH;
     this.depth = 90;
   }
 

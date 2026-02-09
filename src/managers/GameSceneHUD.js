@@ -1,7 +1,8 @@
 /**
  * GameSceneHUD - Score display, hotkey hints, speed indicators
  */
-import { GAME_FONT, MAX_MISSES } from '../data/constants.js';
+import { GAME_FONT, MAX_MISSES, GAME_WIDTH, HALF_WIDTH, MAX_STOCK_PER_INGREDIENT } from '../data/constants.js';
+import { INGREDIENTS, INGREDIENTS_BY_CATEGORY } from '../data/ingredients.js';
 import { gameState } from '../data/GameState.js';
 
 export class GameSceneHUD {
@@ -16,9 +17,9 @@ export class GameSceneHUD {
 
     const hudBg = s.add.graphics().setDepth(4);
     hudBg.fillStyle(s.HULL_DARK, 0.85);
-    hudBg.fillRect(0, 0, 1024, 40);
+    hudBg.fillRect(0, 0, GAME_WIDTH, 40);
     hudBg.fillStyle(s.NEON_PINK, 0.4);
-    hudBg.fillRect(0, 38, 1024, 2);
+    hudBg.fillRect(0, 38, GAME_WIDTH, 2);
 
     // Background panels behind HUD groups
     const panels = s.add.graphics().setDepth(4.5);
@@ -26,7 +27,7 @@ export class GameSceneHUD {
     panels.fillRoundedRect(6, 4, 175, 32, 5);
     panels.fillRoundedRect(190, 4, 200, 32, 5);
     panels.fillRoundedRect(400, 4, 140, 32, 5);
-    panels.fillRoundedRect(690, 3, 86, 34, 5);
+    panels.fillRoundedRect(1294, 3, 86, 34, 5);
 
     // Star icon next to score
     const icons = s.add.graphics().setDepth(5);
@@ -48,7 +49,7 @@ export class GameSceneHUD {
       fontSize: '16px', color: '#00ddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
-    s.ordersText = s.add.text(780, 12, s.ordersDisplay(), {
+    s.ordersText = s.add.text(1463, 12, s.ordersDisplay(), {
       fontSize: '11px', color: '#aaddff', fontFamily: GAME_FONT,
     }).setDepth(5);
 
@@ -59,7 +60,7 @@ export class GameSceneHUD {
     // Strike indicators drawn as graphics instead of text
     this.strikeGraphics = null;
 
-    s.riskText = s.add.text(700, 26, '', {
+    s.riskText = s.add.text(1313, 26, '', {
       fontSize: '11px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setDepth(5).setAlpha(0);
 
@@ -67,11 +68,12 @@ export class GameSceneHUD {
     this.createHotkeyLegend();
     this.createEndShiftButton();
     this.createStockDisplay();
+    this.createCargoPanel();
   }
 
   createEndShiftButton() {
     const s = this.scene;
-    const btnX = 920;
+    const btnX = 1810;
     const btnY = 4;
     const btnW = 95;
     const btnH = 24;
@@ -116,10 +118,9 @@ export class GameSceneHUD {
       { key: 'meat', label: 'M', color: '#FFB6C1' },
       { key: 'cheese', label: 'C', color: '#FFD700' },
       { key: 'topping', label: 'T', color: '#32CD32' },
-      { key: 'sauce', label: 'S', color: '#FFDB58' },
     ];
 
-    const startX = 550;
+    const startX = 1031;
     const y = 28;
 
     // Background
@@ -142,7 +143,7 @@ export class GameSceneHUD {
   }
 
   refreshStock() {
-    const categories = ['bread', 'meat', 'cheese', 'topping', 'sauce'];
+    const categories = ['bread', 'meat', 'cheese', 'topping'];
     categories.forEach(cat => {
       const txt = this.stockTexts[cat];
       if (!txt) return;
@@ -159,6 +160,9 @@ export class GameSceneHUD {
 
     // Update per-bin stock labels
     this.refreshBinLabels();
+
+    // Update cargo panel if visible
+    if (this.cargoPanelVisible) this.refreshCargoPanel();
   }
 
   refreshBinLabels() {
@@ -169,9 +173,9 @@ export class GameSceneHUD {
         if (!item.stockLabel || !item.key) return;
         const count = gameState.getIngredientCount(item.key);
         item.stockLabel.setText(count.toString());
-        if (count > 3) {
+        if (count > 5) {
           item.stockLabel.setColor('#44ff88');
-        } else if (count >= 1) {
+        } else if (count >= 2) {
           item.stockLabel.setColor('#ffaa44');
         } else {
           item.stockLabel.setColor('#ff4444');
@@ -187,7 +191,7 @@ export class GameSceneHUD {
 
   createHotkeyMemo() {
     const s = this.scene;
-    const memoX = 600;
+    const memoX = 1125;
     const memoY = 18;
 
     const memo = s.add.graphics().setDepth(5);
@@ -336,6 +340,109 @@ export class GameSceneHUD {
     }
   }
 
+  createCargoPanel() {
+    const s = this.scene;
+    const panelW = 230;
+    const panelX = GAME_WIDTH - panelW - 10;
+    const panelY = 110;
+
+    const categories = [
+      { key: 'bread', label: 'BREAD' },
+      { key: 'meat', label: 'MEAT' },
+      { key: 'cheese', label: 'CHEESE' },
+      { key: 'topping', label: 'TOPPINGS' },
+      { key: 'sauce', label: 'SAUCE' },
+    ];
+
+    this.cargoPanel = s.add.container(panelX, panelY).setDepth(200);
+    this.cargoPanelVisible = false;
+    this.cargoCountTexts = [];
+
+    let cy = 12;
+
+    const title = s.add.text(panelW / 2, cy, 'CARGO HOLD', {
+      fontSize: '14px', color: '#44ddaa', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5, 0);
+    this.cargoPanel.add(title);
+    cy += 22;
+
+    const div = s.add.graphics();
+    div.lineStyle(1, 0x44ddaa, 0.3);
+    div.lineBetween(12, cy, panelW - 12, cy);
+    this.cargoPanel.add(div);
+    cy += 6;
+
+    categories.forEach(cat => {
+      const catTitle = s.add.text(10, cy, cat.label, {
+        fontSize: '10px', color: '#667788', fontFamily: GAME_FONT, fontStyle: 'bold',
+      });
+      this.cargoPanel.add(catTitle);
+      cy += 14;
+
+      const keys = INGREDIENTS_BY_CATEGORY[cat.key] || [];
+      keys.forEach(ingKey => {
+        const ing = INGREDIENTS[ingKey];
+        const nameTxt = s.add.text(18, cy, ing.name, {
+          fontSize: '11px', color: '#ccddee', fontFamily: GAME_FONT,
+        });
+        this.cargoPanel.add(nameTxt);
+
+        const countTxt = s.add.text(panelW - 14, cy, '', {
+          fontSize: '11px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+        }).setOrigin(1, 0);
+        this.cargoPanel.add(countTxt);
+
+        this.cargoCountTexts.push({ key: ingKey, text: countTxt });
+        cy += 14;
+      });
+      cy += 4;
+    });
+
+    const hint = s.add.text(panelW / 2, cy + 2, 'TAB to close', {
+      fontSize: '9px', color: '#556677', fontFamily: GAME_FONT,
+    }).setOrigin(0.5, 0);
+    this.cargoPanel.add(hint);
+    cy += 18;
+
+    const bg = s.add.graphics();
+    bg.fillStyle(0x0a0a18, 0.93);
+    bg.fillRoundedRect(0, 0, panelW, cy, 8);
+    bg.lineStyle(2, 0x44ddaa, 0.6);
+    bg.strokeRoundedRect(0, 0, panelW, cy, 8);
+    this.cargoPanel.addAt(bg, 0);
+
+    this.cargoPanel.setVisible(false);
+  }
+
+  toggleCargoPanel() {
+    this.cargoPanelVisible = !this.cargoPanelVisible;
+    if (this.cargoPanelVisible) {
+      this.refreshCargoPanel();
+    }
+    this.cargoPanel.setVisible(this.cargoPanelVisible);
+  }
+
+  refreshCargoPanel() {
+    if (!this.cargoCountTexts) return;
+    this.cargoCountTexts.forEach(item => {
+      const ing = INGREDIENTS[item.key];
+      if (ing && ing.category === 'sauce') {
+        item.text.setText('\u221E');
+        item.text.setColor('#44ff88');
+        return;
+      }
+      const count = gameState.getIngredientCount(item.key);
+      item.text.setText(`${count}/${MAX_STOCK_PER_INGREDIENT}`);
+      if (count > 5) {
+        item.text.setColor('#44ff88');
+      } else if (count >= 2) {
+        item.text.setColor('#ffaa44');
+      } else {
+        item.text.setColor('#ff4444');
+      }
+    });
+  }
+
   drawStrikeIndicators(missed) {
     const s = this.scene;
     if (this.strikeGraphics) {
@@ -343,7 +450,7 @@ export class GameSceneHUD {
     }
     this.strikeGraphics = s.add.graphics().setDepth(5);
     const g = this.strikeGraphics;
-    const baseX = 705;
+    const baseX = 1322;
     const baseY = 16;
     const spacing = 22;
 

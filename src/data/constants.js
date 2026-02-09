@@ -4,8 +4,8 @@
  */
 
 // --- Screen / Canvas ---
-export const GAME_WIDTH = 1024;
-export const GAME_HEIGHT = 768;
+export const GAME_WIDTH = 1920;
+export const GAME_HEIGHT = 1080;
 export const HALF_WIDTH = GAME_WIDTH / 2;   // 512
 export const HALF_HEIGHT = GAME_HEIGHT / 2; // 384
 

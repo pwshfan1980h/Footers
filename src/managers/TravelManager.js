@@ -98,8 +98,8 @@ export class TravelManager {
         this.warpLines = [];
         for (let i = 0; i < 80; i++) {
           this.warpLines.push({
-            x: (Math.random() - 0.5) * 1200,
-            y: (Math.random() - 0.5) * 900,
+            x: (Math.random() - 0.5) * 2250,
+            y: (Math.random() - 0.5) * 1265,
             speed: 200 + Math.random() * 600,
             length: 20 + Math.random() * 80,
             alpha: 0.3 + Math.random() * 0.5,
@@ -202,7 +202,7 @@ export class TravelManager {
       line.x = Math.cos(angle) * newDist;
       line.y = Math.sin(angle) * newDist;
 
-      if (newDist > 800) {
+      if (newDist > 1500) {
         const a = Math.random() * Math.PI * 2;
         const d = 30 + Math.random() * 100;
         line.x = Math.cos(a) * d;

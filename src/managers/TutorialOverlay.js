@@ -67,7 +67,7 @@ export class TutorialOverlay {
 
   showStep(overlay) {
     const s = this.steps[this.step];
-    const y = 260;
+    const y = 366;
 
     const title = this.scene.add.text(HALF_WIDTH, y, s.title, {
       fontSize: '36px', color: '#00ddff', fontFamily: GAME_FONT,

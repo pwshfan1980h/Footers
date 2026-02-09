@@ -46,14 +46,14 @@ export class GameOverScene extends Phaser.Scene {
     // Red alert glow
     const glow = this.add.graphics();
     glow.fillStyle(0x440000, 0.3);
-    glow.fillEllipse(HALF_WIDTH, 200, 800, 400);
+    glow.fillEllipse(HALF_WIDTH, 281, 1500, 562);
 
     // Starfield (dimmer for alert)
     const g = this.add.graphics();
     const stars = [
-      { x: 100, y: 100, s: 1.5 }, { x: 300, y: 150, s: 1 }, { x: 500, y: 80, s: 1.5 },
-      { x: 700, y: 120, s: 1 }, { x: 900, y: 90, s: 1.5 }, { x: 150, y: 300, s: 1 },
-      { x: 400, y: 500, s: 1 }, { x: 600, y: 450, s: 1.5 }, { x: 800, y: 550, s: 1 },
+      { x: 188, y: 141, s: 1.5 }, { x: 563, y: 211, s: 1 }, { x: 938, y: 112, s: 1.5 },
+      { x: 1313, y: 169, s: 1 }, { x: 1688, y: 127, s: 1.5 }, { x: 281, y: 422, s: 1 },
+      { x: 750, y: 703, s: 1 }, { x: 1125, y: 633, s: 1.5 }, { x: 1500, y: 773, s: 1 },
     ];
     stars.forEach(star => {
       g.fillStyle(0xff8888, 0.4);
@@ -63,17 +63,17 @@ export class GameOverScene extends Phaser.Scene {
     // Alert panel
     const panel = this.add.graphics();
     panel.fillStyle(HULL_DARK, 0.9);
-    panel.fillRoundedRect(212, 100, 600, 120, 12);
+    panel.fillRoundedRect(HALF_WIDTH - 300, 141, 600, 169, 12);
     panel.lineStyle(3, ALERT_RED, 0.8);
-    panel.strokeRoundedRect(212, 100, 600, 120, 12);
+    panel.strokeRoundedRect(HALF_WIDTH - 300, 141, 600, 169, 12);
 
     // Title
-    this.add.text(HALF_WIDTH, 140, "YOU'RE FIRED!", {
+    this.add.text(HALF_WIDTH, 197, "YOU'RE FIRED!", {
       fontSize: '68px', color: '#ff2244', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Pulsing alert effect
-    const alertFlash = this.add.rectangle(HALF_WIDTH, 140, 500, 80, ALERT_RED, 0);
+    const alertFlash = this.add.rectangle(HALF_WIDTH, 197, 500, 80, ALERT_RED, 0);
     this.tweens.add({
       targets: alertFlash,
       alpha: 0.2,
@@ -82,44 +82,44 @@ export class GameOverScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.add.text(HALF_WIDTH, 230, 'Too many orders missed!', {
+    this.add.text(HALF_WIDTH, 323, 'Too many orders missed!', {
       fontSize: '24px', color: '#ff8888', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Stats panel — expanded with penalty breakdown
     const statsPanel = this.add.graphics();
     statsPanel.fillStyle(HULL_DARK, 0.8);
-    statsPanel.fillRoundedRect(262, 270, 500, 180, 12);
+    statsPanel.fillRoundedRect(HALF_WIDTH - 250, 380, 500, 253, 12);
     statsPanel.lineStyle(2, 0x442233, 0.6);
-    statsPanel.strokeRoundedRect(262, 270, 500, 180, 12);
+    statsPanel.strokeRoundedRect(HALF_WIDTH - 250, 380, 500, 253, 12);
 
     const dayNames = DAY_NAMES;
-    this.add.text(HALF_WIDTH, 290, `Lasted until: ${dayNames[this.day]}`, {
+    this.add.text(HALF_WIDTH, 408, `Lasted until: ${dayNames[this.day]}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 316, `Orders completed: ${this.ordersCompleted}`, {
+    this.add.text(HALF_WIDTH, 444, `Orders completed: ${this.ordersCompleted}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 346, `Shift earnings: $${this.rawEarnings.toFixed(2)}`, {
+    this.add.text(HALF_WIDTH, 487, `Shift earnings: $${this.rawEarnings.toFixed(2)}`, {
       fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 372, `Termination penalty: -$${this.penaltyAmount.toFixed(2)}`, {
+    this.add.text(HALF_WIDTH, 523, `Termination penalty: -$${this.penaltyAmount.toFixed(2)}`, {
       fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 404, `Amount kept: $${this.earnings.toFixed(2)}`, {
+    this.add.text(HALF_WIDTH, 568, `Amount kept: $${this.earnings.toFixed(2)}`, {
       fontSize: '22px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 434, `Final score: ${this.finalScore}`, {
+    this.add.text(HALF_WIDTH, 610, `Final score: ${this.finalScore}`, {
       fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Try again button
-    createButton(this, 282, 488, 220, 64, 'TRY AGAIN', {
+    createButton(this, HALF_WIDTH - 230, 686, 220, 64, 'TRY AGAIN', {
       baseFill: 0x3a1a1a,
       hoverFill: 0x4a2a2a,
       accentColor: ALERT_RED,
@@ -131,7 +131,7 @@ export class GameOverScene extends Phaser.Scene {
     });
 
     // Return to Map button
-    createButton(this, 522, 488, 220, 64, 'RETURN TO MAP', {
+    createButton(this, HALF_WIDTH + 10, 686, 220, 64, 'RETURN TO MAP', {
       baseFill: 0x1a1a3a,
       hoverFill: 0x2a2a4a,
       accentColor: 0x4488ff,

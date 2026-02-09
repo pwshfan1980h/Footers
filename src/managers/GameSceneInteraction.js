@@ -3,6 +3,7 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { gameState } from '../data/GameState.js';
 import {
   GAME_FONT, WRONG_INGREDIENT_PENALTY,
   HELD_ITEM_WIDTH, HELD_ITEM_HEIGHT,
@@ -234,7 +235,7 @@ export class GameSceneInteraction {
       const y = gameObject.y;
 
       // Deliver completed tray by dragging upward into customer/window area
-      if (tray.onPrepTrack && tray.completed && y < 350) {
+      if (tray.onPrepTrack && tray.completed && y < 500) {
         // Find the linked customer for this tray
         const customer = s.customerVessels.customers.find(c => c.tray === tray);
         if (customer && customer.personState === 'at_counter') {
@@ -432,7 +433,13 @@ export class GameSceneInteraction {
           if (ingredient.startsWith('sauce_')) {
             s.binsManager.pickupSauce(ingredient);
           } else {
+            if (!gameState.hasIngredientStock(ingredient)) {
+              soundManager.buzz();
+              return;
+            }
             soundManager.hotkeySelect();
+            gameState.useIngredient(ingredient);
+            s.binsManager.checkDepletionByKey(ingredient);
             const visual = s.createHeldVisual(ingredient, pointer.x, pointer.y);
             s.heldItem = { visual, ingredientKey: ingredient, binX: 0, binY: 0 };
           }

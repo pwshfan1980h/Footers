@@ -2,6 +2,7 @@
  * GameSceneBackground - Hull plating with oval portholes, service counter, kitchen surface
  */
 import Phaser from 'phaser';
+import { GAME_WIDTH, HALF_WIDTH } from '../data/constants.js';
 import { darkenColor, lightenColor } from '../utils/colorUtils.js';
 
 export class GameSceneBackground {
@@ -18,9 +19,9 @@ export class GameSceneBackground {
     const s = this.scene;
     const g = s.add.graphics().setDepth(4);
 
-    const surfaceY = 360;
-    const surfaceH = 408;
-    const surfaceW = 1024;
+    const surfaceY = 506;
+    const surfaceH = 574;
+    const surfaceW = GAME_WIDTH;
 
     g.fillStyle(0x4A5868, 1);
     g.fillRect(0, surfaceY, surfaceW, surfaceH);
@@ -60,7 +61,7 @@ export class GameSceneBackground {
     }
 
     g.fillStyle(0xC8A878, 0.04);
-    g.fillRect(200, surfaceY + 60, 624, 200);
+    g.fillRect(375, surfaceY + 60, 1170, 200);
   }
 
   createServiceCounter() {
@@ -71,28 +72,28 @@ export class GameSceneBackground {
 
     // Counter top surface
     g.fillStyle(s.CHROME_MID, 1);
-    g.fillRect(0, counterY, 1024, counterH);
+    g.fillRect(0, counterY, GAME_WIDTH, counterH);
 
     // Top highlight
     g.fillStyle(s.CHROME_HIGHLIGHT, 0.7);
-    g.fillRect(0, counterY, 1024, 2);
+    g.fillRect(0, counterY, GAME_WIDTH, 2);
 
     // Counter face
     g.fillStyle(s.CHROME_DARK, 1);
-    g.fillRect(0, counterY + 2, 1024, counterH - 2);
+    g.fillRect(0, counterY + 2, GAME_WIDTH, counterH - 2);
 
     // Brushed metal lines
     g.lineStyle(1, s.CHROME_LIGHT, 0.1);
     for (let y = counterY + 4; y < counterY + counterH - 2; y += 3) {
-      g.lineBetween(0, y, 1024, y);
+      g.lineBetween(0, y, GAME_WIDTH, y);
     }
 
     // Bottom shadow
     g.fillStyle(0x000000, 0.3);
-    g.fillRect(0, counterY + counterH, 1024, 3);
+    g.fillRect(0, counterY + counterH, GAME_WIDTH, 3);
 
     // "ORDER HERE" neon sign
-    const signX = 512;
+    const signX = HALF_WIDTH;
     const signY = counterY + 6;
 
     // Neon glow behind text
@@ -106,8 +107,8 @@ export class GameSceneBackground {
     // Yellow-black safety chevrons
     const chevY = counterY - 5;
     g.fillStyle(0x222222, 0.8);
-    g.fillRect(0, chevY, 1024, 5);
-    for (let x = 0; x < 1024; x += 20) {
+    g.fillRect(0, chevY, GAME_WIDTH, 5);
+    for (let x = 0; x < GAME_WIDTH; x += 20) {
       g.fillStyle(0xCCAA00, 0.6);
       g.beginPath();
       g.moveTo(x, chevY);
@@ -119,7 +120,7 @@ export class GameSceneBackground {
     }
 
     // Rivets along counter
-    for (let x = 30; x < 1024; x += 60) {
+    for (let x = 30; x < GAME_WIDTH; x += 60) {
       g.fillStyle(s.CHROME_DARK, 1);
       g.fillCircle(x, counterY + counterH / 2 + 1, 3);
       g.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
@@ -136,12 +137,12 @@ export class GameSceneBackground {
 
     // Deep space fill behind portholes
     g.fillStyle(s.SPACE_DEEP, 1);
-    g.fillRect(0, s.WINDOW_TOP, 1024, s.WINDOW_HEIGHT);
+    g.fillRect(0, s.WINDOW_TOP, GAME_WIDTH, s.WINDOW_HEIGHT);
 
     // Location-tinted ambient haze (scaled to porthole area)
     const midY = (s.WINDOW_TOP + s.WINDOW_BOTTOM) / 2;
     g.fillStyle(locColor, 0.08);
-    g.fillEllipse(512, midY, 900, s.WINDOW_HEIGHT);
+    g.fillEllipse(HALF_WIDTH, midY, 1688, s.WINDOW_HEIGHT);
     g.fillStyle(locColor, 0.05);
     g.fillEllipse(300, midY, 500, s.WINDOW_HEIGHT * 0.8);
     g.fillStyle(locColor, 0.05);
@@ -154,7 +155,7 @@ export class GameSceneBackground {
     const stars = [];
     for (let i = 0; i < 30; i++) {
       stars.push({
-        x: Phaser.Math.Between(50, 974),
+        x: Phaser.Math.Between(50, GAME_WIDTH - 50),
         y: Phaser.Math.Between(s.WINDOW_TOP + 5, s.WINDOW_BOTTOM - 5),
         size: Phaser.Math.FloatBetween(0.4, 1.2),
         alpha: Phaser.Math.FloatBetween(0.3, 0.8),
@@ -226,7 +227,7 @@ export class GameSceneBackground {
 
   _drawSpaceStation(g, color, midY, rand) {
     for (let i = 0; i < 4; i++) {
-      const cx = 150 + rand() * 700;
+      const cx = 150 + rand() * 1313;
       const cy = midY - 15 + rand() * 30;
       const len = 15 + rand() * 30;
       const angle = rand() * Math.PI * 2;
@@ -240,25 +241,25 @@ export class GameSceneBackground {
     }
     for (let i = 0; i < 3; i++) {
       g.fillStyle(color, 0.25 + rand() * 0.15);
-      g.fillCircle(100 + rand() * 824, midY - 20 + rand() * 40, 1 + rand());
+      g.fillCircle(100 + rand() * 1545, midY - 20 + rand() * 40, 1 + rand());
     }
   }
 
   _drawSpaceAsteroids(g, color, winTop, winBot, rand) {
     for (let i = 0; i < 6; i++) {
-      const rx = 60 + rand() * 904;
+      const rx = 60 + rand() * 1695;
       const ry = winTop + 8 + rand() * (winBot - winTop - 16);
       const size = 1.5 + rand() * 4;
       g.fillStyle(color, 0.08 + rand() * 0.07);
       g.fillCircle(rx, ry, size);
     }
     g.fillStyle(color, 0.03);
-    g.fillEllipse(512, (winTop + winBot) / 2, 600, 30);
+    g.fillEllipse(HALF_WIDTH, (winTop + winBot) / 2, 1125, 30);
   }
 
   _drawSpaceNebula(g, color, winTop, winBot, rand) {
     for (let i = 0; i < 4; i++) {
-      const cx = 100 + rand() * 824;
+      const cx = 100 + rand() * 1545;
       const cy = winTop + 10 + rand() * (winBot - winTop - 20);
       const w = 80 + rand() * 150;
       const h = 20 + rand() * 30;
@@ -268,7 +269,7 @@ export class GameSceneBackground {
   }
 
   _drawSpacePlanet(g, color, winTop, winBot) {
-    const planetX = 750;
+    const planetX = 1406;
     const planetY = winBot + 60;
     const planetR = 80;
     g.fillStyle(color, 0.08);
@@ -278,7 +279,7 @@ export class GameSceneBackground {
   }
 
   _drawSpacePort(g, color, midY, rand) {
-    const beams = [[200, -0.1], [500, 0], [800, 0.1]];
+    const beams = [[375, -0.1], [938, 0], [1500, 0.1]];
     beams.forEach(([bx, slope]) => {
       g.lineStyle(1, color, 0.07);
       g.lineBetween(bx, midY - 25, bx + slope * 50, midY + 25);
@@ -286,12 +287,12 @@ export class GameSceneBackground {
       g.fillCircle(bx, midY, 1.5);
     });
     g.fillStyle(color, 0.04);
-    g.fillEllipse(512, midY, 300, 40);
+    g.fillEllipse(HALF_WIDTH, midY, 563, 40);
   }
 
   _drawSpaceDebris(g, color, winTop, winBot, rand) {
     for (let i = 0; i < 6; i++) {
-      const dx = 60 + rand() * 904;
+      const dx = 60 + rand() * 1695;
       const dy = winTop + 8 + rand() * (winBot - winTop - 16);
       const size = 2 + rand() * 4;
       const rot = rand() * Math.PI;
@@ -314,15 +315,15 @@ export class GameSceneBackground {
     // Hull plating background (covers the full porthole strip)
     const hull = s.add.graphics().setDepth(0.5);
     hull.fillStyle(s.HULL_MID, 1);
-    hull.fillRect(0, winTop, 1024, winH);
+    hull.fillRect(0, winTop, GAME_WIDTH, winH);
 
     // Panel seams (horizontal)
     hull.lineStyle(1, s.PANEL_SEAM, 0.4);
-    hull.lineBetween(0, winTop + 25, 1024, winTop + 25);
-    hull.lineBetween(0, winBot - 20, 1024, winBot - 20);
+    hull.lineBetween(0, winTop + 25, GAME_WIDTH, winTop + 25);
+    hull.lineBetween(0, winBot - 20, GAME_WIDTH, winBot - 20);
 
     // Panel seams (vertical)
-    for (let x = 128; x < 1024; x += 256) {
+    for (let x = 128; x < GAME_WIDTH; x += 256) {
       hull.lineStyle(1, s.PANEL_SEAM, 0.3);
       hull.lineBetween(x, winTop, x, winBot);
     }
@@ -330,7 +331,7 @@ export class GameSceneBackground {
     // Rivet rows along top and bottom
     const rivetDark = darkenColor(s.HULL_MID, 0.65);
     const rivetLight = lightenColor(s.HULL_MID, 0.25);
-    for (let x = 30; x < 1024; x += 50) {
+    for (let x = 30; x < GAME_WIDTH; x += 50) {
       hull.fillStyle(rivetDark, 1);
       hull.fillCircle(x, winTop + 8, 2.5);
       hull.fillStyle(rivetLight, 0.6);
@@ -343,7 +344,7 @@ export class GameSceneBackground {
     }
 
     // 4 oval portholes
-    const portholePositions = [160, 390, 634, 864];
+    const portholePositions = [300, 731, 1189, 1620];
     const portW = 120;
     const portH = 60;
     const midY = (winTop + winBot) / 2;
@@ -430,14 +431,14 @@ export class GameSceneBackground {
     // Top chrome trim (above hull)
     const trim = s.add.graphics().setDepth(0.8);
     trim.fillStyle(s.CHROME_MID, 1);
-    trim.fillRect(0, winTop, 1024, 4);
+    trim.fillRect(0, winTop, GAME_WIDTH, 4);
     trim.fillStyle(s.CHROME_HIGHLIGHT, 0.6);
-    trim.fillRect(0, winTop, 1024, 1);
+    trim.fillRect(0, winTop, GAME_WIDTH, 1);
 
     // Bottom chrome trim (below hull, above customer deck)
     trim.fillStyle(s.CHROME_MID, 1);
-    trim.fillRect(0, winBot - 3, 1024, 3);
+    trim.fillRect(0, winBot - 3, GAME_WIDTH, 3);
     trim.fillStyle(s.CHROME_HIGHLIGHT, 0.4);
-    trim.fillRect(0, winBot - 3, 1024, 1);
+    trim.fillRect(0, winBot - 3, GAME_WIDTH, 1);
   }
 }

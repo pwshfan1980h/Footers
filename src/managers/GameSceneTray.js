@@ -1,7 +1,7 @@
 /**
  * GameSceneTray - Tray spawning, order generation, stack layers, completion
  */
-import { INGREDIENTS, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
+import { INGREDIENTS, INGREDIENTS_BY_CATEGORY, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 import { gameState } from '../data/GameState.js';
 import {
@@ -117,7 +117,7 @@ export class GameSceneTray {
     const meats = gameState.getAvailableIngredients('meat');
     const cheeses = gameState.getAvailableIngredients('cheese');
     const toppings = gameState.getAvailableIngredients('topping');
-    const sauces = gameState.getAvailableIngredients('sauce');
+    const sauces = INGREDIENTS_BY_CATEGORY['sauce'] || [];
 
     // Must have at least bread and meat to make an order
     if (breads.length === 0 || meats.length === 0) {

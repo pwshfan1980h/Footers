@@ -19,10 +19,10 @@ export class CustomerVessels {
 
     // 4 docking slots — customers stand at counter (Y~310)
     this.slots = [
-      { counterX: 160, counterY: 310, occupied: false },
-      { counterX: 390, counterY: 310, occupied: false },
-      { counterX: 634, counterY: 310, occupied: false },
-      { counterX: 864, counterY: 310, occupied: false },
+      { counterX: 300, counterY: 436, occupied: false },
+      { counterX: 731, counterY: 436, occupied: false },
+      { counterX: 1189, counterY: 436, occupied: false },
+      { counterX: 1620, counterY: 436, occupied: false },
     ];
 
     // Suit variants — each has distinct visual traits

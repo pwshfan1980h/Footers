@@ -4,7 +4,7 @@
 
 import { musicManager } from '../MusicManager.js';
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { GAME_FONT, GAME_WIDTH, GAME_HEIGHT, HALF_WIDTH, HALF_HEIGHT } from '../data/constants.js';
 import { gameState } from '../data/GameState.js';
 
 export class SettingsMenu {
@@ -37,8 +37,8 @@ export class SettingsMenu {
   }
 
   buildUI() {
-    const centerX = 512;
-    const centerY = 384;
+    const centerX = HALF_WIDTH;
+    const centerY = HALF_HEIGHT;
     const panelWidth = 500;
     const panelHeight = 500;
 
@@ -262,7 +262,7 @@ export class SettingsMenu {
 
   showRestartNote() {
     if (!this.restartNote) {
-      this.restartNote = this.scene.add.text(512, 384 + 175, 'Change takes effect on next scene load.', {
+      this.restartNote = this.scene.add.text(HALF_WIDTH, HALF_HEIGHT + 175, 'Change takes effect on next scene load.', {
         fontSize: '14px',
         fontFamily: GAME_FONT,
         color: '#ffcc44'

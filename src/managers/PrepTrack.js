@@ -11,8 +11,8 @@ export class PrepTrack {
     this.numSlots = 1;
 
     // Prep track position (above veggie bowls, centered)
-    this.trackY = 380;
-    this.trackX = 400;
+    this.trackY = 534;
+    this.trackX = 750;
     this.slotWidth = 140;
     this.slotHeight = 90;
   }

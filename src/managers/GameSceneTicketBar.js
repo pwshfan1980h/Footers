@@ -3,7 +3,7 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, GAME_WIDTH, HALF_WIDTH, HALF_HEIGHT } from '../data/constants.js';
 
 export class GameSceneTicketBar {
   constructor(scene) {
@@ -13,23 +13,23 @@ export class GameSceneTicketBar {
   create() {
     const s = this.scene;
 
-    s.add.rectangle(512, 70, 1024, 60, s.HULL_MID).setDepth(35);
-    s.add.rectangle(512, 40, 1024, 2, s.HULL_LIGHT).setDepth(35);
-    s.add.rectangle(512, 99, 1024, 2, s.HULL_LIGHT).setDepth(35);
+    s.add.rectangle(HALF_WIDTH, 70, GAME_WIDTH, 60, s.HULL_MID).setDepth(35);
+    s.add.rectangle(HALF_WIDTH, 40, GAME_WIDTH, 2, s.HULL_LIGHT).setDepth(35);
+    s.add.rectangle(HALF_WIDTH, 99, GAME_WIDTH, 2, s.HULL_LIGHT).setDepth(35);
 
     const ticketLip = s.add.graphics().setDepth(35);
     ticketLip.fillStyle(s.HULL_DARK, 1);
-    ticketLip.fillRect(0, 99, 1024, 3);
+    ticketLip.fillRect(0, 99, GAME_WIDTH, 3);
     ticketLip.fillStyle(s.HULL_LIGHT, 1);
     ticketLip.beginPath();
     ticketLip.moveTo(0, 99);
-    ticketLip.lineTo(1024, 99);
-    ticketLip.lineTo(1024 + 3, 102);
+    ticketLip.lineTo(GAME_WIDTH, 99);
+    ticketLip.lineTo(GAME_WIDTH + 3, 102);
     ticketLip.lineTo(3, 102);
     ticketLip.closePath();
     ticketLip.fillPath();
     ticketLip.fillStyle(s.NEON_PINK, 0.3);
-    ticketLip.fillRect(0, 99, 1024, 1);
+    ticketLip.fillRect(0, 99, GAME_WIDTH, 1);
 
     s.add.text(8, 43, 'ORDERS:', {
       fontSize: '10px', color: '#00bbdd', fontFamily: GAME_FONT, fontStyle: 'bold',
@@ -53,8 +53,8 @@ export class GameSceneTicketBar {
     const targetY = 43;
     const cardDepth = 36 + orderNum;
 
-    const spawnX = 512;
-    const spawnY = 384;
+    const spawnX = HALF_WIDTH;
+    const spawnY = HALF_HEIGHT;
 
     const card = s.add.container(spawnX, spawnY).setDepth(400);
 
@@ -157,9 +157,9 @@ export class GameSceneTicketBar {
     });
 
     const rightEdge = targetX + cardW + 10;
-    if (rightEdge > 1020) {
+    if (rightEdge > GAME_WIDTH - 4) {
       s.tweens.add({
-        targets: s.ticketContainer, x: -(rightEdge - 1020),
+        targets: s.ticketContainer, x: -(rightEdge - (GAME_WIDTH - 4)),
         duration: 300, ease: 'Power2',
         delay: 1000
       });

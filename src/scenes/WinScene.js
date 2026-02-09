@@ -38,13 +38,13 @@ export class WinScene extends Phaser.Scene {
     // Starfield
     const g = this.add.graphics();
     const stars = [
-      { x: 50, y: 80, s: 2.5 }, { x: 200, y: 150, s: 2 }, { x: 400, y: 100, s: 2.5 },
-      { x: 600, y: 130, s: 2 }, { x: 800, y: 70, s: 2.5 }, { x: 950, y: 120, s: 2 },
-      { x: 100, y: 250, s: 1.5 }, { x: 350, y: 300, s: 2 }, { x: 550, y: 280, s: 1.5 },
-      { x: 750, y: 320, s: 2 }, { x: 900, y: 260, s: 1.5 }, { x: 150, y: 450, s: 2 },
-      { x: 300, y: 500, s: 1.5 }, { x: 500, y: 470, s: 2 }, { x: 700, y: 510, s: 1.5 },
-      { x: 850, y: 480, s: 2 }, { x: 100, y: 600, s: 1.5 }, { x: 400, y: 650, s: 2 },
-      { x: 600, y: 620, s: 1.5 }, { x: 850, y: 670, s: 2 }, { x: 950, y: 550, s: 1.5 },
+      { x: 94, y: 112, s: 2.5 }, { x: 375, y: 211, s: 2 }, { x: 750, y: 141, s: 2.5 },
+      { x: 1125, y: 183, s: 2 }, { x: 1500, y: 98, s: 2.5 }, { x: 1781, y: 169, s: 2 },
+      { x: 188, y: 351, s: 1.5 }, { x: 656, y: 422, s: 2 }, { x: 1031, y: 394, s: 1.5 },
+      { x: 1406, y: 450, s: 2 }, { x: 1688, y: 366, s: 1.5 }, { x: 281, y: 633, s: 2 },
+      { x: 563, y: 703, s: 1.5 }, { x: 938, y: 661, s: 2 }, { x: 1313, y: 717, s: 1.5 },
+      { x: 1594, y: 675, s: 2 }, { x: 188, y: 844, s: 1.5 }, { x: 750, y: 914, s: 2 },
+      { x: 1125, y: 872, s: 1.5 }, { x: 1594, y: 942, s: 2 }, { x: 1781, y: 773, s: 1.5 },
     ];
     stars.forEach(star => {
       const color = Math.random() > 0.5 ? 0xffffff : 0xaaddff;
@@ -54,21 +54,21 @@ export class WinScene extends Phaser.Scene {
 
     // Nebula glow behind title
     g.fillStyle(0x442266, 0.2);
-    g.fillEllipse(HALF_WIDTH, 130, 500, 150);
+    g.fillEllipse(HALF_WIDTH, 183, 938, 211);
     g.fillStyle(0x224466, 0.15);
-    g.fillEllipse(HALF_WIDTH, 130, 400, 100);
+    g.fillEllipse(HALF_WIDTH, 183, 750, 141);
 
     // Title
-    this.add.text(HALF_WIDTH, 100, 'EMPLOYEE OF', {
+    this.add.text(HALF_WIDTH, 141, 'EMPLOYEE OF', {
       fontSize: '40px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 155, 'THE WEEK!', {
+    this.add.text(HALF_WIDTH, 218, 'THE WEEK!', {
       fontSize: '56px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Title glow animation
-    const titleGlow = this.add.text(HALF_WIDTH, 155, 'THE WEEK!', {
+    const titleGlow = this.add.text(HALF_WIDTH, 218, 'THE WEEK!', {
       fontSize: '56px', color: '#ffff00', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setAlpha(0);
 
@@ -80,30 +80,30 @@ export class WinScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.add.text(HALF_WIDTH, 230, 'You survived the whole week at the station!', {
+    this.add.text(HALF_WIDTH, 323, 'You survived the whole week at the station!', {
       fontSize: '22px', color: '#8899bb', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Score panel
     const panel = this.add.graphics();
     panel.fillStyle(HULL_DARK, 0.8);
-    panel.fillRoundedRect(312, 270, 400, 100, 12);
+    panel.fillRoundedRect(HALF_WIDTH - 200, 380, 400, 141, 12);
     panel.lineStyle(2, NEON_CYAN, 0.6);
-    panel.strokeRoundedRect(312, 270, 400, 100, 12);
+    panel.strokeRoundedRect(HALF_WIDTH - 200, 380, 400, 141, 12);
 
-    this.add.text(HALF_WIDTH, 320, `Final Score: ${this.totalScore}`, {
+    this.add.text(HALF_WIDTH, 450, `Final Score: ${this.totalScore}`, {
       fontSize: '36px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Rating (find first matching tier)
     const tier = RATINGS.find(r => this.totalScore >= r.min) || RATINGS[RATINGS.length - 1];
 
-    this.add.text(HALF_WIDTH, 405, `Rating: ${tier.label}`, {
+    this.add.text(HALF_WIDTH, 569, `Rating: ${tier.label}`, {
       fontSize: '26px', color: tier.color, fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Play again button
-    createButton(this, 382, 468, 260, 64, 'PLAY AGAIN', {
+    createButton(this, HALF_WIDTH - 130, 658, 260, 64, 'PLAY AGAIN', {
       accentColor: NEON_CYAN,
       onClick: () => this.scene.start('SystemMap'),
     });
