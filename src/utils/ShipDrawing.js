@@ -167,6 +167,24 @@ export function drawLocationIcon(g, x, y, type, scale, color) {
       g.fillCircle(x + 8 * s, y - 12 * s, 2 * s);
       break;
     }
+    case 'depot': {
+      // Warehouse / crate stack
+      g.fillStyle(color, alpha);
+      g.fillRect(x - 14 * s, y - 6 * s, 28 * s, 14 * s);
+      // Crate lines
+      g.lineStyle(1.5 * s, color, 0.5);
+      g.strokeRect(x - 14 * s, y - 6 * s, 14 * s, 14 * s);
+      g.strokeRect(x, y - 6 * s, 14 * s, 14 * s);
+      // Top crate
+      g.fillStyle(color, 0.7);
+      g.fillRect(x - 7 * s, y - 14 * s, 14 * s, 8 * s);
+      g.lineStyle(1.5 * s, color, 0.5);
+      g.strokeRect(x - 7 * s, y - 14 * s, 14 * s, 8 * s);
+      // Supply indicator light
+      g.fillStyle(0x44ff88, 0.9);
+      g.fillCircle(x, y - 16 * s, 2 * s);
+      break;
+    }
     default: {
       g.fillStyle(color, alpha);
       g.fillCircle(x, y, 10 * s);

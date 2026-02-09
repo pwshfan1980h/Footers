@@ -6,11 +6,14 @@ export class MapVessels {
   constructor(scene) {
     this.scene = scene;
     this.vessels = [];
+    this.graphics = null;
   }
 
   create() {
     const scene = this.scene;
     scene.vesselContainer = scene.add.container(0, 0).setDepth(1);
+    this.graphics = scene.add.graphics();
+    scene.vesselContainer.add(this.graphics);
     this.spawnMapVessels();
   }
 
@@ -18,45 +21,52 @@ export class MapVessels {
     const vesselColors = [0x88aaff, 0x888888, 0x446688, 0xffffaa, 0xff6666, 0x4444ff];
     const shipShapes = ['diamond', 'box', 'triangle', 'dot', 'arrow', 'cross'];
 
-    const locArr = Object.values(LOCATIONS);
-    for (let i = 0; i < 60; i++) {
-      const loc = Phaser.Utils.Array.GetRandom(locArr);
-      const density = loc.vesselDensity || 0.5;
-      if (Math.random() > density + 0.2) continue;
+    // Build adjacency: for each location, which route indices connect to it
+    this.routeAdjacency = {};
+    Object.keys(LOCATIONS).forEach(id => { this.routeAdjacency[id] = []; });
+    TRADE_ROUTES.forEach((route, ri) => {
+      this.routeAdjacency[route[0]].push(ri);
+      this.routeAdjacency[route[1]].push(ri);
+    });
 
-      const spread = 200 + Math.random() * 300;
-      const angle = Math.random() * Math.PI * 2;
-      const vx = loc.x + Math.cos(angle) * spread * (0.5 + Math.random());
-      const vy = loc.y + Math.sin(angle) * spread * (0.5 + Math.random());
+    // Compute density weight per route (average vesselDensity of both endpoints)
+    const routeWeights = TRADE_ROUTES.map(([a, b]) => {
+      const da = LOCATIONS[a]?.vesselDensity || 0.5;
+      const db = LOCATIONS[b]?.vesselDensity || 0.5;
+      return (da + db) / 2;
+    });
+    const totalWeight = routeWeights.reduce((s, w) => s + w, 0);
 
-      let moveAngle = Math.random() * Math.PI * 2;
-      const onRoute = Math.random() < 0.3;
-      if (onRoute && TRADE_ROUTES.length > 0) {
-        const route = Phaser.Utils.Array.GetRandom(TRADE_ROUTES);
-        const la = LOCATIONS[route[0]];
-        const lb = LOCATIONS[route[1]];
-        if (la && lb) {
-          moveAngle = Math.atan2(lb.y - la.y, lb.x - la.x);
-          if (Math.random() < 0.5) moveAngle += Math.PI;
-        }
+    const TOTAL_VESSELS = 60;
+
+    for (let ri = 0; ri < TRADE_ROUTES.length; ri++) {
+      const count = Math.max(2, Math.round((routeWeights[ri] / totalWeight) * TOTAL_VESSELS));
+      const [aId, bId] = TRADE_ROUTES[ri];
+      const la = LOCATIONS[aId];
+      const lb = LOCATIONS[bId];
+      if (!la || !lb) continue;
+
+      for (let i = 0; i < count; i++) {
+        const direction = Math.random() < 0.5 ? 1 : -1;
+        const progress = Math.random();
+        const speed = 0.02 + Math.random() * 0.04; // progress per second
+        const laneOffset = (direction === 1 ? -1 : 1) * (8 + Math.random() * 12);
+        const size = 3 + Math.random() * 5;
+        const colorIdx = Math.floor(Math.random() * vesselColors.length);
+
+        this.vessels.push({
+          routeIndex: ri,
+          progress,
+          speed,
+          direction,
+          laneOffset,
+          size,
+          color: vesselColors[colorIdx],
+          shape: shipShapes[colorIdx],
+          x: 0,
+          y: 0,
+        });
       }
-
-      const speed = 5 + Math.random() * 20;
-      const size = 3 + Math.random() * 5;
-      const colorIdx = Math.floor(Math.random() * vesselColors.length);
-
-      this.vessels.push({
-        x: Phaser.Math.Clamp(vx, 20, WORLD_W - 20),
-        y: Phaser.Math.Clamp(vy, 20, WORLD_H - 20),
-        vx: Math.cos(moveAngle) * speed,
-        vy: Math.sin(moveAngle) * speed,
-        size,
-        color: vesselColors[colorIdx],
-        shape: shipShapes[colorIdx],
-        baseX: vx,
-        baseY: vy,
-        driftRange: spread,
-      });
     }
   }
 
@@ -67,24 +77,66 @@ export class MapVessels {
 
   updateVessels(delta) {
     const dt = delta / 1000;
-    this.vessels.forEach(v => {
-      v.x += v.vx * dt;
-      v.y += v.vy * dt;
 
-      if (v.x < -50) v.x = WORLD_W + 30;
-      if (v.x > WORLD_W + 50) v.x = -30;
-      if (v.y < -50) v.y = WORLD_H + 30;
-      if (v.y > WORLD_H + 50) v.y = -30;
+    this.vessels.forEach(v => {
+      v.progress += v.speed * v.direction * dt;
+
+      // Reached an endpoint — pick a connecting route at that node
+      if (v.progress >= 1 || v.progress <= 0) {
+        const [aId, bId] = TRADE_ROUTES[v.routeIndex];
+        // Which endpoint did we reach?
+        const nodeId = v.progress >= 1 ? bId : aId;
+        v.progress = Phaser.Math.Clamp(v.progress, 0, 1);
+
+        // Find connecting routes at this node (excluding current)
+        const candidates = this.routeAdjacency[nodeId].filter(ri => ri !== v.routeIndex);
+        if (candidates.length > 0) {
+          const newRoute = candidates[Math.floor(Math.random() * candidates.length)];
+          const [na, nb] = TRADE_ROUTES[newRoute];
+          // Determine direction: if nodeId is endpoint A, go forward (0->1); else go backward (1->0)
+          if (na === nodeId) {
+            v.direction = 1;
+            v.progress = 0;
+          } else {
+            v.direction = -1;
+            v.progress = 1;
+          }
+          v.routeIndex = newRoute;
+          v.laneOffset = (v.direction === 1 ? -1 : 1) * (8 + Math.random() * 12);
+        } else {
+          // Dead end — reverse
+          v.direction *= -1;
+          v.progress = Phaser.Math.Clamp(v.progress, 0, 1);
+          v.laneOffset = (v.direction === 1 ? -1 : 1) * (8 + Math.random() * 12);
+        }
+      }
+
+      // Compute world position from route + progress
+      const [aId, bId] = TRADE_ROUTES[v.routeIndex];
+      const la = LOCATIONS[aId];
+      const lb = LOCATIONS[bId];
+      if (!la || !lb) return;
+
+      const baseX = la.x + (lb.x - la.x) * v.progress;
+      const baseY = la.y + (lb.y - la.y) * v.progress;
+
+      // Perpendicular offset for lane separation
+      const dx = lb.x - la.x;
+      const dy = lb.y - la.y;
+      const len = Math.sqrt(dx * dx + dy * dy) || 1;
+      const nx = -dy / len;
+      const ny = dx / len;
+
+      v.x = baseX + nx * v.laneOffset;
+      v.y = baseY + ny * v.laneOffset;
     });
   }
 
   drawVessels(shipX, shipY) {
-    const scene = this.scene;
-    const g = scene.add.graphics();
-    scene.vesselContainer.removeAll(true);
-    scene.vesselContainer.add(g);
+    const g = this.graphics;
+    g.clear();
 
-    const cam = scene.cameras.main;
+    const cam = this.scene.cameras.main;
     const camX = cam.scrollX;
     const camY = cam.scrollY;
     const viewW = 1024 / cam.zoom + 200;

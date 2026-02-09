@@ -3,6 +3,7 @@
  */
 import { INGREDIENTS, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
+import { gameState } from '../data/GameState.js';
 import {
   MAX_ACTIVE_ORDERS, CHEESE_CHANCE, SAUCE_CHANCE, DOUBLE_TREATMENT_CHANCE,
   BASE_PRICE, DEFAULT_INGREDIENT_PRICE, TREATMENT_PRICE,
@@ -27,6 +28,7 @@ export class GameSceneTray {
     if (!slot) return;
 
     const order = this.generateOrder();
+    if (!order) return; // insufficient stock for any order
     s.orderNumber++;
     const orderNum = s.orderNumber;
 
@@ -110,12 +112,17 @@ export class GameSceneTray {
       return out;
     };
 
-    const byCategory = (cat) => Object.keys(INGREDIENTS).filter(k => INGREDIENTS[k].category === cat);
-    const breads = byCategory('bread');
-    const meats = byCategory('meat');
-    const cheeses = byCategory('cheese');
-    const toppings = byCategory('topping');
-    const sauces = byCategory('sauce');
+    const breads = gameState.getAvailableIngredients('bread')
+      .filter(k => gameState.getIngredientCount(k) >= 2); // need 2 for top+bottom
+    const meats = gameState.getAvailableIngredients('meat');
+    const cheeses = gameState.getAvailableIngredients('cheese');
+    const toppings = gameState.getAvailableIngredients('topping');
+    const sauces = gameState.getAvailableIngredients('sauce');
+
+    // Must have at least bread and meat to make an order
+    if (breads.length === 0 || meats.length === 0) {
+      return null;
+    }
 
     const minutesPlayed = s.gameTime / 60;
     const diff = DIFFICULTY_PROGRESSION;
@@ -134,16 +141,18 @@ export class GameSceneTray {
     list.push(bread);
     list.push(pick(meats));
 
-    if (Math.random() < CHEESE_CHANCE) {
+    if (cheeses.length > 0 && Math.random() < CHEESE_CHANCE) {
       list.push(pick(cheeses));
     }
 
-    const topCount = Math.floor(Math.random() * (maxToppings + 1));
-    if (topCount > 0) {
-      pickN(toppings, topCount).forEach((t) => list.push(t));
+    if (toppings.length > 0) {
+      const topCount = Math.floor(Math.random() * (maxToppings + 1));
+      if (topCount > 0) {
+        pickN(toppings, topCount).forEach((t) => list.push(t));
+      }
     }
 
-    if (Math.random() < SAUCE_CHANCE) {
+    if (sauces.length > 0 && Math.random() < SAUCE_CHANCE) {
       list.push(pick(sauces));
     }
 

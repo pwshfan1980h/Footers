@@ -69,21 +69,71 @@ export class MapBackground {
     const scene = this.scene;
     this.nebulaBlobs = [];
 
-    // Draw a color haze ellipse anchored to each location
+    // Seeded RNG for deterministic placement
+    let seed = 7331;
+    const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; };
+
+    // Gaussian-ish distribution: sum of 3 uniform randoms, centered around 0
+    const gaussRand = () => (rand() + rand() + rand()) / 3;
+
     const locs = Object.values(LOCATIONS);
     locs.forEach((loc, i) => {
       const g = scene.add.graphics();
-      const w = 650 + (i % 3) * 80;
-      const h = 400 + (i % 4) * 60;
-      const alpha = 0.07 + (i % 3) * 0.01;
       const parallax = 0.3 + (i % 3) * 0.1;
+      const spread = 500 + rand() * 300;
 
-      // Outer haze
-      g.fillStyle(loc.color, alpha);
-      g.fillEllipse(loc.x, loc.y, w, h);
-      // Inner brighter core
-      g.fillStyle(loc.color, alpha * 1.6);
-      g.fillEllipse(loc.x, loc.y, w * 0.5, h * 0.5);
+      // 1-2 ultra-faint background wash ellipses (barely visible base glow)
+      for (let w = 0; w < 2; w++) {
+        const ox = (rand() - 0.5) * spread * 0.3;
+        const oy = (rand() - 0.5) * spread * 0.3;
+        g.fillStyle(loc.color, 0.012 + rand() * 0.008);
+        g.fillEllipse(loc.x + ox, loc.y + oy, spread * 0.8 + rand() * 200, spread * 0.5 + rand() * 150);
+      }
+
+      // Main cloud: scattered points of light with gaussian falloff
+      const pointCount = 180 + Math.floor(rand() * 80);
+      for (let p = 0; p < pointCount; p++) {
+        // Gaussian-ish radial distribution (denser near center)
+        const r = gaussRand() * spread;
+        const angle = rand() * Math.PI * 2;
+        const px = loc.x + Math.cos(angle) * r;
+        const py = loc.y + Math.sin(angle) * r;
+        const size = 0.8 + rand() * 2;
+        // Closer to center = brighter
+        const distRatio = r / spread;
+        const alpha = (0.08 + rand() * 0.12) * (1 - distRatio * 0.7);
+        g.fillStyle(loc.color, alpha);
+        g.fillCircle(px, py, size);
+      }
+
+      // Bright knots: small tight clusters of brighter points
+      const knotCount = 3 + Math.floor(rand() * 3);
+      for (let k = 0; k < knotCount; k++) {
+        const kAngle = rand() * Math.PI * 2;
+        const kDist = rand() * spread * 0.5;
+        const kx = loc.x + Math.cos(kAngle) * kDist;
+        const ky = loc.y + Math.sin(kAngle) * kDist;
+        const clusterSize = 20 + rand() * 40;
+        const dotCount = 12 + Math.floor(rand() * 10);
+        for (let d = 0; d < dotCount; d++) {
+          const da = rand() * Math.PI * 2;
+          const dd = rand() * clusterSize;
+          const size = 1 + rand() * 2.5;
+          g.fillStyle(loc.color, 0.12 + rand() * 0.15);
+          g.fillCircle(kx + Math.cos(da) * dd, ky + Math.sin(da) * dd, size);
+        }
+      }
+
+      // A few hot spots: slightly larger brighter points
+      const hotCount = 5 + Math.floor(rand() * 4);
+      for (let h = 0; h < hotCount; h++) {
+        const ha = rand() * Math.PI * 2;
+        const hd = gaussRand() * spread * 0.6;
+        const hx = loc.x + Math.cos(ha) * hd;
+        const hy = loc.y + Math.sin(ha) * hd;
+        g.fillStyle(loc.color, 0.2 + rand() * 0.15);
+        g.fillCircle(hx, hy, 2.5 + rand() * 2.5);
+      }
 
       scene.nebulaContainer.add(g);
       this.nebulaBlobs.push({ g, parallax, baseX: loc.x, baseY: loc.y });
@@ -118,6 +168,9 @@ export class MapBackground {
           break;
         case 'frontier':
           this._drawDebrisField(g, x, y, color, rand);
+          break;
+        case 'depot':
+          this._drawDepot(g, x, y, color, rand);
           break;
       }
 
@@ -278,10 +331,42 @@ export class MapBackground {
     }
   }
 
+  _drawDepot(g, x, y, color, rand) {
+    // Supply depot — cargo containers and loading zone
+    g.fillStyle(color, 0.04);
+    g.fillCircle(x, y, 180);
+
+    // Scattered cargo containers
+    for (let i = 0; i < 8; i++) {
+      const angle = rand() * Math.PI * 2;
+      const dist = 60 + rand() * 140;
+      const cx = x + Math.cos(angle) * dist;
+      const cy = y + Math.sin(angle) * dist;
+      const w = 12 + rand() * 16;
+      const h = 8 + rand() * 10;
+      g.fillStyle(color, 0.08 + rand() * 0.06);
+      g.fillRect(cx - w / 2, cy - h / 2, w, h);
+      g.lineStyle(1, color, 0.12);
+      g.strokeRect(cx - w / 2, cy - h / 2, w, h);
+    }
+
+    // Loading dock beams
+    for (let i = 0; i < 3; i++) {
+      const angle = (i / 3) * Math.PI * 2 + 0.5;
+      g.lineStyle(1.5, color, 0.08);
+      g.lineBetween(
+        x + Math.cos(angle) * 40,
+        y + Math.sin(angle) * 40,
+        x + Math.cos(angle) * 180,
+        y + Math.sin(angle) * 180,
+      );
+    }
+  }
+
   drawPerspectiveGrid() {
     const scene = this.scene;
     const g = scene.add.graphics();
-    g.lineStyle(1, 0x223344, 0.15);
+    g.lineStyle(1, 0x223344, 0.06);
 
     for (let y = 0; y <= WORLD_H; y += 100) {
       g.lineBetween(0, y, WORLD_W, y);

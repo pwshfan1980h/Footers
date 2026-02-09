@@ -6,6 +6,7 @@ import { MapBackground } from '../managers/MapBackground.js';
 import { MapVessels } from '../managers/MapVessels.js';
 import { TravelManager } from '../managers/TravelManager.js';
 import { MapHUD } from '../managers/MapHUD.js';
+import { TradeProbe } from '../managers/TradeProbe.js';
 import { musicManager } from '../MusicManager.js';
 import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
@@ -50,6 +51,7 @@ export class SystemMapScene extends Phaser.Scene {
     this.vessels = new MapVessels(this);
     this.travel = new TravelManager(this);
     this.hud = new MapHUD(this);
+    this.tradeProbe = new TradeProbe(this);
 
     // === CAMERA & WORLD ===
     this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
@@ -74,6 +76,9 @@ export class SystemMapScene extends Phaser.Scene {
 
     // HUD (UI container, top bar, help overlay)
     this.hud.create();
+
+    // Trade probe
+    this.tradeProbe.create();
 
     // === CAMERA FOLLOW ===
     this.cameras.main.setZoom(BASE_ZOOM);
@@ -189,10 +194,11 @@ export class SystemMapScene extends Phaser.Scene {
   }
 
   getLocationHint(loc) {
+    if (loc.isDepot || loc.type === 'depot') return 'Supply Depot';
     const m = loc.modifiers;
     const hints = [];
-    if (m.speedMult > 1.1) hints.push('Fast');
-    else if (m.speedMult < 0.9) hints.push('Slow');
+    if (m.speedMult > 1.1) hints.push('Impatient');
+    else if (m.speedMult < 0.9) hints.push('Patient');
     if (m.tipMult > 1.3) hints.push('Big tips');
     else if (m.tipMult < 0.9) hints.push('Low tips');
     if (m.spawnMult > 1.1) hints.push('Busy');
@@ -330,11 +336,18 @@ export class SystemMapScene extends Phaser.Scene {
       }
     }
 
-    // Redraw ship
-    this.shipContainer.removeAll(true);
-    this.shipGraphics = this.add.graphics();
-    this.shipContainer.add(this.shipGraphics);
-    drawFoodTruckship(this, this.shipGraphics, this.shipX, this.shipY, SHIP_SCALE, this.shipContainer);
+    // Redraw ship only when position or angle changed
+    const shipMoved = this.shipX !== this._lastShipX || this.shipY !== this._lastShipY ||
+                      Math.abs(this.shipAngle - (this._lastShipAngle || 0)) > 0.001;
+    if (shipMoved) {
+      this.shipContainer.removeAll(true);
+      this.shipGraphics = this.add.graphics();
+      this.shipContainer.add(this.shipGraphics);
+      drawFoodTruckship(this, this.shipGraphics, this.shipX, this.shipY, SHIP_SCALE, this.shipContainer);
+      this._lastShipX = this.shipX;
+      this._lastShipY = this.shipY;
+      this._lastShipAngle = this.shipAngle;
+    }
 
     // Camera follow (smooth lerp)
     const cam = this.cameras.main;
@@ -355,6 +368,9 @@ export class SystemMapScene extends Phaser.Scene {
     // Update vessels
     this.vessels.update(delta, this.shipX, this.shipY);
 
+    // Update trade probe
+    this.tradeProbe.update(delta);
+
     // Location marker pulse
     this.updateLocationPulse(time);
 
@@ -373,7 +389,8 @@ export class SystemMapScene extends Phaser.Scene {
         this.moveTargetY = loc.y;
         this.dockedAt = loc;
         this.travel.travelState = 'docked';
-        this.hud.openShopBtn.container.setVisible(true);
+        const isDepot = loc.isDepot || loc.type === 'depot';
+        this.hud.openShopBtn.container.setVisible(!isDepot);
 
         gameState.truckshipWorldX = loc.x;
         gameState.truckshipWorldY = loc.y;

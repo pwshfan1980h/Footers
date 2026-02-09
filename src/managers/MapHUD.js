@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { LOCATIONS } from '../data/locations.js';
-import { GAME_FONT } from '../data/constants.js';
+import { GAME_FONT, MAX_STOCK_PER_INGREDIENT, RESTOCK_BUNDLE_SIZE, WORLD_W, WORLD_H } from '../data/constants.js';
+import { INGREDIENTS, INGREDIENTS_BY_CATEGORY } from '../data/ingredients.js';
 import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
 
@@ -16,6 +17,7 @@ export class MapHUD {
     this.helpOverlay = null;
     this.statsPanel = null;
     this.statsPanelVisible = false;
+    this.probeStatusText = null;
   }
 
   create() {
@@ -37,6 +39,11 @@ export class MapHUD {
     bar.fillRect(0, 0, 1024, 44);
     bar.fillStyle(scene.NEON_PINK, 0.3);
     bar.fillRect(0, 42, 1024, 2);
+    // Stock strip background
+    bar.fillStyle(0x0a0a15, 0.7);
+    bar.fillRect(0, 44, 1024, 22);
+    bar.fillStyle(0x334455, 0.15);
+    bar.fillRect(0, 64, 1024, 1);
     scene.uiContainer.add(bar);
 
     // Money display
@@ -52,20 +59,66 @@ export class MapHUD {
     scene.uiContainer.add(this.shiftsText);
 
     // Stats button
-    this.statsBtn = this.createButton(340, 8, 70, 28, 'STATS', 0x1a1a3a, 0x88aaff, () => {
+    this.statsBtn = this.createButton(320, 8, 70, 28, 'STATS', 0x1a1a3a, 0x88aaff, () => {
       this.toggleStatsPanel();
     });
     scene.uiContainer.add(this.statsBtn.container);
 
+    // Probe button
+    this.probeBtn = this.createButton(400, 8, 110, 28, 'PROBE $5', 0x1a2a3a, 0x00ddff, () => {
+      if (scene.tradeProbe) {
+        scene.tradeProbe.launch();
+      }
+    });
+    scene.uiContainer.add(this.probeBtn.container);
+
+    // Probe status text
+    this.probeStatusText = scene.add.text(520, 14, '', {
+      fontSize: '11px', color: '#00ddff', fontFamily: GAME_FONT,
+    });
+    scene.uiContainer.add(this.probeStatusText);
+
     // Current status
-    this.statusText = scene.add.text(512, 14, '', {
+    this.statusText = scene.add.text(750, 14, '', {
       fontSize: '14px', color: '#FFE8CC', fontFamily: GAME_FONT,
     }).setOrigin(0.5, 0);
     scene.uiContainer.add(this.statusText);
     this.updateStatusText();
 
+    // Always-visible stock strip (below top bar)
+    this.stockTexts = {};
+    const stockCategories = [
+      { key: 'bread', label: 'BRD', color: '#F5DEB3' },
+      { key: 'meat', label: 'MEA', color: '#FFB6C1' },
+      { key: 'cheese', label: 'CHS', color: '#FFD700' },
+      { key: 'topping', label: 'TOP', color: '#32CD32' },
+      { key: 'sauce', label: 'SAU', color: '#FFDB58' },
+    ];
+    const stripY = 48;
+    const stripStartX = 12;
+    const stripSpacing = 110;
+    stockCategories.forEach((cat, i) => {
+      const x = stripStartX + i * stripSpacing;
+      const labelTxt = scene.add.text(x, stripY, cat.label, {
+        fontSize: '11px', color: cat.color, fontFamily: GAME_FONT, fontStyle: 'bold',
+      });
+      scene.uiContainer.add(labelTxt);
+      const countTxt = scene.add.text(x + 32, stripY, '', {
+        fontSize: '11px', color: '#aabbcc', fontFamily: GAME_FONT,
+      });
+      scene.uiContainer.add(countTxt);
+      this.stockTexts[cat.key] = countTxt;
+    });
+    this.refreshStockStrip();
+
+    // Depot hint in stock strip
+    this.depotHintText = scene.add.text(stripStartX + 5 * stripSpacing + 20, stripY, '', {
+      fontSize: '10px', color: '#44ddaa', fontFamily: GAME_FONT,
+    });
+    scene.uiContainer.add(this.depotHintText);
+
     // F1=Help memo indicator
-    const memoX = 750;
+    const memoX = 910;
     const memoY = 22;
     const memo = scene.add.graphics();
     memo.fillStyle(0x5A3A28, 0.95);
@@ -79,7 +132,7 @@ export class MapHUD {
     scene.uiContainer.add(memoText);
 
     // "Open Shop" button (only visible when docked)
-    this.openShopBtn = this.createButton(880, 12, 120, 28, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, () => {
+    this.openShopBtn = this.createButton(910, 8, 100, 28, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, () => {
       if (scene.dockedAt) {
         soundManager.ding();
         scene.scene.start('Game', {
@@ -89,7 +142,8 @@ export class MapHUD {
       }
     });
     scene.uiContainer.add(this.openShopBtn.container);
-    this.openShopBtn.container.setVisible(!!scene.dockedAt);
+    const dockedAtShop = scene.dockedAt && !(scene.dockedAt.isDepot || scene.dockedAt.type === 'depot');
+    this.openShopBtn.container.setVisible(dockedAtShop);
   }
 
   createButton(x, y, w, h, label, bgColor, textColor, callback) {
@@ -301,6 +355,35 @@ export class MapHUD {
     this.statsPanel.setVisible(this.statsPanelVisible);
   }
 
+  refreshStockStrip() {
+    const categories = ['bread', 'meat', 'cheese', 'topping', 'sauce'];
+    let anyLow = false;
+    categories.forEach(cat => {
+      const count = gameState.getCategoryStock(cat);
+      const txt = this.stockTexts[cat];
+      if (!txt) return;
+      txt.setText(count.toString());
+      if (count > 5) {
+        txt.setColor('#44ff88');
+      } else if (count >= 2) {
+        txt.setColor('#ffaa44');
+        anyLow = true;
+      } else {
+        txt.setColor('#ff4444');
+        anyLow = true;
+      }
+    });
+
+    // Show depot hint when low on stock
+    if (this.depotHintText) {
+      if (anyLow) {
+        this.depotHintText.setText('Dock at Produce Titan to restock');
+      } else {
+        this.depotHintText.setText('');
+      }
+    }
+  }
+
   refreshStats() {
     const s = gameState.stats;
     this.statsLines.forEach(line => {
@@ -324,7 +407,7 @@ export class MapHUD {
           line.text.setText(s.fastestOrder != null ? `${s.fastestOrder.toFixed(1)}s` : '--');
           break;
         case 'locationsVisited':
-          line.text.setText(`${gameState.locationsVisited.size} / 7`);
+          line.text.setText(`${gameState.locationsVisited.size} / 8`);
           break;
       }
     });
@@ -346,68 +429,247 @@ export class MapHUD {
 
     const zoom = scene.cameras.main.zoom || 0.4;
     const s = 1 / zoom;
+    const pad = 16 * s;
+    const isDepotLoc = loc.isDepot || loc.type === 'depot';
+    const isDockedHere = scene.dockedAt && scene.dockedAt.id === loc.id;
+    const panelW = (isDockedHere && isDepotLoc ? 420 : 380) * s;
+    const contentW = panelW - pad * 2;
 
-    const popupX = loc.x > 2000 ? loc.x - 200 * s : loc.x + 80 * s;
-    const popupY = loc.y - 40 * s;
-
-    const popup = scene.add.container(popupX, popupY).setDepth(50);
-
-    const panelW = 300 * s;
-    const panelH = 180 * s;
+    // Build content top-down, tracking cursor y
+    const popup = scene.add.container(0, 0).setDepth(50);
     const bg = scene.add.graphics();
-    bg.fillStyle(0x0a0a1a, 0.95);
-    bg.fillRoundedRect(0, 0, panelW, panelH, 10 * s);
-    bg.lineStyle(2 * s, scene.NEON_PINK, 0.7);
-    bg.strokeRoundedRect(0, 0, panelW, panelH, 10 * s);
     popup.add(bg);
 
-    const nameText = scene.add.text(14 * s, 10 * s, loc.name, {
-      fontSize: `${18 * s}px`, color: '#FFE8CC', fontFamily: GAME_FONT,
+    let cy = pad;
+
+    // Location name
+    const nameText = scene.add.text(pad, cy, loc.name, {
+      fontSize: `${22 * s}px`, color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
     });
     popup.add(nameText);
+    cy += nameText.height + 6 * s;
 
-    const descText = scene.add.text(14 * s, 36 * s, loc.description || '', {
-      fontSize: `${11 * s}px`, color: '#8899aa', fontFamily: GAME_FONT,
-      wordWrap: { width: 270 * s },
-    });
-    popup.add(descText);
-
+    // Modifier hints line
+    const isDocked = scene.dockedAt && scene.dockedAt.id === loc.id;
+    const isDepot = loc.isDepot || loc.type === 'depot';
     const m = loc.modifiers;
     const hints = [];
-    if (m.speedMult > 1.1) hints.push('Fast belt');
-    else if (m.speedMult < 0.9) hints.push('Slow belt');
-    if (m.spawnMult > 1.1) hints.push('Many orders');
-    else if (m.spawnMult < 0.9) hints.push('Few orders');
-    if (m.tipMult > 1.3) hints.push('Big tips!');
-    else if (m.tipMult < 0.9) hints.push('Low tips');
-    const modText = scene.add.text(14 * s, 80 * s, hints.join(' · ') || 'Standard difficulty', {
-      fontSize: `${10 * s}px`, color: '#aabbcc', fontFamily: GAME_FONT,
+    if (isDepot) {
+      hints.push('Supply Depot');
+    } else {
+      if (m.speedMult > 1.1) hints.push('Impatient crowd');
+      else if (m.speedMult < 0.9) hints.push('Patient crowd');
+      if (m.spawnMult > 1.1) hints.push('Many orders');
+      else if (m.spawnMult < 0.9) hints.push('Few orders');
+      if (m.tipMult > 1.3) hints.push('Big tips!');
+      else if (m.tipMult < 0.9) hints.push('Low tips');
+    }
+    const modText = scene.add.text(pad, cy, hints.join(' · ') || 'Standard crowd', {
+      fontSize: `${12 * s}px`, color: '#aabbcc', fontFamily: GAME_FONT,
+      wordWrap: { width: contentW },
     });
     popup.add(modText);
+    cy += modText.height + 8 * s;
 
-    const isDocked = scene.dockedAt && scene.dockedAt.id === loc.id;
-    const btnY = 120 * s;
-    const btnW = 130 * s;
-    const btnH = 32 * s;
+    // Divider
+    const divider = scene.add.graphics();
+    divider.lineStyle(1 * s, 0x334455, 0.5);
+    divider.lineBetween(pad, cy, panelW - pad, cy);
+    popup.add(divider);
+    cy += 8 * s;
 
-    if (isDocked) {
-      this._addPopupButton(popup, 14 * s, btnY, btnW, btnH, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, s, () => {
+    // Description
+    const descText = scene.add.text(pad, cy, loc.description || '', {
+      fontSize: `${13 * s}px`, color: '#99aabb', fontFamily: GAME_FONT,
+      wordWrap: { width: contentW },
+    });
+    popup.add(descText);
+    cy += descText.height + 8 * s;
+
+    // Flavor lore
+    if (loc.flavor) {
+      const flavorText = scene.add.text(pad, cy, `"${loc.flavor}"`, {
+        fontSize: `${11 * s}px`, color: '#667788', fontFamily: GAME_FONT,
+        fontStyle: 'italic',
+        wordWrap: { width: contentW },
+        lineSpacing: 2 * s,
+      });
+      popup.add(flavorText);
+      cy += flavorText.height + 10 * s;
+    }
+
+    // Depot: per-ingredient stock list + buy buttons
+    const btnW = 140 * s;
+    const btnH = 34 * s;
+
+    if (isDocked && isDepot) {
+      const divider2 = scene.add.graphics();
+      divider2.lineStyle(1 * s, 0x44ddaa, 0.3);
+      divider2.lineBetween(pad, cy, panelW - pad, cy);
+      popup.add(divider2);
+      cy += 8 * s;
+
+      const cargoTitle = scene.add.text(pad, cy, 'CARGO HOLD', {
+        fontSize: `${14 * s}px`, color: '#44ddaa', fontFamily: GAME_FONT, fontStyle: 'bold',
+      });
+      popup.add(cargoTitle);
+      cy += cargoTitle.height + 8 * s;
+
+      const categoryOrder = [
+        { key: 'bread', label: 'BREAD' },
+        { key: 'meat', label: 'MEAT' },
+        { key: 'cheese', label: 'CHEESE' },
+        { key: 'topping', label: 'TOPPINGS' },
+        { key: 'sauce', label: 'SAUCE' },
+      ];
+
+      categoryOrder.forEach(cat => {
+        const catTitle = scene.add.text(pad, cy, cat.label, {
+          fontSize: `${11 * s}px`, color: '#667788', fontFamily: GAME_FONT, fontStyle: 'bold',
+        });
+        popup.add(catTitle);
+        cy += catTitle.height + 4 * s;
+
+        const keys = INGREDIENTS_BY_CATEGORY[cat.key] || [];
+        keys.forEach(ingKey => {
+          const ing = INGREDIENTS[ingKey];
+          const count = gameState.getIngredientCount(ingKey);
+          const countColor = count >= 10 ? '#44ff88' : count >= 3 ? '#ffaa44' : '#ff4444';
+          const isFull = count >= MAX_STOCK_PER_INGREDIENT;
+
+          // Ingredient name
+          const nameText = scene.add.text(pad + 8 * s, cy, ing.name, {
+            fontSize: `${12 * s}px`, color: '#ccddee', fontFamily: GAME_FONT,
+          });
+          popup.add(nameText);
+
+          // Count / max
+          const countText = scene.add.text(pad + 110 * s, cy, `${count}/${MAX_STOCK_PER_INGREDIENT}`, {
+            fontSize: `${12 * s}px`, color: countColor, fontFamily: GAME_FONT, fontStyle: 'bold',
+          });
+          popup.add(countText);
+
+          // Buy button
+          const buyCost = Math.min(RESTOCK_BUNDLE_SIZE, MAX_STOCK_PER_INGREDIENT - count) * ing.wholesalePrice;
+          const canBuy = !isFull && gameState.totalMoney >= buyCost && buyCost > 0;
+          const buyLabel = isFull ? 'FULL' : `+${RESTOCK_BUNDLE_SIZE} $${buyCost.toFixed(2)}`;
+          const buyBtnW = 90 * s;
+          const buyBtnH = 18 * s;
+          const buyBtnX = panelW - pad - buyBtnW;
+
+          const buyBg = scene.add.graphics();
+          const buyBgColor = isFull ? 0x1a1a1a : canBuy ? 0x1a3a2a : 0x2a1a1a;
+          const buyTextColor = isFull ? 0x667788 : canBuy ? 0x44ff88 : 0x664444;
+          buyBg.fillStyle(buyBgColor, 1);
+          buyBg.fillRoundedRect(buyBtnX, cy - 1 * s, buyBtnW, buyBtnH, 3 * s);
+          buyBg.lineStyle(1 * s, buyTextColor, 0.6);
+          buyBg.strokeRoundedRect(buyBtnX, cy - 1 * s, buyBtnW, buyBtnH, 3 * s);
+          popup.add(buyBg);
+
+          const buyText = scene.add.text(buyBtnX + buyBtnW / 2, cy + buyBtnH / 2 - 1 * s, buyLabel, {
+            fontSize: `${10 * s}px`,
+            color: Phaser.Display.Color.IntegerToColor(buyTextColor).rgba,
+            fontFamily: GAME_FONT, fontStyle: 'bold',
+          }).setOrigin(0.5);
+          popup.add(buyText);
+
+          if (canBuy) {
+            const hitArea = scene.add.rectangle(buyBtnX + buyBtnW / 2, cy + buyBtnH / 2 - 1 * s, buyBtnW, buyBtnH)
+              .setInteractive({ useHandCursor: true }).setAlpha(0.001);
+            popup.add(hitArea);
+            hitArea.on('pointerdown', () => {
+              const result = gameState.buyIngredient(ingKey, RESTOCK_BUNDLE_SIZE);
+              if (result) {
+                soundManager.chaChing();
+                this.hideInfoPanel();
+                this.showInfoPanel(loc);
+              } else {
+                soundManager.buzz();
+              }
+            });
+          }
+
+          cy += buyBtnH + 4 * s;
+        });
+        cy += 4 * s;
+      });
+
+      // Restock All button
+      const restockCost = gameState.getRestockAllCost();
+      const full = gameState.isFullyStocked();
+      const canAffordAll = gameState.totalMoney >= restockCost && restockCost > 0;
+      const restockLabel = full ? 'FULLY STOCKED' : `RESTOCK ALL $${restockCost.toFixed(2)}`;
+      const restockColor = full ? 0x667788 : canAffordAll ? 0x44ff88 : 0x664444;
+      const restockBgColor = full ? 0x1a1a1a : canAffordAll ? 0x1a3a2a : 0x2a1a1a;
+
+      this._addPopupButton(popup, pad, cy, btnW + 30 * s, btnH, restockLabel, restockBgColor, restockColor, s, () => {
+        if (full || !canAffordAll) {
+          soundManager.buzz();
+          return;
+        }
+        if (gameState.restockAll()) {
+          soundManager.chaChing();
+          this.hideInfoPanel();
+          this.showInfoPanel(loc);
+        }
+      });
+      this._addPopupButton(popup, pad + btnW + 50 * s, cy, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
+        this.hideInfoPanel();
+      });
+      cy += btnH + pad;
+    } else if (isDocked) {
+      this._addPopupButton(popup, pad, cy, btnW, btnH, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, s, () => {
         soundManager.ding();
         scene.scene.start('Game', {
           location: scene.dockedAt,
           modifiers: scene.dockedAt.modifiers,
         });
       });
+      this._addPopupButton(popup, pad + btnW + 10 * s, cy, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
+        this.hideInfoPanel();
+      });
+      cy += btnH + pad;
     } else {
-      this._addPopupButton(popup, 14 * s, btnY, btnW, btnH, 'SET COURSE', 0x1a2a3a, 0x44aaff, s, () => {
+      this._addPopupButton(popup, pad, cy, btnW, btnH, 'SET COURSE', 0x1a2a3a, 0x44aaff, s, () => {
         scene.travel.startTravelTo(loc.id);
         this.hideInfoPanel();
       });
+      this._addPopupButton(popup, pad + btnW + 10 * s, cy, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
+        this.hideInfoPanel();
+      });
+      cy += btnH + pad;
     }
 
-    this._addPopupButton(popup, 160 * s, btnY, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
-      this.hideInfoPanel();
-    });
+    // Now draw background to fit content
+    const panelH = cy;
+    const borderColor = isDepot ? 0x44ddaa : scene.NEON_PINK;
+    bg.fillStyle(0x0a0a1a, 0.95);
+    bg.fillRoundedRect(0, 0, panelW, panelH, 10 * s);
+    bg.lineStyle(2 * s, borderColor, 0.7);
+    bg.strokeRoundedRect(0, 0, panelW, panelH, 10 * s);
+
+    // Position popup relative to location, clamped to world bounds
+    const margin = 20 * s;
+
+    // X: try right of location, fall back to left if it would exceed world
+    let popupX = loc.x + 80 * s;
+    if (popupX + panelW > WORLD_W - margin) {
+      popupX = loc.x - panelW - 40 * s;
+    }
+    if (popupX < margin) {
+      popupX = margin;
+    }
+
+    // Y: vertically near location, clamped to world bounds
+    let popupY = loc.y - panelH * 0.3;
+    if (popupY < margin) {
+      popupY = margin;
+    }
+    if (popupY + panelH > WORLD_H - margin) {
+      popupY = WORLD_H - panelH - margin;
+    }
+
+    popup.setPosition(popupX, popupY);
 
     this.popupContainer = popup;
   }
@@ -485,10 +747,19 @@ export class MapHUD {
     });
   }
 
+  updateProbeStatus(text) {
+    if (this.probeStatusText) {
+      this.probeStatusText.setText(text);
+    }
+  }
+
   update(cam) {
     const uiScale = 1 / cam.zoom;
     this.scene.uiContainer.setPosition(cam.scrollX, cam.scrollY);
     this.scene.uiContainer.setScale(uiScale);
     this.moneyText.setText(`$${gameState.totalMoney.toFixed(2)}`);
+
+    // Always refresh stock strip
+    this.refreshStockStrip();
   }
 }

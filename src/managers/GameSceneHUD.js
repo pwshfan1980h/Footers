@@ -2,6 +2,7 @@
  * GameSceneHUD - Score display, hotkey hints, speed indicators
  */
 import { GAME_FONT, MAX_MISSES } from '../data/constants.js';
+import { gameState } from '../data/GameState.js';
 
 export class GameSceneHUD {
   constructor(scene) {
@@ -65,6 +66,7 @@ export class GameSceneHUD {
     this.createHotkeyMemo();
     this.createHotkeyLegend();
     this.createEndShiftButton();
+    this.createStockDisplay();
   }
 
   createEndShiftButton() {
@@ -104,6 +106,83 @@ export class GameSceneHUD {
       btnText.setColor('#ff8888');
     });
     btnHit.on('pointerdown', () => s.endShift());
+  }
+
+  createStockDisplay() {
+    const s = this.scene;
+    this.stockTexts = {};
+    const categories = [
+      { key: 'bread', label: 'B', color: '#F5DEB3' },
+      { key: 'meat', label: 'M', color: '#FFB6C1' },
+      { key: 'cheese', label: 'C', color: '#FFD700' },
+      { key: 'topping', label: 'T', color: '#32CD32' },
+      { key: 'sauce', label: 'S', color: '#FFDB58' },
+    ];
+
+    const startX = 550;
+    const y = 28;
+
+    // Background
+    const stockBg = s.add.graphics().setDepth(4.5);
+    stockBg.fillStyle(0xffffff, 0.06);
+    stockBg.fillRoundedRect(startX - 6, y - 4, categories.length * 30 + 8, 16, 3);
+
+    categories.forEach((cat, i) => {
+      const x = startX + i * 30;
+      const label = s.add.text(x, y, cat.label, {
+        fontSize: '10px', color: cat.color, fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setDepth(5);
+      const countTxt = s.add.text(x + 10, y, '', {
+        fontSize: '10px', color: '#aabbcc', fontFamily: GAME_FONT,
+      }).setDepth(5);
+      this.stockTexts[cat.key] = countTxt;
+    });
+
+    this.refreshStock();
+  }
+
+  refreshStock() {
+    const categories = ['bread', 'meat', 'cheese', 'topping', 'sauce'];
+    categories.forEach(cat => {
+      const txt = this.stockTexts[cat];
+      if (!txt) return;
+      const count = gameState.getCategoryStock(cat);
+      txt.setText(count.toString());
+      if (count > 5) {
+        txt.setColor('#44ff88');
+      } else if (count >= 2) {
+        txt.setColor('#ffaa44');
+      } else {
+        txt.setColor('#ff4444');
+      }
+    });
+
+    // Update per-bin stock labels
+    this.refreshBinLabels();
+  }
+
+  refreshBinLabels() {
+    const s = this.scene;
+    const updateItems = (items) => {
+      if (!items) return;
+      items.forEach(item => {
+        if (!item.stockLabel || !item.key) return;
+        const count = gameState.getIngredientCount(item.key);
+        item.stockLabel.setText(count.toString());
+        if (count > 3) {
+          item.stockLabel.setColor('#44ff88');
+        } else if (count >= 1) {
+          item.stockLabel.setColor('#ffaa44');
+        } else {
+          item.stockLabel.setColor('#ff4444');
+        }
+      });
+    };
+    updateItems(s.meatPileItems);
+    updateItems(s.loafItems);
+    updateItems(s.cheeseStackItems);
+    updateItems(s.veggieBowlItems);
+    updateItems(s.sauceBottleItems);
   }
 
   createHotkeyMemo() {
@@ -241,6 +320,7 @@ export class GameSceneHUD {
     s.highScoreText.setText(`High Score: ${s.highScore}`);
     s.ordersText.setText(s.ordersDisplay());
     this.animateMoney(s.gameMoney);
+    this.refreshStock();
 
     // Draw graphical strike indicators
     const missed = s.ordersMissed || 0;

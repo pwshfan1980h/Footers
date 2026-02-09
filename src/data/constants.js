@@ -65,5 +65,10 @@ export const LAYER_HEIGHT_CHEESE = 4;
 export const LAYER_HEIGHT_MEAT = 5;
 export const LAYER_HEIGHT_BREAD = 6;
 
+// --- Stock / Inventory ---
+export const MAX_STOCK_PER_INGREDIENT = 15;
+export const DEFAULT_STOCK_PER_INGREDIENT = 5;
+export const RESTOCK_BUNDLE_SIZE = 5;
+
 // --- Font ---
 export const GAME_FONT = 'Oxanium';

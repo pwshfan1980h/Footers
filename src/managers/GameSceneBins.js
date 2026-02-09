@@ -4,6 +4,7 @@
 import { INGREDIENTS, BIN_LAYOUT, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 import { GAME_FONT } from '../data/constants.js';
+import { gameState } from '../data/GameState.js';
 
 
 export class GameSceneBins {
@@ -73,14 +74,25 @@ export class GameSceneBins {
         s.createHotkeyHint(x + 34, y - 24, hints[key]);
       }
 
-      s.meatPileItems.push({ img: pile, label, key, isLocked });
+      const stockLabel = s.add.text(x + 34, y + 28, '', {
+        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(22);
+
+      s.meatPileItems.push({ img: pile, label, key, isLocked, stockLabel });
     });
   }
 
   createMeatPileLogic(key, x, y, visual) {
     const s = this.scene;
+    const ing = INGREDIENTS[key];
+    if (!gameState.hasIngredientStock(key)) {
+      soundManager.buzz();
+      return;
+    }
     soundManager.init();
     soundManager.robotPickup();
+    gameState.useIngredient(key);
+    this.checkDepletion(key, visual);
     const pointer = s.input.activePointer;
     const heldVisual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = {
@@ -88,12 +100,12 @@ export class GameSceneBins {
       ingredientKey: key,
       binX: x, binY: y
     };
-    const ing = INGREDIENTS[key];
     s.particleManager.ingredientPickup(x, y, ing.color);
   }
 
   createLoaves() {
     const s = this.scene;
+    s.loafItems = [];
     const baseX = 820;
     const baseY = 430;
     const spacingY = 70;
@@ -128,14 +140,29 @@ export class GameSceneBins {
         fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
+      const stockLabel = s.add.text(x + 34, y + 22, '', {
+        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(22);
+
       const breadHints = { 'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C' };
       s.createHotkeyHint(x + 34, y - 24, breadHints[b.key]);
+
+      s.loafItems.push({ img: loaf, key: b.key, stockLabel });
     });
   }
 
   clickLoaf(key, pointer) {
     const s = this.scene;
+    const ing = INGREDIENTS[key];
+    if (!gameState.hasIngredientStock(key)) {
+      soundManager.buzz();
+      return;
+    }
     soundManager.robotPickup();
+    gameState.useIngredient(key);
+    // Find loaf item for depletion check
+    const item = (s.loafItems || []).find(it => it.key === key);
+    if (item) this.checkDepletion(key, item.img);
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = {
       visual,
@@ -143,7 +170,6 @@ export class GameSceneBins {
       binX: 0,
       binY: 0,
     };
-    const ing = INGREDIENTS[key];
     s.particleManager.ingredientPickup(pointer.x, pointer.y, ing.color);
   }
 
@@ -164,6 +190,7 @@ export class GameSceneBins {
 
   createCheeseStacks() {
     const s = this.scene;
+    s.cheeseStackItems = [];
     const baseX = 620;
     const baseY = 440;
     const spacingY = 85;
@@ -195,17 +222,31 @@ export class GameSceneBins {
         fontSize: '18px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
+      const stockLabel = s.add.text(x + 42, y + 32, '', {
+        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(22);
+
       const hints = { 'cheese_american': 'W', 'cheese_swiss': 'E' };
       if (hints[c.key]) {
         s.createHotkeyHint(x + 42, y - 26, hints[c.key]);
       }
+
+      s.cheeseStackItems.push({ img: stack, key: c.key, stockLabel });
     });
   }
 
   clickCheeseStack(key, pointer) {
     const s = this.scene;
+    const ing = INGREDIENTS[key];
+    if (!gameState.hasIngredientStock(key)) {
+      soundManager.buzz();
+      return;
+    }
     soundManager.init();
     soundManager.robotPickup();
+    gameState.useIngredient(key);
+    const item = (s.cheeseStackItems || []).find(it => it.key === key);
+    if (item) this.checkDepletion(key, item.img);
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
   }
@@ -263,20 +304,33 @@ export class GameSceneBins {
         s.createHotkeyHint(v.x + 28, v.y - 20, v.hotkey);
       }
 
-      s.veggieBowlItems.push({ img: vegImg, label, ...v });
+      const stockLabel = s.add.text(v.x + 28, v.y + 16, '', {
+        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(22);
+
+      s.veggieBowlItems.push({ img: vegImg, label, stockLabel, ...v });
     });
   }
 
   clickVeggieBowl(key, pointer) {
     const s = this.scene;
+    const ing = INGREDIENTS[key];
+    if (!gameState.hasIngredientStock(key)) {
+      soundManager.buzz();
+      return;
+    }
     soundManager.init();
     soundManager.robotPickup();
+    gameState.useIngredient(key);
+    const item = (s.veggieBowlItems || []).find(it => it.key === key);
+    if (item) this.checkDepletion(key, item.img);
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
   }
 
   createSauceBottle(key, x, y) {
     const s = this.scene;
+    if (!s.sauceBottleItems) s.sauceBottleItems = [];
     const ingredient = INGREDIENTS[key];
     const radius = 22;
 
@@ -312,11 +366,25 @@ export class GameSceneBins {
     if (sauceHints[key]) {
       s.createHotkeyHint(x + radius + 4, y - radius - 4, sauceHints[key], 31);
     }
+
+    const stockLabel = s.add.text(x + radius + 4, y + radius + 4, '', {
+      fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(31);
+
+    s.sauceBottleItems.push({ container, key, stockLabel });
   }
 
   pickupSauce(key) {
     const s = this.scene;
+    const ing = INGREDIENTS[key];
+    if (!gameState.hasIngredientStock(key)) {
+      soundManager.buzz();
+      return;
+    }
     soundManager.robotPickup();
+    gameState.useIngredient(key);
+    const item = (s.sauceBottleItems || []).find(it => it.key === key);
+    if (item) this.checkDepletion(key, item.container);
     const pointer = s.input.activePointer;
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = {
@@ -324,6 +392,22 @@ export class GameSceneBins {
       ingredientKey: key,
       isSauce: true,
     };
+  }
+
+  checkDepletion(key, visual) {
+    if (gameState.getIngredientCount(key) <= 0 && visual) {
+      if (visual.setAlpha) visual.setAlpha(0.3);
+      if (visual.setTint) visual.setTint(0x444444);
+      // Add EMPTY label near the depleted item
+      const s = this.scene;
+      const x = visual.x || 0;
+      const y = visual.y || 0;
+      const emptyLabel = s.add.text(x, y, 'EMPTY', {
+        fontSize: '11px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(25);
+      visual._emptyLabel = emptyLabel;
+    }
   }
 
   createTreatmentItem(tKey, x, y) {
