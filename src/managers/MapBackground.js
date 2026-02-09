@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { LOCATIONS, TRADE_ROUTES } from '../data/locations.js';
-import { WORLD_W, WORLD_H } from '../data/constants.js';
+import { GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 
 export class MapBackground {
   constructor(scene) {
@@ -36,7 +36,7 @@ export class MapBackground {
     const scene = this.scene;
     const bg = scene.add.graphics();
     bg.fillStyle(scene.SPACE_BLACK, 1);
-    bg.fillRect(0, 0, WORLD_W, WORLD_H);
+    bg.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
     scene.bgContainer.add(bg);
 
     // Starfield
@@ -44,8 +44,8 @@ export class MapBackground {
     let seed = 99;
     const rand = () => { seed = (seed * 16807 + 0) % 2147483647; return seed / 2147483647; };
     for (let i = 0; i < 300; i++) {
-      const sx = rand() * WORLD_W;
-      const sy = rand() * WORLD_H;
+      const sx = rand() * GAME_WIDTH;
+      const sy = rand() * GAME_HEIGHT;
       const size = 0.5 + rand() * 2;
       const alpha = 0.3 + rand() * 0.6;
       const color = rand() > 0.75 ? 0xaaddff : 0xffffff;
@@ -368,11 +368,11 @@ export class MapBackground {
     const g = scene.add.graphics();
     g.lineStyle(1, 0x223344, 0.06);
 
-    for (let y = 0; y <= WORLD_H; y += 100) {
-      g.lineBetween(0, y, WORLD_W, y);
+    for (let y = 0; y <= GAME_HEIGHT; y += 100) {
+      g.lineBetween(0, y, GAME_WIDTH, y);
     }
-    for (let x = 0; x <= WORLD_W; x += 100) {
-      g.lineBetween(x, 0, x, WORLD_H);
+    for (let x = 0; x <= GAME_WIDTH; x += 100) {
+      g.lineBetween(x, 0, x, GAME_HEIGHT);
     }
 
     scene.gridContainer.add(g);
@@ -403,11 +403,4 @@ export class MapBackground {
     scene.routeContainer.add(g);
   }
 
-  updateParallax(camScrollX, camScrollY) {
-    this.nebulaBlobs.forEach(blob => {
-      const ox = camScrollX * blob.parallax * 0.1;
-      const oy = camScrollY * blob.parallax * 0.1;
-      blob.g.setPosition(-ox, -oy);
-    });
-  }
 }

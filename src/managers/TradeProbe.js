@@ -172,10 +172,7 @@ export class TradeProbe {
 
   _showNotification(msg) {
     const scene = this.scene;
-    const cam = scene.cameras.main;
-    const centerWorldX = cam.scrollX + HALF_WIDTH / cam.zoom;
-    const centerWorldY = cam.scrollY + 160 / cam.zoom;
-    const text = scene.add.text(centerWorldX, centerWorldY, msg, {
+    const text = scene.add.text(HALF_WIDTH, 160, msg, {
       fontSize: '32px', color: '#00ddff', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setDepth(20);
 

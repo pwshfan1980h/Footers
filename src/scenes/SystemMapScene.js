@@ -8,13 +8,11 @@ import { TravelManager } from '../managers/TravelManager.js';
 import { MapHUD } from '../managers/MapHUD.js';
 import { TradeProbe } from '../managers/TradeProbe.js';
 import { musicManager } from '../MusicManager.js';
-import { WORLD_W, WORLD_H, SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
+import { SPACE_BLACK, HULL_DARK, NEON_PINK, GAME_FONT, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
 const SHIP_SPEED = 120; // px/s
 const DOCK_RANGE = 80;
-const CAMERA_LERP = 0.08;
-const BASE_ZOOM = 0.4;   // zoomed out so all locations are visible
 const SHIP_SCALE = 0.3;  // small ship icon on the map
 
 export class SystemMapScene extends Phaser.Scene {
@@ -53,9 +51,6 @@ export class SystemMapScene extends Phaser.Scene {
     this.hud = new MapHUD(this);
     this.tradeProbe = new TradeProbe(this);
 
-    // === CAMERA & WORLD ===
-    this.cameras.main.setBounds(0, 0, WORLD_W, WORLD_H);
-
     // === LAYERS (created by managers) ===
     this.background.create();
     this.vessels.create();
@@ -79,13 +74,6 @@ export class SystemMapScene extends Phaser.Scene {
 
     // Trade probe
     this.tradeProbe.create();
-
-    // === CAMERA FOLLOW ===
-    this.cameras.main.setZoom(BASE_ZOOM);
-    const initViewW = GAME_WIDTH / BASE_ZOOM;
-    const initViewH = GAME_HEIGHT / BASE_ZOOM;
-    this.cameras.main.scrollX = Phaser.Math.Clamp(this.shipX - HALF_WIDTH / BASE_ZOOM, 0, Math.max(0, WORLD_W - initViewW));
-    this.cameras.main.scrollY = Phaser.Math.Clamp(this.shipY - HALF_HEIGHT / BASE_ZOOM, 0, Math.max(0, WORLD_H - initViewH));
 
     // === INPUT ===
     this.setupClickCatcher();
@@ -260,7 +248,7 @@ export class SystemMapScene extends Phaser.Scene {
   // INPUT
   // =========================================
   setupClickCatcher() {
-    const catcher = this.add.rectangle(WORLD_W / 2, WORLD_H / 2, WORLD_W, WORLD_H)
+    const catcher = this.add.rectangle(GAME_WIDTH / 2, GAME_HEIGHT / 2, GAME_WIDTH, GAME_HEIGHT)
       .setInteractive()
       .setAlpha(0.001)
       .setDepth(0);
@@ -275,17 +263,15 @@ export class SystemMapScene extends Phaser.Scene {
 
     if (['departing', 'warping', 'arriving'].includes(this.travel.travelState)) return;
 
-    const cam = this.cameras.main;
-    const worldPoint = cam.getWorldPoint(pointer.x, pointer.y);
-    const wx = worldPoint.x;
-    const wy = worldPoint.y;
+    const px = pointer.x;
+    const py = pointer.y;
 
     const CLICK_RANGE = 160;
     const locs = Object.values(LOCATIONS);
     let closestLoc = null;
     let closestDist = CLICK_RANGE;
     for (const loc of locs) {
-      const dist = Phaser.Math.Distance.Between(wx, wy, loc.x, loc.y + 20);
+      const dist = Phaser.Math.Distance.Between(px, py, loc.x, loc.y + 20);
       if (dist < closestDist) {
         closestDist = dist;
         closestLoc = loc;
@@ -297,15 +283,15 @@ export class SystemMapScene extends Phaser.Scene {
       return;
     }
 
-    this.moveToward(wx, wy);
+    this.moveToward(px, py);
     this.hud.hideInfoPanel();
   }
 
   moveToward(wx, wy) {
     if (['departing', 'warping', 'arriving'].includes(this.travel.travelState)) return;
 
-    this.moveTargetX = Phaser.Math.Clamp(wx, 50, WORLD_W - 50);
-    this.moveTargetY = Phaser.Math.Clamp(wy, 50, WORLD_H - 50);
+    this.moveTargetX = Phaser.Math.Clamp(wx, 50, GAME_WIDTH - 50);
+    this.moveTargetY = Phaser.Math.Clamp(wy, 50, GAME_HEIGHT - 50);
     this.travel.travelState = 'moving';
     this.dockedAt = null;
     this.hud.openShopBtn.container.setVisible(false);
@@ -356,22 +342,6 @@ export class SystemMapScene extends Phaser.Scene {
       this._lastShipAngle = this.shipAngle;
     }
 
-    // Camera follow (smooth lerp)
-    const cam = this.cameras.main;
-    const targetCX = this.shipX - HALF_WIDTH / cam.zoom;
-    const targetCY = this.shipY - HALF_HEIGHT / cam.zoom;
-    cam.scrollX += (targetCX - cam.scrollX) * CAMERA_LERP;
-    cam.scrollY += (targetCY - cam.scrollY) * CAMERA_LERP;
-
-    // Clamp to world bounds
-    const viewW = GAME_WIDTH / cam.zoom;
-    const viewH = GAME_HEIGHT / cam.zoom;
-    cam.scrollX = Phaser.Math.Clamp(cam.scrollX, 0, Math.max(0, WORLD_W - viewW));
-    cam.scrollY = Phaser.Math.Clamp(cam.scrollY, 0, Math.max(0, WORLD_H - viewH));
-
-    // Nebula parallax
-    this.background.updateParallax(cam.scrollX, cam.scrollY);
-
     // Update vessels
     this.vessels.update(delta, this.shipX, this.shipY);
 
@@ -382,7 +352,7 @@ export class SystemMapScene extends Phaser.Scene {
     this.updateLocationPulse(time);
 
     // Update HUD
-    this.hud.update(cam);
+    this.hud.update();
   }
 
   checkDocking() {

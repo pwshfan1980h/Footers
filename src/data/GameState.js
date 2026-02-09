@@ -18,8 +18,8 @@ function isOldInventoryFormat(inv) {
 class GameState {
   constructor() {
     this.currentLocation = 'hub_central';
-    this.truckshipWorldX = 1500;
-    this.truckshipWorldY = 900;
+    this.truckshipWorldX = 960;
+    this.truckshipWorldY = 560;
     this.totalMoney = 0;
     this.shiftsCompleted = 0;
     this.locationsVisited = new Set(['hub_central']);
@@ -58,8 +58,8 @@ class GameState {
       if (!raw) return;
       const data = JSON.parse(raw);
       this.currentLocation = data.currentLocation || 'hub_central';
-      this.truckshipWorldX = data.truckshipWorldX ?? 1500;
-      this.truckshipWorldY = data.truckshipWorldY ?? 900;
+      this.truckshipWorldX = data.truckshipWorldX ?? 960;
+      this.truckshipWorldY = data.truckshipWorldY ?? 560;
       this.totalMoney = data.totalMoney || 0;
       this.shiftsCompleted = data.shiftsCompleted || 0;
       this.locationsVisited = new Set(data.locationsVisited || ['hub_central']);
@@ -98,8 +98,8 @@ class GameState {
 
   reset() {
     this.currentLocation = 'hub_central';
-    this.truckshipWorldX = 1500;
-    this.truckshipWorldY = 900;
+    this.truckshipWorldX = 960;
+    this.truckshipWorldY = 560;
     this.totalMoney = 0;
     this.shiftsCompleted = 0;
     this.locationsVisited = new Set(['hub_central']);

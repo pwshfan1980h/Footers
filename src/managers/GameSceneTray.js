@@ -269,7 +269,7 @@ export class GameSceneTray {
     } else if (cat === 'cheese') {
       img.setScale(0.43, 0.18);
     } else if (cat === 'topping') {
-      img.setScale(0.85, 0.40);
+      img.setScale(0.45, 0.22);
     }
 
     tray.container.add(img);

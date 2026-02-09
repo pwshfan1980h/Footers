@@ -130,8 +130,8 @@ export class TitleScene extends Phaser.Scene {
 
     // Pre-calculate tomato display width so we can account for it in spacing
     const tomatoSize = TITLE_FONT_SIZE * 1.35;
-    const tomatoScale = tomatoSize / 64; // top_tomato is loaded at 64x64
-    const tomatoDisplayW = 64 * tomatoScale;
+    const tomatoScale = tomatoSize / 128; // top_tomato is loaded at 128x128
+    const tomatoDisplayW = 128 * tomatoScale;
 
     let xCursor = startX;
     for (let i = 0; i < title.length; i++) {

@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { LOCATIONS } from '../data/locations.js';
-import { GAME_FONT, MAX_STOCK_PER_INGREDIENT, RESTOCK_BUNDLE_SIZE, WORLD_W, WORLD_H, GAME_WIDTH, HALF_WIDTH } from '../data/constants.js';
+import { GAME_FONT, MAX_STOCK_PER_INGREDIENT, RESTOCK_BUNDLE_SIZE, GAME_WIDTH, GAME_HEIGHT, HALF_WIDTH } from '../data/constants.js';
 import { INGREDIENTS, INGREDIENTS_BY_CATEGORY } from '../data/ingredients.js';
 import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
@@ -542,12 +542,10 @@ export class MapHUD {
     this.selectedLocation = loc;
     this.infoPanelVisible = true;
 
-    const zoom = scene.cameras.main.zoom || 0.4;
-    const s = 1 / zoom;
-    const pad = 16 * s;
+    const pad = 16;
     const isDepotLoc = loc.isDepot || loc.type === 'depot';
     const isDockedHere = scene.dockedAt && scene.dockedAt.id === loc.id;
-    const panelW = (isDockedHere && isDepotLoc ? 420 : 380) * s;
+    const panelW = isDockedHere && isDepotLoc ? 520 : 460;
     const contentW = panelW - pad * 2;
 
     // Build content top-down, tracking cursor y
@@ -559,10 +557,10 @@ export class MapHUD {
 
     // Location name
     const nameText = scene.add.text(pad, cy, loc.name, {
-      fontSize: `${22 * s}px`, color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
+      fontSize: '28px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
     });
     popup.add(nameText);
-    cy += nameText.height + 6 * s;
+    cy += nameText.height + 6;
 
     // Modifier hints line
     const isDocked = scene.dockedAt && scene.dockedAt.id === loc.id;
@@ -580,55 +578,55 @@ export class MapHUD {
       else if (m.tipMult < 0.9) hints.push('Low tips');
     }
     const modText = scene.add.text(pad, cy, hints.join(' · ') || 'Standard crowd', {
-      fontSize: `${12 * s}px`, color: '#aabbcc', fontFamily: GAME_FONT,
+      fontSize: '16px', color: '#aabbcc', fontFamily: GAME_FONT,
       wordWrap: { width: contentW },
     });
     popup.add(modText);
-    cy += modText.height + 8 * s;
+    cy += modText.height + 8;
 
     // Divider
     const divider = scene.add.graphics();
-    divider.lineStyle(1 * s, 0x334455, 0.5);
+    divider.lineStyle(1, 0x334455, 0.5);
     divider.lineBetween(pad, cy, panelW - pad, cy);
     popup.add(divider);
-    cy += 8 * s;
+    cy += 8;
 
     // Description
     const descText = scene.add.text(pad, cy, loc.description || '', {
-      fontSize: `${13 * s}px`, color: '#99aabb', fontFamily: GAME_FONT,
+      fontSize: '17px', color: '#99aabb', fontFamily: GAME_FONT,
       wordWrap: { width: contentW },
     });
     popup.add(descText);
-    cy += descText.height + 8 * s;
+    cy += descText.height + 8;
 
     // Flavor lore
     if (loc.flavor) {
       const flavorText = scene.add.text(pad, cy, `"${loc.flavor}"`, {
-        fontSize: `${11 * s}px`, color: '#667788', fontFamily: GAME_FONT,
+        fontSize: '14px', color: '#667788', fontFamily: GAME_FONT,
         fontStyle: 'italic',
         wordWrap: { width: contentW },
-        lineSpacing: 2 * s,
+        lineSpacing: 2,
       });
       popup.add(flavorText);
-      cy += flavorText.height + 10 * s;
+      cy += flavorText.height + 10;
     }
 
     // Depot: per-ingredient stock list + buy buttons
-    const btnW = 140 * s;
-    const btnH = 34 * s;
+    const btnW = 170;
+    const btnH = 40;
 
     if (isDocked && isDepot) {
       const divider2 = scene.add.graphics();
-      divider2.lineStyle(1 * s, 0x44ddaa, 0.3);
+      divider2.lineStyle(1, 0x44ddaa, 0.3);
       divider2.lineBetween(pad, cy, panelW - pad, cy);
       popup.add(divider2);
-      cy += 8 * s;
+      cy += 8;
 
       const cargoTitle = scene.add.text(pad, cy, 'CARGO HOLD', {
-        fontSize: `${14 * s}px`, color: '#44ddaa', fontFamily: GAME_FONT, fontStyle: 'bold',
+        fontSize: '18px', color: '#44ddaa', fontFamily: GAME_FONT, fontStyle: 'bold',
       });
       popup.add(cargoTitle);
-      cy += cargoTitle.height + 8 * s;
+      cy += cargoTitle.height + 8;
 
       const categoryOrder = [
         { key: 'bread', label: 'BREAD' },
@@ -640,10 +638,10 @@ export class MapHUD {
 
       categoryOrder.forEach(cat => {
         const catTitle = scene.add.text(pad, cy, cat.label, {
-          fontSize: `${11 * s}px`, color: '#667788', fontFamily: GAME_FONT, fontStyle: 'bold',
+          fontSize: '14px', color: '#667788', fontFamily: GAME_FONT, fontStyle: 'bold',
         });
         popup.add(catTitle);
-        cy += catTitle.height + 4 * s;
+        cy += catTitle.height + 4;
 
         const keys = INGREDIENTS_BY_CATEGORY[cat.key] || [];
         keys.forEach(ingKey => {
@@ -653,14 +651,14 @@ export class MapHUD {
           const isFull = count >= MAX_STOCK_PER_INGREDIENT;
 
           // Ingredient name
-          const nameText = scene.add.text(pad + 8 * s, cy, ing.name, {
-            fontSize: `${12 * s}px`, color: '#ccddee', fontFamily: GAME_FONT,
+          const nameText = scene.add.text(pad + 8, cy, ing.name, {
+            fontSize: '15px', color: '#ccddee', fontFamily: GAME_FONT,
           });
           popup.add(nameText);
 
           // Count / max
-          const countText = scene.add.text(pad + 110 * s, cy, `${count}/${MAX_STOCK_PER_INGREDIENT}`, {
-            fontSize: `${12 * s}px`, color: countColor, fontFamily: GAME_FONT, fontStyle: 'bold',
+          const countText = scene.add.text(pad + 140, cy, `${count}/${MAX_STOCK_PER_INGREDIENT}`, {
+            fontSize: '15px', color: countColor, fontFamily: GAME_FONT, fontStyle: 'bold',
           });
           popup.add(countText);
 
@@ -668,28 +666,28 @@ export class MapHUD {
           const buyCost = Math.min(RESTOCK_BUNDLE_SIZE, MAX_STOCK_PER_INGREDIENT - count) * ing.wholesalePrice;
           const canBuy = !isFull && gameState.totalMoney >= buyCost && buyCost > 0;
           const buyLabel = isFull ? 'FULL' : `+${RESTOCK_BUNDLE_SIZE} $${buyCost.toFixed(2)}`;
-          const buyBtnW = 90 * s;
-          const buyBtnH = 18 * s;
+          const buyBtnW = 110;
+          const buyBtnH = 24;
           const buyBtnX = panelW - pad - buyBtnW;
 
           const buyBg = scene.add.graphics();
           const buyBgColor = isFull ? 0x1a1a1a : canBuy ? 0x1a3a2a : 0x2a1a1a;
           const buyTextColor = isFull ? 0x667788 : canBuy ? 0x44ff88 : 0x664444;
           buyBg.fillStyle(buyBgColor, 1);
-          buyBg.fillRoundedRect(buyBtnX, cy - 1 * s, buyBtnW, buyBtnH, 3 * s);
-          buyBg.lineStyle(1 * s, buyTextColor, 0.6);
-          buyBg.strokeRoundedRect(buyBtnX, cy - 1 * s, buyBtnW, buyBtnH, 3 * s);
+          buyBg.fillRoundedRect(buyBtnX, cy - 1, buyBtnW, buyBtnH, 3);
+          buyBg.lineStyle(1, buyTextColor, 0.6);
+          buyBg.strokeRoundedRect(buyBtnX, cy - 1, buyBtnW, buyBtnH, 3);
           popup.add(buyBg);
 
-          const buyText = scene.add.text(buyBtnX + buyBtnW / 2, cy + buyBtnH / 2 - 1 * s, buyLabel, {
-            fontSize: `${10 * s}px`,
+          const buyText = scene.add.text(buyBtnX + buyBtnW / 2, cy + buyBtnH / 2 - 1, buyLabel, {
+            fontSize: '13px',
             color: Phaser.Display.Color.IntegerToColor(buyTextColor).rgba,
             fontFamily: GAME_FONT, fontStyle: 'bold',
           }).setOrigin(0.5);
           popup.add(buyText);
 
           if (canBuy) {
-            const hitArea = scene.add.rectangle(buyBtnX + buyBtnW / 2, cy + buyBtnH / 2 - 1 * s, buyBtnW, buyBtnH)
+            const hitArea = scene.add.rectangle(buyBtnX + buyBtnW / 2, cy + buyBtnH / 2 - 1, buyBtnW, buyBtnH)
               .setInteractive({ useHandCursor: true }).setAlpha(0.001);
             popup.add(hitArea);
             hitArea.on('pointerdown', () => {
@@ -704,9 +702,9 @@ export class MapHUD {
             });
           }
 
-          cy += buyBtnH + 4 * s;
+          cy += buyBtnH + 4;
         });
-        cy += 4 * s;
+        cy += 4;
       });
 
       // Restock All button
@@ -717,7 +715,7 @@ export class MapHUD {
       const restockColor = full ? 0x667788 : canAffordAll ? 0x44ff88 : 0x664444;
       const restockBgColor = full ? 0x1a1a1a : canAffordAll ? 0x1a3a2a : 0x2a1a1a;
 
-      this._addPopupButton(popup, pad, cy, btnW + 30 * s, btnH, restockLabel, restockBgColor, restockColor, s, () => {
+      this._addPopupButton(popup, pad, cy, btnW + 50, btnH, restockLabel, restockBgColor, restockColor, () => {
         if (full || !canAffordAll) {
           soundManager.buzz();
           return;
@@ -728,28 +726,28 @@ export class MapHUD {
           this.showInfoPanel(loc);
         }
       });
-      this._addPopupButton(popup, pad + btnW + 50 * s, cy, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
+      this._addPopupButton(popup, pad + btnW + 50, cy, 100, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, () => {
         this.hideInfoPanel();
       });
       cy += btnH + pad;
     } else if (isDocked) {
-      this._addPopupButton(popup, pad, cy, btnW, btnH, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, s, () => {
+      this._addPopupButton(popup, pad, cy, btnW, btnH, 'OPEN SHOP', 0x1a3a2a, 0x44ff88, () => {
         soundManager.ding();
         scene.scene.start('Game', {
           location: scene.dockedAt,
           modifiers: scene.dockedAt.modifiers,
         });
       });
-      this._addPopupButton(popup, pad + btnW + 10 * s, cy, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
+      this._addPopupButton(popup, pad + btnW + 10, cy, 100, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, () => {
         this.hideInfoPanel();
       });
       cy += btnH + pad;
     } else {
-      this._addPopupButton(popup, pad, cy, btnW, btnH, 'SET COURSE', 0x1a2a3a, 0x44aaff, s, () => {
+      this._addPopupButton(popup, pad, cy, btnW, btnH, 'SET COURSE', 0x1a2a3a, 0x44aaff, () => {
         scene.travel.startTravelTo(loc.id);
         this.hideInfoPanel();
       });
-      this._addPopupButton(popup, pad + btnW + 10 * s, cy, 80 * s, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, s, () => {
+      this._addPopupButton(popup, pad + btnW + 10, cy, 100, btnH, 'CLOSE', 0x2a1a1a, 0xff6666, () => {
         this.hideInfoPanel();
       });
       cy += btnH + pad;
@@ -759,29 +757,29 @@ export class MapHUD {
     const panelH = cy;
     const borderColor = isDepot ? 0x44ddaa : scene.NEON_PINK;
     bg.fillStyle(0x0a0a1a, 0.95);
-    bg.fillRoundedRect(0, 0, panelW, panelH, 10 * s);
-    bg.lineStyle(2 * s, borderColor, 0.7);
-    bg.strokeRoundedRect(0, 0, panelW, panelH, 10 * s);
+    bg.fillRoundedRect(0, 0, panelW, panelH, 10);
+    bg.lineStyle(2, borderColor, 0.7);
+    bg.strokeRoundedRect(0, 0, panelW, panelH, 10);
 
-    // Position popup relative to location, clamped to world bounds
-    const margin = 20 * s;
+    // Position popup relative to location, clamped to screen bounds
+    const margin = 20;
 
-    // X: try right of location, fall back to left if it would exceed world
-    let popupX = loc.x + 80 * s;
-    if (popupX + panelW > WORLD_W - margin) {
-      popupX = loc.x - panelW - 40 * s;
+    // X: try right of location, fall back to left if it would exceed screen
+    let popupX = loc.x + 80;
+    if (popupX + panelW > GAME_WIDTH - margin) {
+      popupX = loc.x - panelW - 40;
     }
     if (popupX < margin) {
       popupX = margin;
     }
 
-    // Y: vertically near location, clamped to world bounds
+    // Y: vertically near location, clamped to screen bounds
     let popupY = loc.y - panelH * 0.3;
     if (popupY < margin) {
       popupY = margin;
     }
-    if (popupY + panelH > WORLD_H - margin) {
-      popupY = WORLD_H - panelH - margin;
+    if (popupY + panelH > GAME_HEIGHT - margin) {
+      popupY = GAME_HEIGHT - panelH - margin;
     }
 
     popup.setPosition(popupX, popupY);
@@ -789,18 +787,18 @@ export class MapHUD {
     this.popupContainer = popup;
   }
 
-  _addPopupButton(popup, x, y, w, h, label, bgColor, textColor, s, callback) {
+  _addPopupButton(popup, x, y, w, h, label, bgColor, textColor, callback) {
     const scene = this.scene;
 
     const btnBg = scene.add.graphics();
     btnBg.fillStyle(bgColor, 1);
-    btnBg.fillRoundedRect(x, y, w, h, 6 * s);
-    btnBg.lineStyle(2 * s, textColor, 0.8);
-    btnBg.strokeRoundedRect(x, y, w, h, 6 * s);
+    btnBg.fillRoundedRect(x, y, w, h, 6);
+    btnBg.lineStyle(2, textColor, 0.8);
+    btnBg.strokeRoundedRect(x, y, w, h, 6);
     popup.add(btnBg);
 
     const btnText = scene.add.text(x + w / 2, y + h / 2, label, {
-      fontSize: `${12 * s}px`, color: '#ffffff', fontFamily: GAME_FONT, fontStyle: 'bold',
+      fontSize: '16px', color: '#ffffff', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
     popup.add(btnText);
 
@@ -812,16 +810,16 @@ export class MapHUD {
     hitArea.on('pointerover', () => {
       btnBg.clear();
       btnBg.fillStyle(bgColor, 1);
-      btnBg.fillRoundedRect(x - 2 * s, y - 2 * s, w + 4 * s, h + 4 * s, 6 * s);
-      btnBg.lineStyle(2 * s, textColor, 1);
-      btnBg.strokeRoundedRect(x - 2 * s, y - 2 * s, w + 4 * s, h + 4 * s, 6 * s);
+      btnBg.fillRoundedRect(x - 2, y - 2, w + 4, h + 4, 6);
+      btnBg.lineStyle(2, textColor, 1);
+      btnBg.strokeRoundedRect(x - 2, y - 2, w + 4, h + 4, 6);
     });
     hitArea.on('pointerout', () => {
       btnBg.clear();
       btnBg.fillStyle(bgColor, 1);
-      btnBg.fillRoundedRect(x, y, w, h, 6 * s);
-      btnBg.lineStyle(2 * s, textColor, 0.8);
-      btnBg.strokeRoundedRect(x, y, w, h, 6 * s);
+      btnBg.fillRoundedRect(x, y, w, h, 6);
+      btnBg.lineStyle(2, textColor, 0.8);
+      btnBg.strokeRoundedRect(x, y, w, h, 6);
     });
     hitArea.on('pointerdown', callback);
   }
@@ -845,10 +843,7 @@ export class MapHUD {
 
   showEarningsNotification(amount) {
     const scene = this.scene;
-    const cam = scene.cameras.main;
-    const centerWorldX = cam.scrollX + HALF_WIDTH / cam.zoom;
-    const centerWorldY = cam.scrollY + 120 / cam.zoom;
-    const text = scene.add.text(centerWorldX, centerWorldY, `+$${amount.toFixed(2)} earned!`, {
+    const text = scene.add.text(HALF_WIDTH, 120, `+$${amount.toFixed(2)} earned!`, {
       fontSize: '44px', color: '#44ff88', fontFamily: GAME_FONT,
     }).setOrigin(0.5).setDepth(20);
 
@@ -868,10 +863,7 @@ export class MapHUD {
     }
   }
 
-  update(cam) {
-    const uiScale = 1 / cam.zoom;
-    this.scene.uiContainer.setPosition(cam.scrollX, cam.scrollY);
-    this.scene.uiContainer.setScale(uiScale);
+  update() {
     this.moneyText.setText(`$${gameState.totalMoney.toFixed(2)}`);
 
     // Always refresh stock strip

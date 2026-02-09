@@ -6,12 +6,8 @@
 // --- Screen / Canvas ---
 export const GAME_WIDTH = 1920;
 export const GAME_HEIGHT = 1080;
-export const HALF_WIDTH = GAME_WIDTH / 2;   // 512
-export const HALF_HEIGHT = GAME_HEIGHT / 2; // 384
-
-// --- System Map World ---
-export const WORLD_W = 3000;
-export const WORLD_H = 2000;
+export const HALF_WIDTH = GAME_WIDTH / 2;   // 960
+export const HALF_HEIGHT = GAME_HEIGHT / 2; // 540
 
 // --- Scoring & Penalties ---
 export const MAX_MISSES = 3;           // missed orders before game over
@@ -44,7 +40,7 @@ export const TREATMENT_PRICE = 0.25;
 export const HELD_ITEM_WIDTH = 130;
 export const HELD_ITEM_HEIGHT = 56;
 export const SCALE_MEAT_CHEESE = 0.65;
-export const SCALE_TOPPING = 0.7;
+export const SCALE_TOPPING = 0.5;
 export const SCALE_BREAD = 0.75;
 export const SCALE_SAUCE = 0.4;
 export const TRAY_MAGNET_RADIUS = 100;
@@ -60,7 +56,7 @@ export const DAY_NAMES = ['', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Fri
 
 // --- Stack Layer Heights (pixels) ---
 export const LAYER_HEIGHT_SAUCE = 2;
-export const LAYER_HEIGHT_TOPPING = 4;
+export const LAYER_HEIGHT_TOPPING = 6;
 export const LAYER_HEIGHT_CHEESE = 4;
 export const LAYER_HEIGHT_MEAT = 5;
 export const LAYER_HEIGHT_BREAD = 6;

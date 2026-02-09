@@ -1,6 +1,5 @@
 import Phaser from 'phaser';
 import { LOCATIONS, TRADE_ROUTES } from '../data/locations.js';
-import { WORLD_W, WORLD_H, GAME_WIDTH, GAME_HEIGHT } from '../data/constants.js';
 
 export class MapVessels {
   constructor(scene) {
@@ -136,14 +135,7 @@ export class MapVessels {
     const g = this.graphics;
     g.clear();
 
-    const cam = this.scene.cameras.main;
-    const camX = cam.scrollX;
-    const camY = cam.scrollY;
-    const viewW = GAME_WIDTH / cam.zoom + 200;
-    const viewH = GAME_HEIGHT / cam.zoom + 200;
-
     this.vessels.forEach(v => {
-      if (v.x < camX - 100 || v.x > camX + viewW || v.y < camY - 100 || v.y > camY + viewH) return;
 
       const distToShip = Phaser.Math.Distance.Between(v.x, v.y, shipX, shipY);
       const sizeMult = distToShip < 200 ? 1.5 : 1;

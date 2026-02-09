@@ -1,24 +1,42 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="1" dy="1" result="offsetblur"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="2" dy="2" result="offsetblur"/>
       <feComponentTransfer>
-        <feFuncA type="linear" slope="0.3"/>
+        <feFuncA type="linear" slope="0.35"/>
       </feComponentTransfer>
       <feMerge>
         <feMergeNode in="offsetblur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+    <radialGradient id="leafGrad" cx="45%" cy="40%" r="55%">
+      <stop offset="0%" stop-color="#5CD85C"/>
+      <stop offset="60%" stop-color="#32CD32"/>
+      <stop offset="100%" stop-color="#228B22"/>
+    </radialGradient>
   </defs>
   <g filter="url(#shadow)">
-    <!-- Ruffled Leaf -->
-    <path d="M60,120 Q80,80 120,70 Q160,60 190,100 Q210,140 170,170 Q130,190 90,170 Q50,150 60,120 Z" fill="#32CD32" stroke="#228B22" stroke-width="2"/>
-    <!-- Veins -->
-    <path d="M120,120 L90,100" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
-    <path d="M120,120 L150,90" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
-    <path d="M120,120 L160,140" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
-    <path d="M120,120 L90,150" stroke="#98FB98" stroke-width="2" opacity="0.6"/>
+    <!-- Outer ruffled leaf -->
+    <path d="M55,130 Q50,100 70,78 Q85,60 110,55 Q135,50 160,58 Q185,66 200,90 Q215,115 205,145 Q195,170 175,182 Q155,194 130,195 Q105,196 82,185 Q60,174 50,150 Q48,140 55,130 Z" fill="url(#leafGrad)" stroke="#1E7A1E" stroke-width="2.5"/>
+    <!-- Inner lighter layer -->
+    <path d="M72,128 Q70,105 85,88 Q100,72 125,68 Q150,65 172,78 Q192,92 188,118 Q184,142 168,158 Q150,172 128,174 Q105,175 88,162 Q70,148 72,128 Z" fill="#3AE03A" opacity="0.5"/>
+    <!-- Ruffled edge highlights -->
+    <path d="M55,130 Q52,115 62,98" stroke="#98FB98" stroke-width="2" fill="none" opacity="0.6"/>
+    <path d="M110,55 Q130,48 155,55" stroke="#98FB98" stroke-width="2" fill="none" opacity="0.5"/>
+    <path d="M200,90 Q212,110 208,135" stroke="#98FB98" stroke-width="1.5" fill="none" opacity="0.4"/>
+    <!-- Central veins -->
+    <path d="M128,130 L85,95" stroke="#98FB98" stroke-width="2.5" opacity="0.55"/>
+    <path d="M128,130 L162,82" stroke="#98FB98" stroke-width="2.5" opacity="0.55"/>
+    <path d="M128,130 L178,135" stroke="#98FB98" stroke-width="2" opacity="0.45"/>
+    <path d="M128,130 L82,155" stroke="#98FB98" stroke-width="2" opacity="0.45"/>
+    <path d="M128,130 L140,172" stroke="#98FB98" stroke-width="2" opacity="0.4"/>
+    <!-- Secondary veins -->
+    <path d="M105,112 L88,128" stroke="#7CFC7C" stroke-width="1.2" opacity="0.35"/>
+    <path d="M145,106 L165,115" stroke="#7CFC7C" stroke-width="1.2" opacity="0.35"/>
+    <path d="M110,148 L95,165" stroke="#7CFC7C" stroke-width="1.2" opacity="0.3"/>
+    <!-- Specular highlight -->
+    <ellipse cx="112" cy="95" rx="22" ry="12" fill="#AAFFAA" opacity="0.2" transform="rotate(-20,112,95)"/>
   </g>
 </svg>

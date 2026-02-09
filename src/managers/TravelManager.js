@@ -4,8 +4,6 @@ import { gameState } from '../data/GameState.js';
 import { soundManager } from '../SoundManager.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
 
-const BASE_ZOOM = 0.4;
-
 export class TravelManager {
   constructor(scene) {
     this.scene = scene;
@@ -87,9 +85,6 @@ export class TravelManager {
     this.travelTimer += delta;
 
     if (this.travelState === 'departing') {
-      const t = Math.min(this.travelTimer / this.travelDuration, 1);
-      scene.cameras.main.setZoom(BASE_ZOOM + t * 0.3);
-
       if (this.travelTimer >= this.travelDuration) {
         this.travelState = 'warping';
         this.travelTimer = 0;
@@ -98,8 +93,8 @@ export class TravelManager {
         this.warpLines = [];
         for (let i = 0; i < 80; i++) {
           this.warpLines.push({
-            x: (Math.random() - 0.5) * 2250,
-            y: (Math.random() - 0.5) * 1265,
+            x: (Math.random() - 0.5) * 1920,
+            y: (Math.random() - 0.5) * 1080,
             speed: 200 + Math.random() * 600,
             length: 20 + Math.random() * 80,
             alpha: 0.3 + Math.random() * 0.5,
@@ -136,9 +131,6 @@ export class TravelManager {
         scene.hud.updateStatusText();
       }
     } else if (this.travelState === 'arriving') {
-      const t = Math.min(this.travelTimer / this.travelDuration, 1);
-      scene.cameras.main.setZoom((BASE_ZOOM + 0.3) - t * 0.3);
-
       if (this.travelTimer >= this.travelDuration) {
         const loc = LOCATIONS[this.travelTarget];
         if (loc) {
@@ -154,7 +146,6 @@ export class TravelManager {
 
         this.travelState = 'docked';
         this.travelTarget = null;
-        scene.cameras.main.setZoom(BASE_ZOOM);
         scene.hud.openShopBtn.container.setVisible(true);
         this.playDocking();
         scene.hud.updateStatusText();
@@ -202,7 +193,7 @@ export class TravelManager {
       line.x = Math.cos(angle) * newDist;
       line.y = Math.sin(angle) * newDist;
 
-      if (newDist > 1500) {
+      if (newDist > 1100) {
         const a = Math.random() * Math.PI * 2;
         const d = 30 + Math.random() * 100;
         line.x = Math.cos(a) * d;

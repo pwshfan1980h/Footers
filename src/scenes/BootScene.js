@@ -60,11 +60,11 @@ export class BootScene extends Phaser.Scene {
       'cheese_american', 'cheese_swiss',
     ], { width: 128, height: 128 });
 
-    // Toppings (64x64)
+    // Toppings (128x128)
     loadSVGs([
       'top_lettuce', 'top_tomato', 'top_onion',
       'top_pickles', 'top_olives', 'top_arugula',
-    ], { width: 64, height: 64 });
+    ], { width: 128, height: 128 });
 
     // Sauce bottles (128x256)
     loadSVGs(['sauce_mayo_bottle', 'sauce_mustard_bottle'], { width: 128, height: 256 });

@@ -1,23 +1,39 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="1" dy="1" result="offsetblur"/>
+      <feGaussianBlur in="SourceAlpha" stdDeviation="3"/>
+      <feOffset dx="2" dy="2" result="offsetblur"/>
       <feComponentTransfer>
-        <feFuncA type="linear" slope="0.3"/>
+        <feFuncA type="linear" slope="0.35"/>
       </feComponentTransfer>
       <feMerge>
         <feMergeNode in="offsetblur"/>
         <feMergeNode in="SourceGraphic"/>
       </feMerge>
     </filter>
+    <radialGradient id="onionGrad" cx="45%" cy="42%" r="55%">
+      <stop offset="0%" stop-color="#F0E0F8"/>
+      <stop offset="100%" stop-color="#D4B0E8"/>
+    </radialGradient>
   </defs>
   <g filter="url(#shadow)">
-    <!-- Rings -->
-    <circle cx="128" cy="128" r="60" fill="none" stroke="#8A2BE2" stroke-width="3" opacity="0.8"/>
-    <circle cx="128" cy="128" r="50" fill="none" stroke="#9370DB" stroke-width="3" opacity="0.8"/>
-    <circle cx="128" cy="128" r="40" fill="none" stroke="#BA55D3" stroke-width="3" opacity="0.8"/>
-    <circle cx="128" cy="128" r="30" fill="none" stroke="#DDA0DD" stroke-width="3" opacity="0.8"/>
-    <circle cx="128" cy="128" r="20" fill="none" stroke="#EE82EE" stroke-width="3" opacity="0.8"/>
+    <!-- Outer ring filled -->
+    <circle cx="128" cy="128" r="65" fill="url(#onionGrad)" stroke="#8A2BE2" stroke-width="3" opacity="0.9"/>
+    <!-- Ring layers - alternating filled/unfilled for cross-section look -->
+    <circle cx="128" cy="128" r="58" fill="none" stroke="#9370DB" stroke-width="4" opacity="0.7"/>
+    <circle cx="128" cy="128" r="50" fill="#E8D0F5" stroke="#9370DB" stroke-width="3" opacity="0.5"/>
+    <circle cx="128" cy="128" r="43" fill="none" stroke="#BA55D3" stroke-width="3.5" opacity="0.65"/>
+    <circle cx="128" cy="128" r="35" fill="#EDE0F5" stroke="#BA55D3" stroke-width="3" opacity="0.45"/>
+    <circle cx="128" cy="128" r="28" fill="none" stroke="#DDA0DD" stroke-width="3" opacity="0.7"/>
+    <circle cx="128" cy="128" r="20" fill="#F0E8F5" stroke="#DDA0DD" stroke-width="2.5" opacity="0.5"/>
+    <circle cx="128" cy="128" r="13" fill="none" stroke="#EE82EE" stroke-width="2.5" opacity="0.65"/>
+    <circle cx="128" cy="128" r="6" fill="#F5F0FA" stroke="#EE82EE" stroke-width="2" opacity="0.5"/>
+    <!-- Translucent sheen -->
+    <ellipse cx="110" cy="105" rx="28" ry="18" fill="#FFFFFF" opacity="0.12" transform="rotate(-20,110,105)"/>
+    <!-- Subtle membrane lines between rings -->
+    <path d="M128,63 L128,68" stroke="#C8A0E0" stroke-width="1" opacity="0.4"/>
+    <path d="M128,188 L128,193" stroke="#C8A0E0" stroke-width="1" opacity="0.4"/>
+    <path d="M63,128 L68,128" stroke="#C8A0E0" stroke-width="1" opacity="0.4"/>
+    <path d="M188,128 L193,128" stroke="#C8A0E0" stroke-width="1" opacity="0.4"/>
   </g>
 </svg>
