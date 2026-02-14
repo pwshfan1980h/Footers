@@ -47,11 +47,11 @@ export class DayEndScene extends Phaser.Scene {
 
     // Title
     this.add.text(HALF_WIDTH, 141, 'SHIFT COMPLETE!', {
-      fontSize: '52px', color: '#00ffcc', fontFamily: GAME_FONT,
+      fontSize: '52px', color: '#FFBB44', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     this.add.text(HALF_WIDTH, 253, `${dayNames[this.day]} is done.`, {
-      fontSize: '24px', color: '#8899aa', fontFamily: GAME_FONT,
+      fontSize: '24px', color: '#C8A878', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Stats panel
@@ -91,7 +91,7 @@ export class DayEndScene extends Phaser.Scene {
       accentColor: NEON_CYAN,
       onClick: () => {
         soundManager.ding();
-        this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.dayScore });
+        this.scene.start('Title');
       },
     });
   }

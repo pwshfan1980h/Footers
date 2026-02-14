@@ -21,11 +21,11 @@ export class TutorialOverlay {
       {
         title: 'Welcome to Footers!',
         lines: [
-          'You run a sandwich station on a space deli.',
+          'You run the kitchen at a galactic cantina.',
           'Orders come in on tickets at the top.',
           'Build each sandwich in the exact order shown.',
         ],
-        icon: '\u{1F6F8}',
+        icon: '\u{1F37B}',
       },
       {
         title: 'How to Build',
@@ -40,7 +40,7 @@ export class TutorialOverlay {
         title: 'Watch the Clock!',
         lines: [
           'Customers lose patience \u2014 finish before they leave!',
-          'Press F1 to see keyboard shortcuts.',
+          'Hotkey prompts show you the next key to press.',
           '3 missed orders = Game Over. Good luck!',
         ],
         icon: '\u26A0',
@@ -70,8 +70,8 @@ export class TutorialOverlay {
     const y = 366;
 
     const title = this.scene.add.text(HALF_WIDTH, y, s.title, {
-      fontSize: '36px', color: '#00ddff', fontFamily: GAME_FONT,
-      stroke: '#003344', strokeThickness: 3,
+      fontSize: '36px', color: '#FFBB44', fontFamily: GAME_FONT,
+      stroke: '#2A1A0A', strokeThickness: 3,
     }).setOrigin(0.5);
     title.setData('tutStep', true);
     overlay.add(title);

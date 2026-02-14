@@ -24,11 +24,11 @@ export class NotificationManager {
    * Show a notification at the top of the screen.
    * @param {string} text
    * @param {object} [options]
-   * @param {number} [options.borderColor=0x6688cc]
+   * @param {number} [options.borderColor=0xC8A878]
    * @param {number} [options.duration=4000]
    */
   show(text, options = {}) {
-    const { borderColor = 0x6688cc, duration = 4000 } = options;
+    const { borderColor = 0xC8A878, duration = 4000 } = options;
     const s = this.scene;
 
     // Dismiss oldest if at max
@@ -57,7 +57,7 @@ export class NotificationManager {
     const panelH = txt.height + padY * 2;
 
     const bg = s.add.graphics();
-    bg.fillStyle(0x1a1a30, 0.88);
+    bg.fillStyle(0x2A1A0A, 0.88);
     bg.fillRoundedRect(-panelW / 2, -panelH / 2, panelW, panelH, 6);
     bg.lineStyle(1.5, borderColor, 0.7);
     bg.strokeRoundedRect(-panelW / 2, -panelH / 2, panelW, panelH, 6);

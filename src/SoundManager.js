@@ -277,6 +277,54 @@ class SoundManager {
     }
   }
 
+  // Combo placement — layered audio feedback that escalates with streak
+  comboPlop(comboCount) {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // C major scale rising with combo
+    const scaleFreqs = [262, 294, 330, 349, 392, 440, 494, 523, 587, 659, 698, 784, 880, 988, 1047];
+    const idx = Math.min(comboCount, scaleFreqs.length - 1);
+    const freq = scaleFreqs[idx];
+    const vol = Math.min(0.3, 0.14 + comboCount * 0.015);
+
+    // Core note — gets brighter and longer with combo
+    const dur = Math.min(0.18, 0.08 + comboCount * 0.008);
+    this._osc('sine', freq, t, dur, vol);
+
+    // Perfect fifth harmony — always present, adds richness
+    this._osc('sine', freq * 1.5, t + 0.015, dur * 0.7, vol * 0.5);
+
+    // Octave ping — crisp attack layer
+    this._osc('triangle', freq * 2, t, 0.04, vol * 0.3);
+
+    // Percussive click (soft at low combo, snappy at high)
+    if (comboCount >= 2) {
+      this._noise(0.02, 0.06 + Math.min(0.1, comboCount * 0.01));
+    }
+
+    // Sparkle overtones at medium combos
+    if (comboCount >= 4) {
+      this._osc('sine', freq * 3, t + 0.03, 0.06, vol * 0.2);
+      this._osc('sine', freq * 4, t + 0.05, 0.04, vol * 0.12);
+    }
+
+    // Shimmering bell layer at high combos
+    if (comboCount >= 8) {
+      this._osc('sine', freq * 5, t + 0.02, 0.08, vol * 0.1);
+      this._osc('triangle', freq * 6, t + 0.04, 0.06, vol * 0.08);
+      // Sub-bass thump for impact
+      this._osc('sine', freq * 0.5, t, 0.06, vol * 0.4);
+    }
+
+    // Triumphant chord at extreme combos
+    if (comboCount >= 12) {
+      // Major triad arpeggiated
+      this._osc('sine', freq * 1.25, t + 0.06, 0.1, vol * 0.15); // major third
+      this._osc('sine', freq * 2.5, t + 0.08, 0.08, vol * 0.1);
+      this._noise(0.03, 0.12); // impact burst
+    }
+  }
+
   // Whoosh sound for tray movements
   whoosh() {
     if (!this.ctx) return;
@@ -303,6 +351,81 @@ class SoundManager {
     this._osc('sine', 523, t, 0.12, 0.18);      // C5
     this._osc('sine', 659, t + 0.08, 0.12, 0.18);  // E5
     this._osc('sine', 784, t + 0.16, 0.2, 0.2);   // G5
+  }
+
+  // Speed-based sell feedback — triumphant for fast delivery
+  sellBlazing() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._osc('sine', 523, t, 0.1, 0.2);
+    this._osc('sine', 659, t + 0.06, 0.1, 0.2);
+    this._osc('sine', 784, t + 0.12, 0.15, 0.25);
+    this._osc('sine', 1047, t + 0.18, 0.25, 0.3);
+    this._osc('triangle', 1047, t + 0.18, 0.3, 0.15);
+    this._noise(0.03, 0.1);
+  }
+
+  sellSwift() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._osc('sine', 659, t, 0.1, 0.18);
+    this._osc('sine', 880, t + 0.08, 0.15, 0.2);
+    this._osc('triangle', 1175, t + 0.14, 0.12, 0.1);
+  }
+
+  sellSteady() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._osc('sine', 523, t, 0.1, 0.15);
+    this._osc('sine', 659, t + 0.08, 0.12, 0.15);
+  }
+
+  // Saloon door creak
+  doorCreak() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Low wooden creak sweep + noise texture
+    this._noise(0.12, 0.04);
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this._output());
+    osc.frequency.setValueAtTime(180, t);
+    osc.frequency.exponentialRampToValueAtTime(60, t + 0.18);
+    gain.gain.setValueAtTime(0.04, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+    osc.start(t);
+    osc.stop(t + 0.2);
+    // Higher creak overtone
+    this._osc('triangle', 350, t + 0.03, 0.1, 0.025);
+  }
+
+  // Urgency tick for low patience
+  patienceTick() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    this._osc('sine', 1200, t, 0.04, 0.1);
+    this._osc('sine', 900, t + 0.04, 0.03, 0.06);
+  }
+
+  // Low grumble for angry customer departure
+  customerGrumble() {
+    if (!this.ctx) return;
+    const t = this.ctx.currentTime;
+    // Grumpy descending murmur
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.connect(gain);
+    gain.connect(this._output());
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(110, t);
+    osc.frequency.linearRampToValueAtTime(70, t + 0.2);
+    gain.gain.setValueAtTime(0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+    osc.start(t);
+    osc.stop(t + 0.25);
+    // Second syllable
+    this._osc('sawtooth', 85, t + 0.12, 0.15, 0.04);
   }
 
   // Soft slide sound for magnetism

@@ -13,24 +13,24 @@ import { GAME_FONT } from '../data/constants.js';
  * @param {number} h - Height
  * @param {string} label - Button text
  * @param {object} options
- * @param {number}   options.baseFill     - Default fill color (default 0x1a3a4a)
- * @param {number}   options.hoverFill    - Fill on hover (default 0x2a4a5a)
- * @param {number}   options.accentColor  - Stroke color (default 0x00ddff)
- * @param {number}   options.hoverAccent  - Stroke on hover (default 0x44ffff)
- * @param {string}   options.textColor    - Label color (default '#00ffff')
- * @param {string}   options.hoverTextColor - Label color on hover (default '#44ffff')
+ * @param {number}   options.baseFill     - Default fill color (default 0x3A2A1A)
+ * @param {number}   options.hoverFill    - Fill on hover (default 0x5A4530)
+ * @param {number}   options.accentColor  - Stroke color (default 0xFFBB44)
+ * @param {number}   options.hoverAccent  - Stroke on hover (default 0xFFCC66)
+ * @param {string}   options.textColor    - Label color (default '#FFBB44')
+ * @param {string}   options.hoverTextColor - Label color on hover (default '#FFCC66')
  * @param {string}   options.fontSize     - Font size (default '26px')
  * @param {function} options.onClick      - Click handler
  * @returns {{ btn, btnHit, btnText }}
  */
 export function createButton(scene, x, y, w, h, label, options = {}) {
   const {
-    baseFill = 0x1a3a4a,
-    hoverFill = 0x2a4a5a,
-    accentColor = 0x00ddff,
-    hoverAccent = 0x44ffff,
-    textColor = '#00ffff',
-    hoverTextColor = '#44ffff',
+    baseFill = 0x3A2A1A,
+    hoverFill = 0x5A4530,
+    accentColor = 0xFFBB44,
+    hoverAccent = 0xFFCC66,
+    textColor = '#FFBB44',
+    hoverTextColor = '#FFCC66',
     fontSize = '26px',
     onClick,
   } = options;

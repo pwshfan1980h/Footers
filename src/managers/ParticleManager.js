@@ -127,7 +127,7 @@ export class ParticleManager {
     for (let i = 0; i < 20; i++) {
       const angle = Math.random() * Math.PI * 2;
       const speed = 3 + Math.random() * 4;
-      const color = [0x00ffaa, 0x00ddff, 0xffdd44][Math.floor(Math.random() * 3)];
+      const color = [0xFFCC66, 0xFFBB44, 0xffdd44][Math.floor(Math.random() * 3)];
 
       this.particles.push({
         x, y,
@@ -202,7 +202,7 @@ export class ParticleManager {
         vy: (Math.random() - 0.5) * 0.5,
         gravity: 0,
         friction: 0.97,
-        color: color || 0x00ddff,
+        color: color || 0xFFBB44,
         size: 1 + Math.random() * 2,
         shape: 'circle',
         life: 200 + Math.random() * 150,

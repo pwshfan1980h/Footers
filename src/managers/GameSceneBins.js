@@ -4,7 +4,6 @@
 import { INGREDIENTS, BIN_LAYOUT, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 import { GAME_FONT } from '../data/constants.js';
-import { gameState } from '../data/GameState.js';
 
 
 export class GameSceneBins {
@@ -13,11 +12,48 @@ export class GameSceneBins {
   }
 
   create() {
+    this.createBinZones();
     this.createBins();
     this.createTreatments();
     this.createVeggieBowls();
     this.createCheeseStacks();
     this.createLoaves();
+  }
+
+  createBinZones() {
+    const s = this.scene;
+    const g = s.add.graphics().setDepth(9);
+
+    // Meats zone — warm reddish-brown
+    g.fillStyle(0x5A2020, 0.15);
+    g.fillRoundedRect(88, 535, 410, 330, 12);
+    g.lineStyle(1, 0x8B4040, 0.2);
+    g.strokeRoundedRect(88, 535, 410, 330, 12);
+
+    // Toppings zone — earthy green (below prep area)
+    g.fillStyle(0x204A20, 0.15);
+    g.fillRoundedRect(565, 648, 430, 160, 12);
+    g.lineStyle(1, 0x408B40, 0.2);
+    g.strokeRoundedRect(565, 648, 430, 160, 12);
+
+    // Cheese zone — warm amber
+    g.fillStyle(0x4A4A10, 0.15);
+    g.fillRoundedRect(1085, 555, 190, 260, 12);
+    g.lineStyle(1, 0x8B8B40, 0.2);
+    g.strokeRoundedRect(1085, 555, 190, 260, 12);
+
+    // Treatments zone — blue
+    g.fillStyle(0x203050, 0.15);
+    g.fillRoundedRect(565, 815, 430, 175, 12);
+    g.lineStyle(1, 0x4060AA, 0.2);
+    g.strokeRoundedRect(565, 815, 430, 175, 12);
+
+    // Zone labels
+    const labelStyle = { fontSize: '9px', color: '#7A6048', fontFamily: GAME_FONT };
+    s.add.text(293, 540, 'MEATS', labelStyle).setOrigin(0.5).setDepth(10);
+    s.add.text(780, 653, 'TOPPINGS', labelStyle).setOrigin(0.5).setDepth(10);
+    s.add.text(1180, 560, 'CHEESE', labelStyle).setOrigin(0.5).setDepth(10);
+    s.add.text(780, 820, 'TREATMENTS', { fontSize: '9px', color: '#6080AA', fontFamily: GAME_FONT }).setOrigin(0.5).setDepth(10);
   }
 
   getIsoPosition(col, row, baseX, baseY, spacingX, spacingY) {
@@ -52,7 +88,7 @@ export class GameSceneBins {
       const y = pos.y;
 
       const pileKey = key.replace('meat_', 'meat_pile_');
-      const pile = s.add.image(x, y, pileKey).setDepth(20).setScale(0.9);
+      const pile = s.add.image(x, y, pileKey).setDepth(20).setScale(1.08);
 
       if (isLocked) {
         pile.setAlpha(0.3).setTint(0x444444);
@@ -66,7 +102,7 @@ export class GameSceneBins {
         });
       }
 
-      const label = s.add.text(x, y + 44, ing.name, {
+      const label = s.add.text(x, y + 55, ing.name, {
         fontSize: '13px', color: isLocked ? '#666' : '#ddd', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(21);
 
@@ -74,25 +110,15 @@ export class GameSceneBins {
         s.createHotkeyHint(x + 34, y - 24, hints[key]);
       }
 
-      const stockLabel = s.add.text(x + 34, y + 28, '', {
-        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(22);
-
-      s.meatPileItems.push({ img: pile, label, key, isLocked, stockLabel });
+      s.meatPileItems.push({ img: pile, label, key, isLocked });
     });
   }
 
   createMeatPileLogic(key, x, y, visual) {
     const s = this.scene;
     const ing = INGREDIENTS[key];
-    if (!gameState.hasIngredientStock(key)) {
-      soundManager.buzz();
-      return;
-    }
     soundManager.init();
     soundManager.robotPickup();
-    gameState.useIngredient(key);
-    this.checkDepletion(key, visual);
     const pointer = s.input.activePointer;
     const heldVisual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = {
@@ -140,29 +166,17 @@ export class GameSceneBins {
         fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
-      const stockLabel = s.add.text(x + 34, y + 22, '', {
-        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(22);
-
       const breadHints = { 'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C' };
       s.createHotkeyHint(x + 34, y - 24, breadHints[b.key]);
 
-      s.loafItems.push({ img: loaf, key: b.key, stockLabel });
+      s.loafItems.push({ img: loaf, key: b.key });
     });
   }
 
   clickLoaf(key, pointer) {
     const s = this.scene;
     const ing = INGREDIENTS[key];
-    if (!gameState.hasIngredientStock(key)) {
-      soundManager.buzz();
-      return;
-    }
     soundManager.robotPickup();
-    gameState.useIngredient(key);
-    // Find loaf item for depletion check
-    const item = (s.loafItems || []).find(it => it.key === key);
-    if (item) this.checkDepletion(key, item.img);
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = {
       visual,
@@ -174,18 +188,16 @@ export class GameSceneBins {
   }
 
   createTreatments() {
-    const s = this.scene;
-    const shelfY = 886;
-    const startX = 225;
-    const spacing = 159;
+    // Row 1: prep + sauces
+    this.createTreatmentItem('toasted', 635, 860);
+    this.createTreatmentItem('togo', 735, 860);
+    this.createSauceBottle('sauce_mayo', 835, 860);
+    this.createSauceBottle('sauce_mustard', 935, 860);
 
-    const treatKeys = ['toasted', 'togo', 'salt', 'pepper', 'oil_vinegar'];
-    treatKeys.forEach((key, i) => {
-      this.createTreatmentItem(key, startX + i * spacing, shelfY);
-    });
-
-    this.createSauceBottle('sauce_mayo', startX + 5 * spacing + 15, shelfY);
-    this.createSauceBottle('sauce_mustard', startX + 6 * spacing + 15, shelfY);
+    // Row 2: seasonings (centered)
+    this.createTreatmentItem('salt', 680, 950);
+    this.createTreatmentItem('pepper', 780, 950);
+    this.createTreatmentItem('oil_vinegar', 880, 950);
   }
 
   createCheeseStacks() {
@@ -222,31 +234,19 @@ export class GameSceneBins {
         fontSize: '18px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
-      const stockLabel = s.add.text(x + 42, y + 32, '', {
-        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(22);
-
       const hints = { 'cheese_american': 'W', 'cheese_swiss': 'E' };
       if (hints[c.key]) {
         s.createHotkeyHint(x + 42, y - 26, hints[c.key]);
       }
 
-      s.cheeseStackItems.push({ img: stack, key: c.key, stockLabel });
+      s.cheeseStackItems.push({ img: stack, key: c.key });
     });
   }
 
   clickCheeseStack(key, pointer) {
     const s = this.scene;
-    const ing = INGREDIENTS[key];
-    if (!gameState.hasIngredientStock(key)) {
-      soundManager.buzz();
-      return;
-    }
     soundManager.init();
     soundManager.robotPickup();
-    gameState.useIngredient(key);
-    const item = (s.cheeseStackItems || []).find(it => it.key === key);
-    if (item) this.checkDepletion(key, item.img);
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
   }
@@ -256,10 +256,10 @@ export class GameSceneBins {
     s.veggieBowlItems = [];
     const day = s.day ?? 99;
 
-    const row1Y = 633;
+    const row1Y = 695;
     const row1StartX = 638;
     const spacingX = 141;
-    const row2Y = 724;
+    const row2Y = 775;
     const row2StartX = 638;
 
     const row1Veggies = [
@@ -282,7 +282,7 @@ export class GameSceneBins {
     allVeggies.forEach((v) => {
       const isLocked = v.unlockDay && day < v.unlockDay;
 
-      const vegImg = s.add.image(v.x, v.y, v.asset).setDepth(20).setScale(0.55);
+      const vegImg = s.add.image(v.x, v.y, v.asset).setDepth(20).setScale(1.08);
 
       if (isLocked) {
         vegImg.setAlpha(0.3).setTint(0x444444);
@@ -296,7 +296,7 @@ export class GameSceneBins {
         });
       }
 
-      const label = s.add.text(v.x, v.y + 32, v.label, {
+      const label = s.add.text(v.x, v.y + 42, v.label, {
         fontSize: '14px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
@@ -304,26 +304,14 @@ export class GameSceneBins {
         s.createHotkeyHint(v.x + 28, v.y - 20, v.hotkey);
       }
 
-      const stockLabel = s.add.text(v.x + 28, v.y + 16, '', {
-        fontSize: '10px', color: '#44ff88', fontFamily: GAME_FONT, fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(22);
-
-      s.veggieBowlItems.push({ img: vegImg, label, stockLabel, ...v });
+      s.veggieBowlItems.push({ img: vegImg, label, ...v });
     });
   }
 
   clickVeggieBowl(key, pointer) {
     const s = this.scene;
-    const ing = INGREDIENTS[key];
-    if (!gameState.hasIngredientStock(key)) {
-      soundManager.buzz();
-      return;
-    }
     soundManager.init();
     soundManager.robotPickup();
-    gameState.useIngredient(key);
-    const item = (s.veggieBowlItems || []).find(it => it.key === key);
-    if (item) this.checkDepletion(key, item.img);
     const visual = s.createHeldVisual(key, pointer.x, pointer.y);
     s.heldItem = { visual, ingredientKey: key, binX: 0, binY: 0 };
   }
@@ -380,43 +368,6 @@ export class GameSceneBins {
       ingredientKey: key,
       isSauce: true,
     };
-  }
-
-  checkDepletion(key, visual) {
-    if (gameState.getIngredientCount(key) <= 0 && visual) {
-      if (visual.setAlpha) visual.setAlpha(0.3);
-      if (visual.setTint) visual.setTint(0x444444);
-      // Add EMPTY label near the depleted item
-      const s = this.scene;
-      const x = visual.x || 0;
-      const y = visual.y || 0;
-      const emptyLabel = s.add.text(x, y, 'EMPTY', {
-        fontSize: '11px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
-        stroke: '#000', strokeThickness: 2,
-      }).setOrigin(0.5).setDepth(25);
-      visual._emptyLabel = emptyLabel;
-    }
-    this.scene.hudManager.refreshStock();
-  }
-
-  checkDepletionByKey(key) {
-    const s = this.scene;
-    let visual = null;
-    const meatItem = (s.meatPileItems || []).find(it => it.key === key);
-    if (meatItem) visual = meatItem.img;
-    if (!visual) {
-      const loafItem = (s.loafItems || []).find(it => it.key === key);
-      if (loafItem) visual = loafItem.img;
-    }
-    if (!visual) {
-      const cheeseItem = (s.cheeseStackItems || []).find(it => it.key === key);
-      if (cheeseItem) visual = cheeseItem.img;
-    }
-    if (!visual) {
-      const veggieItem = (s.veggieBowlItems || []).find(it => it.key === key);
-      if (veggieItem) visual = veggieItem.img;
-    }
-    this.checkDepletion(key, visual);
   }
 
   createTreatmentItem(tKey, x, y) {
@@ -555,7 +506,7 @@ export class GameSceneBins {
       g.fillCircle(4, -14, 1.5);
       g.fillStyle(0xFFFFFF, 0.6);
       g.fillRect(-8, 8, 16, 16);
-      g.fillStyle(0x4488FF, 0.8);
+      g.fillStyle(0xFFBB44, 0.8);
       g.fillRect(-8, 2, 16, 8);
       return { w: 32, h: 54 };
 

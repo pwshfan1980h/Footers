@@ -3,43 +3,43 @@ import { HUMAN_NAMES, ALIEN_NAME_PARTS, QUIPS } from '../data/customerPersonalit
 import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { GAME_FONT, BASE_PATIENCE, MIN_PATIENCE, PATIENCE_DECREASE } from '../data/constants.js';
 import { darkenColor, lightenColor } from '../utils/colorUtils.js';
+import { soundManager } from '../SoundManager.js';
 
 /**
- * CustomerVessels — Customers enter through an airlock into an interior customer deck,
- * walk to the service counter, wait for their order, then walk back through the
- * airlock and depart.
+ * CustomerManager — Customers enter through the cantina door, walk to the
+ * service counter, wait for their order, then walk back and depart.
  *
- * Person states: entering_airlock | walking_to_counter | at_counter |
- *                walking_to_airlock | exiting_airlock | boarded
+ * States: entering | walking_to_counter | at_counter |
+ *         walking_to_door | exiting | departed | gone
  */
-export class CustomerVessels {
+export class CustomerManager {
   constructor(scene) {
     this.scene = scene;
     this.customers = [];
 
-    // 4 docking slots — customers stand at counter (Y~310)
+    // 4 counter positions
     this.slots = [
-      { counterX: 300, counterY: 436, occupied: false },
-      { counterX: 731, counterY: 436, occupied: false },
-      { counterX: 1189, counterY: 436, occupied: false },
-      { counterX: 1620, counterY: 436, occupied: false },
+      { counterX: 300, counterY: 395, occupied: false },
+      { counterX: 731, counterY: 395, occupied: false },
+      { counterX: 1189, counterY: 395, occupied: false },
+      { counterX: 1620, counterY: 395, occupied: false },
     ];
 
     // Suit variants — each has distinct visual traits
     this.suitVariants = [
-      { name: 'standard',  suitColor: null, visorColor: 0x88DDFF, visorShape: 'round',
+      { name: 'standard',  suitColor: null, visorColor: 0xFFDD88, visorShape: 'round',
         hasToolBelt: false, hasShoulder: false, hasStripes: false, hasAntenna: true, helmetDeco: null },
-      { name: 'heavy',     suitColor: null, visorColor: 0xAADDFF, visorShape: 'wide',
+      { name: 'heavy',     suitColor: null, visorColor: 0xFFCC66, visorShape: 'wide',
         hasToolBelt: false, hasShoulder: true,  hasStripes: false, hasAntenna: true, helmetDeco: null },
-      { name: 'engineer',  suitColor: null, visorColor: 0xFFDD88, visorShape: 'round',
+      { name: 'engineer',  suitColor: null, visorColor: 0xFFBB44, visorShape: 'round',
         hasToolBelt: true,  hasShoulder: false, hasStripes: false, hasAntenna: false, helmetDeco: 'lamp' },
-      { name: 'slim',      suitColor: null, visorColor: 0x88FFCC, visorShape: 'narrow',
+      { name: 'slim',      suitColor: null, visorColor: 0xDDCC88, visorShape: 'narrow',
         hasToolBelt: false, hasShoulder: false, hasStripes: true,  hasAntenna: true, helmetDeco: null },
-      { name: 'vip',       suitColor: null, visorColor: 0xFFBB88, visorShape: 'round',
+      { name: 'vip',       suitColor: null, visorColor: 0xFFAA66, visorShape: 'round',
         hasToolBelt: false, hasShoulder: false, hasStripes: false, hasAntenna: true, helmetDeco: 'crest' },
-      { name: 'military',  suitColor: null, visorColor: 0xFF8888, visorShape: 'slit',
+      { name: 'military',  suitColor: null, visorColor: 0xFF8866, visorShape: 'slit',
         hasToolBelt: true,  hasShoulder: true,  hasStripes: false, hasAntenna: false, helmetDeco: null },
-      { name: 'explorer',  suitColor: null, visorColor: 0xBBFFFF, visorShape: 'bubble',
+      { name: 'explorer',  suitColor: null, visorColor: 0xEEDD99, visorShape: 'bubble',
         hasToolBelt: false, hasShoulder: false, hasStripes: true,  hasAntenna: true, helmetDeco: 'cam' },
     ];
 
@@ -47,7 +47,7 @@ export class CustomerVessels {
     this.alienVariants = [
       { name: 'blob', type: 'blob', color: 0x44ff88 },
       { name: 'tentacle', type: 'tentacle', color: 0xff44dd },
-      { name: 'eye', type: 'eye', color: 0x44ddff },
+      { name: 'eye', type: 'eye', color: 0xddaa44 },
       { name: 'crystal', type: 'crystal', color: 0xffbb44 }
     ];
   }
@@ -60,7 +60,7 @@ export class CustomerVessels {
    * @param {object} tray
    * @param {function} onArrive — called when customer reaches the window
    */
-  dockVessel(tray, onArrive) {
+  addCustomer(tray, onArrive) {
     const slot = this.slots.find(s => !s.occupied);
     if (!slot) return;
     slot.occupied = true;
@@ -92,14 +92,13 @@ export class CustomerVessels {
       name,
       quip,
 
-      // Person (walks through interior deck)
-      personX: this.scene.AIRLOCK_X,
-      personY: this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS,
+      personX: this.scene.DOOR_X,
+      personY: this.scene.DOOR_Y + this.scene.DOOR_RADIUS,
       personTargetX: slot.counterX,
       personTargetY: slot.counterY,
-      personScale: 0.5,
-      personTargetScale: 1.2,
-      personState: 'entering_airlock',
+      personScale: 2.0,
+      personTargetScale: 4.8,
+      personState: 'entering',
       personBob: Math.random() * Math.PI * 2,
       walkPhase: Math.random() * Math.PI * 2,
       personFacing: 1,
@@ -117,40 +116,42 @@ export class CustomerVessels {
       idleActionTimer: 0,
       headTurn: 0,
 
-      // Arrival delay (brief pause before airlock opens)
       arrivalDelay: 600,
+      tickWarned: false,
+      happy: false,
     };
 
-    // Request airlock open after brief delay
+    // Open door after brief delay
     this.scene.time.delayedCall(customer.arrivalDelay, () => {
-      this.scene.customerDeck.requestAirlockOpen();
+      this.scene.customerDeck.requestDoorOpen();
     });
 
     this.customers.push(customer);
   }
 
-  undockVessel(tray) {
+  dismissCustomer(tray) {
     const c = this.customers.find(v => v.tray === tray);
     if (!c) return;
+
+    c.happy = !!tray.scored;
 
     // Clear patience bar immediately
     if (c.patienceBarGfx) c.patienceBarGfx.clear();
 
     if (c.personState === 'at_counter') {
-      // Walk back to airlock
-      c.personState = 'walking_to_airlock';
+      c.personState = 'walking_to_door';
       c.personFacing = -1;
-      c.personTargetX = this.scene.AIRLOCK_X;
-      c.personTargetY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS;
-      c.personTargetScale = 0.5;
-    } else if (c.personState === 'walking_to_counter' || c.personState === 'entering_airlock') {
-      c.personState = 'walking_to_airlock';
+      c.personTargetX = this.scene.DOOR_X;
+      c.personTargetY = this.scene.DOOR_Y + this.scene.DOOR_RADIUS;
+      c.personTargetScale = 2.0;
+    } else if (c.personState === 'walking_to_counter' || c.personState === 'entering') {
+      c.personState = 'walking_to_door';
       c.personFacing = -1;
-      c.personTargetX = this.scene.AIRLOCK_X;
-      c.personTargetY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS;
-      c.personTargetScale = 0.5;
+      c.personTargetX = this.scene.DOOR_X;
+      c.personTargetY = this.scene.DOOR_Y + this.scene.DOOR_RADIUS;
+      c.personTargetScale = 2.0;
     } else {
-      c.personState = 'boarded';
+      c.personState = 'gone';
     }
   }
 
@@ -169,6 +170,12 @@ export class CustomerVessels {
         c.patience -= dtSec;
         this.drawPatienceBar(c);
 
+        // Urgency tick when patience drops below 25%
+        if (!c.tickWarned && c.patience / c.patienceMax < 0.25) {
+          c.tickWarned = true;
+          soundManager.patienceTick();
+        }
+
         if (c.patience <= 0) {
           c.patience = 0;
           // Timeout — miss this order
@@ -183,7 +190,7 @@ export class CustomerVessels {
 
       this.drawPerson(c);
 
-      if (c.personState === 'boarded') {
+      if (c.personState === 'gone') {
         c.personGfx.destroy();
         if (c.patienceBarGfx) c.patienceBarGfx.destroy();
         if (c.numText) c.numText.destroy();
@@ -199,10 +206,11 @@ export class CustomerVessels {
     if (c.personState !== 'at_counter' || c.patienceMax <= 0) return;
 
     const ratio = Math.max(0, c.patience / c.patienceMax);
-    const barW = 50;
-    const barH = 5;
+    const sc = c.personScale;
+    const barW = 14 * sc;
+    const barH = 1.5 * sc;
     const x = c.personX - barW / 2;
-    const y = c.personY - 50;
+    const y = c.personY - 32 * sc;
 
     // Background
     g.fillStyle(0x000000, 0.5);
@@ -231,21 +239,21 @@ export class CustomerVessels {
   // ======================== PERSON UPDATE ========================
 
   updatePerson(c, dt) {
-    const airlockX = this.scene.AIRLOCK_X;
-    const airlockBottomY = this.scene.AIRLOCK_Y + this.scene.AIRLOCK_RADIUS;
+    const doorX = this.scene.DOOR_X;
+    const doorBottomY = this.scene.DOOR_Y + this.scene.DOOR_RADIUS;
 
-    if (c.personState === 'entering_airlock') {
-      // Wait for airlock to open, then start walking
+    if (c.personState === 'entering') {
+      // Wait for door to open, then start walking
       const deck = this.scene.customerDeck;
-      if (deck.airlockState === 'open' || deck.airlockProgress > 0.7) {
+      if (deck.doorState === 'open' || deck.doorProgress > 0.7) {
         c.personState = 'walking_to_counter';
         c.personTargetX = c.slot.counterX;
         c.personTargetY = c.slot.counterY;
-        c.personTargetScale = 1.2;
+        c.personTargetScale = 4.8;
         c.personFacing = 1;
       }
     } else if (c.personState === 'walking_to_counter') {
-      // Walk from airlock to standing position, scale grows
+      // Walk from door to counter, scale grows
       c.personX += (c.personTargetX - c.personX) * 0.04 * dt;
       c.personY += (c.personTargetY - c.personY) * 0.04 * dt;
       c.personScale += (c.personTargetScale - c.personScale) * 0.04 * dt;
@@ -257,8 +265,8 @@ export class CustomerVessels {
         c.personY = c.personTargetY;
         c.personScale = c.personTargetScale;
         c.personState = 'at_counter';
-        // Close airlock behind them
-        this.scene.customerDeck.requestAirlockClose();
+        // Close door behind them
+        this.scene.customerDeck.requestDoorClose();
         // Set patience timer (scales down with game time)
         const minutesPlayed = this.scene.gameTime / 60;
         c.patienceMax = Math.max(MIN_PATIENCE, BASE_PATIENCE - minutesPlayed * PATIENCE_DECREASE);
@@ -271,33 +279,34 @@ export class CustomerVessels {
       // Subtle idle sway (grounded, not floating)
       c.personBob += 0.02 * dt;
       c.personY = c.slot.counterY + Math.sin(c.personBob) * 0.8;
-    } else if (c.personState === 'walking_to_airlock') {
-      // Walk back toward airlock
+    } else if (c.personState === 'walking_to_door') {
+      // Walk back toward door
       c.personX += (c.personTargetX - c.personX) * 0.05 * dt;
       c.personY += (c.personTargetY - c.personY) * 0.05 * dt;
       c.personScale += (c.personTargetScale - c.personScale) * 0.05 * dt;
       c.walkPhase += 0.08 * dt;
 
-      if (Math.abs(c.personX - airlockX) < 8 &&
-          Math.abs(c.personY - airlockBottomY) < 8) {
-        c.personState = 'exiting_airlock';
-        c.personX = airlockX;
-        c.personY = airlockBottomY;
-        this.scene.customerDeck.requestAirlockOpen();
+      if (Math.abs(c.personX - doorX) < 8 &&
+          Math.abs(c.personY - doorBottomY) < 8) {
+        c.personState = 'exiting';
+        c.personX = doorX;
+        c.personY = doorBottomY;
+        this.scene.customerDeck.requestDoorOpen();
       }
-    } else if (c.personState === 'exiting_airlock') {
+    } else if (c.personState === 'exiting') {
       const deck = this.scene.customerDeck;
-      if (deck.airlockState === 'open' || deck.airlockProgress > 0.7) {
-        // Fade out through airlock
-        c.personScale *= (1 - 0.03 * dt);
-        if (c.personScale < 0.3) {
-          c.personState = 'eva_to_ship';
-          this.scene.customerDeck.requestAirlockClose();
+      if (deck.doorState === 'open' || deck.doorProgress > 0.7) {
+        // Fade out through door (gentle shrink + alpha fade)
+        c.personScale *= (1 - 0.012 * dt);
+        c.personGfx.alpha -= 0.04 * dt;
+        if (c.personGfx.alpha <= 0.05) {
+          c.personState = 'departed';
+          this.scene.customerDeck.requestDoorClose();
+          if (!c.happy) soundManager.customerGrumble();
         }
       }
-    } else if (c.personState === 'eva_to_ship') {
-      // Customer has exited — mark as boarded for cleanup
-      c.personState = 'boarded';
+    } else if (c.personState === 'departed') {
+      c.personState = 'gone';
     }
   }
 
@@ -340,7 +349,7 @@ export class CustomerVessels {
   drawPerson(c) {
     const g = c.personGfx;
     g.clear();
-    if (c.personState === 'boarded' || c.personState === 'eva_to_ship') return;
+    if (c.personState === 'gone' || c.personState === 'departed') return;
 
     // --- ALIEN DRAWING ---
     if (c.isAlien) {
@@ -351,12 +360,12 @@ export class CustomerVessels {
 
       if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_counter') {
         if (!c.numText) {
-          c.numText = this.scene.add.text(x, y - 30 * sc, `#${c.tray.orderNum}`, {
-            fontSize: '12px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
+          c.numText = this.scene.add.text(x, y - 28 * sc, `#${c.tray.orderNum}`, {
+            fontSize: `${Math.max(12, Math.round(3 * sc))}px`, color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
             backgroundColor: '#00000066', padding: { x: 3, y: 1 },
           }).setOrigin(0.5).setDepth(2.5);
         }
-        c.numText.setPosition(x, y - 40 * sc);
+        c.numText.setPosition(x, y - 28 * sc);
         c.numText.setAlpha(1);
       } else if (c.numText) {
         c.numText.setAlpha(0);
@@ -368,7 +377,7 @@ export class CustomerVessels {
     const { personX: x, personY: baseY, personScale: sc, personFacing: face, suitDef: suit } = c;
     const suitCol = suit.suitColor;
     const visorCol = suit.visorColor;
-    const isWalking = c.personState === 'walking_to_counter' || c.personState === 'walking_to_airlock';
+    const isWalking = c.personState === 'walking_to_counter' || c.personState === 'walking_to_door';
     const isAtCounter = c.personState === 'at_counter';
 
     // Grounded idle sway (very subtle) or walk bob
@@ -428,10 +437,9 @@ export class CustomerVessels {
       g.strokeEllipse(x + 10 * sc, y - 2 * sc, 8 * sc, 6 * sc);
     }
 
-    // Backpack / jetpack
+    // Backpack
     g.fillStyle(0x555566, 0.85);
     g.fillRoundedRect(x - 10 * sc - face * 2 * sc, y - 3 * sc, 6 * sc, 14 * sc, 2 * sc);
-    // Jetpack nozzle
     g.fillStyle(0x777788, 0.7);
     g.fillCircle(x - 7 * sc - face * 2 * sc, y + 12 * sc, 2 * sc);
 
@@ -1095,7 +1103,7 @@ export class CustomerVessels {
 
   showSpeechBubble(c) {
     this.scene.notificationManager.show(`${c.name}: "${c.quip}"`, {
-      borderColor: c.isAlien ? 0x44ff88 : 0x6688cc,
+      borderColor: c.isAlien ? 0x44ff88 : 0xC8A878,
     });
   }
 

@@ -3,9 +3,8 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
-import { gameState } from '../data/GameState.js';
 import {
-  GAME_FONT, WRONG_INGREDIENT_PENALTY,
+  GAME_FONT, TICKET_FONT, WRONG_INGREDIENT_PENALTY,
   HELD_ITEM_WIDTH, HELD_ITEM_HEIGHT,
   SCALE_MEAT_CHEESE, SCALE_TOPPING, SCALE_BREAD, SCALE_SAUCE,
   TRAY_MAGNET_RADIUS
@@ -155,7 +154,7 @@ export class GameSceneInteraction {
       s.glowGraphics.clear();
       const glowSize = 70 + magnetStrength * 30;
       const glowAlpha = (0.15 + Math.sin(Date.now() * 0.008) * 0.1) * (1 + magnetStrength);
-      const glowColor = magnetStrength > 0.3 ? 0x44ff88 : 0x00ddff;
+      const glowColor = magnetStrength > 0.3 ? 0xFFCC66 : 0xFFBB44;
       s.glowGraphics.fillStyle(glowColor, glowAlpha);
       s.glowGraphics.fillCircle(targetX, targetY, glowSize);
       s.glowGraphics.fillStyle(glowColor, glowAlpha * 0.5);
@@ -168,11 +167,11 @@ export class GameSceneInteraction {
 
       s.trayHighlight.clear();
       if (targetTray) {
-        const hw = 72;
-        const highlightTop = targetTray.container.y - 120;
-        const highlightH = 175;
+        const hw = 110;
+        const highlightTop = targetTray.container.y - 160;
+        const highlightH = 240;
         const pulseAlpha = 0.4 + Math.sin(Date.now() * 0.01) * 0.15 + magnetStrength * 0.3;
-        s.trayHighlight.lineStyle(3 + magnetStrength * 2, 0x44ff88, pulseAlpha);
+        s.trayHighlight.lineStyle(3 + magnetStrength * 2, 0xFFBB44, pulseAlpha);
         s.trayHighlight.strokeRoundedRect(
           targetTray.container.x - hw, highlightTop, hw * 2, highlightH, 8,
         );
@@ -237,7 +236,7 @@ export class GameSceneInteraction {
       // Deliver completed tray by dragging upward into customer/window area
       if (tray.onPrepTrack && tray.completed && y < 500) {
         // Find the linked customer for this tray
-        const customer = s.customerVessels.customers.find(c => c.tray === tray);
+        const customer = s.customerManager.customers.find(c => c.tray === tray);
         if (customer && customer.personState === 'at_counter') {
           // Remove from prep track
           if (tray.prepSlot) {
@@ -263,6 +262,7 @@ export class GameSceneInteraction {
               s.scoringManager.handleScore(tray);
               tray.done = true;
               s.destroyTray(tray);
+              this.updateSellPrompt();
             },
           });
 
@@ -370,6 +370,244 @@ export class GameSceneInteraction {
     s.trayHighlight.clear();
   }
 
+  // Find the active tray (first non-completed tray on prep track with a customer)
+  findActiveTray() {
+    const s = this.scene;
+    for (const tray of s.trays) {
+      if (!tray.done && !tray.completed && tray.onPrepTrack && !tray.waitingForCustomer) {
+        return tray;
+      }
+    }
+    return null;
+  }
+
+  // Auto-place ingredient directly onto active tray (no held item state)
+  autoPlace(ingredientKey) {
+    const s = this.scene;
+    const tray = this.findActiveTray();
+    if (!tray) return;
+
+    const ing = INGREDIENTS[ingredientKey];
+    const result = s.trayManager.tryPlace(tray, ingredientKey);
+
+    if (result === 'valid') {
+      // Combo increment
+      s.combo++;
+      s.comboTimer = 0;
+      if (s.combo > s.maxCombo) s.maxCombo = s.combo;
+
+      // Audio escalation — rising pitch with combo
+      soundManager.comboPlop(s.combo - 1);
+      s.particleManager.ingredientPlaced(tray.container.x, s.LAND_Y, ing.color);
+
+      // Combo display
+      s.hudManager.updateComboDisplay(s.combo);
+
+      // Small combo bonus points
+      if (s.combo > 1) {
+        const bonus = s.combo * 2;
+        s.currentScore += bonus;
+        s.refreshHUD();
+      }
+    } else if (result === 'wrong') {
+      // Reset combo
+      s.combo = 0;
+      s.comboTimer = 0;
+      s.hudManager.updateComboDisplay(0);
+
+      soundManager.buzz();
+      s.currentScore = Math.max(0, s.currentScore - WRONG_INGREDIENT_PENALTY);
+      s.refreshHUD();
+      s.flashTray(tray, 0xff0000);
+      s.particleManager.errorSparks(tray.container.x, s.LAND_Y);
+
+      const expectedKey = tray.order.ingredients[tray.placed.length];
+      const expectedName = expectedKey ? INGREDIENTS[expectedKey].name : '?';
+      const needTxt = s.add.text(tray.container.x, tray.container.y - 60,
+        `Need ${expectedName}!\n-${WRONG_INGREDIENT_PENALTY}`, {
+        fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
+        align: 'center',
+      }).setOrigin(0.5).setDepth(100);
+      s.tweens.add({
+        targets: needTxt, y: needTxt.y - 40, alpha: 0, duration: 1200,
+        onComplete: () => needTxt.destroy(),
+      });
+    }
+
+    // Update next-key prompt
+    this.updateNextKeyPrompt();
+  }
+
+  // Auto-apply treatment to active tray
+  autoTreat(treatmentKey) {
+    const s = this.scene;
+    const tray = this.findActiveTray();
+    if (!tray) return;
+
+    // Check if tray needs treatments and all ingredients are done
+    const ingredientsDone = tray.placed.length === tray.order.ingredients.length;
+    if (!ingredientsDone) {
+      soundManager.buzz();
+      return;
+    }
+
+    s.binsManager.applyTreatmentToTray(tray, treatmentKey);
+
+    // Combo on valid treatment
+    if (tray.appliedTreatments.includes(treatmentKey)) {
+      s.combo++;
+      s.comboTimer = 0;
+      if (s.combo > s.maxCombo) s.maxCombo = s.combo;
+      soundManager.comboPlop(s.combo - 1);
+      s.hudManager.updateComboDisplay(s.combo);
+    }
+
+    this.updateNextKeyPrompt();
+  }
+
+  // === FULL KEY SEQUENCE STRIP ===
+
+  updateNextKeyPrompt() {
+    this.updateKeySequenceStrip();
+    this.updateSellPrompt();
+  }
+
+  updateKeySequenceStrip() {
+    const s = this.scene;
+    const tray = this.findActiveTray();
+
+    if (!tray || tray.completed || tray.done) {
+      if (this.seqContainer) this.seqContainer.setVisible(false);
+      return;
+    }
+
+    const order = tray.order;
+
+    // Build step list: ingredients then treatments
+    const steps = [];
+    order.ingredients.forEach((key) => {
+      steps.push({ key, shortcut: this.getShortcutKey(key) || '?', type: 'ingredient' });
+    });
+    (order.treatments || []).forEach((key) => {
+      steps.push({ key, shortcut: this.getShortcutKey(key) || '?', type: 'treatment' });
+    });
+
+    // Rebuild container when tray changes
+    if (!this.seqContainer || this.seqTray !== tray) {
+      this.destroyKeySequenceStrip();
+      this.seqTray = tray;
+
+      this.seqContainer = s.add.container(0, 0).setDepth(48);
+      this.seqBadges = [];
+
+      // Name label for current step
+      this.seqNameLabel = s.add.text(0, 20, '', {
+        fontSize: '12px', color: '#FFE8CC', fontFamily: TICKET_FONT,
+      }).setOrigin(0.5);
+      this.seqContainer.add(this.seqNameLabel);
+
+      const badgeW = 30;
+      const badgeH = 24;
+      const gap = 5;
+      const totalW = steps.length * (badgeW + gap) - gap;
+      const startX = -totalW / 2;
+
+      steps.forEach((step, i) => {
+        const cx = startX + i * (badgeW + gap) + badgeW / 2;
+        const bg = s.add.graphics();
+        const txt = s.add.text(cx, 0, step.shortcut, {
+          fontSize: '14px', color: '#999', fontFamily: GAME_FONT, fontStyle: 'bold',
+        }).setOrigin(0.5);
+        this.seqContainer.add([bg, txt]);
+        this.seqBadges.push({ bg, txt, cx, badgeW, badgeH, step });
+      });
+    }
+
+    // Position above tray
+    this.seqContainer.setPosition(tray.container.x, tray.container.y - 135);
+    this.seqContainer.setVisible(true);
+
+    // Determine progress
+    const placedCount = tray.placed.length;
+    const ingCount = order.ingredients.length;
+    const ingredientsDone = placedCount >= ingCount;
+    const applied = tray.appliedTreatments || [];
+    let foundCurrent = false;
+    let currentName = '';
+    let currentCx = 0;
+
+    this.seqBadges.forEach((badge, i) => {
+      const { bg, txt, cx, badgeW, badgeH, step } = badge;
+      bg.clear();
+
+      let state = 'future';
+
+      if (step.type === 'ingredient') {
+        if (i < placedCount) {
+          state = 'done';
+        } else if (i === placedCount && !foundCurrent) {
+          state = 'current';
+          foundCurrent = true;
+          currentName = INGREDIENTS[step.key] ? INGREDIENTS[step.key].name : '';
+          currentCx = cx;
+        }
+      } else if (step.type === 'treatment') {
+        if (applied.includes(step.key)) {
+          state = 'done';
+        } else if (ingredientsDone && !foundCurrent) {
+          state = 'current';
+          foundCurrent = true;
+          currentName = TREATMENTS[step.key] ? TREATMENTS[step.key].name : '';
+          currentCx = cx;
+        }
+      }
+
+      const hw = badgeW / 2;
+      const hh = badgeH / 2;
+
+      if (state === 'done') {
+        bg.fillStyle(0x0a200a, 0.85);
+        bg.fillRoundedRect(cx - hw, -hh, badgeW, badgeH, 5);
+        bg.lineStyle(1.5, 0x22AA44, 0.6);
+        bg.strokeRoundedRect(cx - hw, -hh, badgeW, badgeH, 5);
+        txt.setColor('#22CC44');
+        txt.setAlpha(0.5);
+        txt.setScale(1);
+      } else if (state === 'current') {
+        bg.fillStyle(0x1a1510, 0.95);
+        bg.fillRoundedRect(cx - hw - 3, -hh - 3, badgeW + 6, badgeH + 6, 6);
+        bg.lineStyle(2, 0xFFBB44, 0.95);
+        bg.strokeRoundedRect(cx - hw - 3, -hh - 3, badgeW + 6, badgeH + 6, 6);
+        txt.setColor('#FFCC66');
+        txt.setAlpha(1);
+        txt.setScale(1.15);
+      } else {
+        bg.fillStyle(0x111111, 0.6);
+        bg.fillRoundedRect(cx - hw, -hh, badgeW, badgeH, 5);
+        bg.lineStyle(1, 0x444444, 0.4);
+        bg.strokeRoundedRect(cx - hw, -hh, badgeW, badgeH, 5);
+        txt.setColor('#777777');
+        txt.setAlpha(0.6);
+        txt.setScale(1);
+      }
+    });
+
+    // Position name label under the current badge
+    this.seqNameLabel.setText(currentName);
+    this.seqNameLabel.setPosition(currentCx, 20);
+  }
+
+  destroyKeySequenceStrip() {
+    if (this.seqContainer) {
+      this.scene.tweens.killTweensOf(this.seqContainer);
+      this.seqContainer.destroy();
+      this.seqContainer = null;
+      this.seqBadges = null;
+      this.seqTray = null;
+      this.seqNameLabel = null;
+    }
+  }
+
   setupKeyboardShortcuts() {
     const s = this.scene;
     const day = s.day ?? 99;
@@ -416,7 +654,10 @@ export class GameSceneInteraction {
       const key = s.input.keyboard.addKey(code);
       key.emitOnRepeat = false;
       key.on('down', () => {
-        if (s.isPaused || s.heldItem || !s.isStoreOpen) return;
+        if (s.isPaused || !s.isStoreOpen) return;
+
+        // If already holding an item (from mouse click), ignore hotkey
+        if (s.heldItem) return;
 
         if (ingredient) {
           const ing = INGREDIENTS[ingredient];
@@ -426,26 +667,127 @@ export class GameSceneInteraction {
         }
 
         soundManager.init();
+
+        // Auto-place directly onto active tray (no held item)
         if (treatment) {
-          s.binsManager.pickupTreatment(treatment);
+          this.autoTreat(treatment);
         } else if (ingredient) {
-          const pointer = s.input.activePointer;
-          if (ingredient.startsWith('sauce_')) {
-            s.binsManager.pickupSauce(ingredient);
-          } else {
-            if (!gameState.hasIngredientStock(ingredient)) {
-              soundManager.buzz();
-              return;
-            }
-            soundManager.hotkeySelect();
-            gameState.useIngredient(ingredient);
-            s.binsManager.checkDepletionByKey(ingredient);
-            const visual = s.createHeldVisual(ingredient, pointer.x, pointer.y);
-            s.heldItem = { visual, ingredientKey: ingredient, binX: 0, binY: 0 };
-          }
+          this.autoPlace(ingredient);
         }
       });
     });
+
+    // SPACE key — sell completed sandwich
+    const spaceKey = s.input.keyboard.addKey(KC.SPACE);
+    spaceKey.emitOnRepeat = false;
+    spaceKey.on('down', () => {
+      if (s.isPaused || !s.isStoreOpen) return;
+      if (s.heldItem) return;
+      soundManager.init();
+      this.sellFirstCompleted();
+    });
+  }
+
+  // ======================== SELL PROMPT ========================
+
+  findCompletedTray() {
+    const s = this.scene;
+    return s.trays.find(t => t.completed && !t.done && !t.scored && t.onPrepTrack);
+  }
+
+  updateSellPrompt() {
+    const s = this.scene;
+    const tray = this.findCompletedTray();
+
+    if (!this.sellContainer) {
+      this.sellContainer = s.add.container(0, 0).setDepth(50);
+      this.sellBg = s.add.graphics();
+      this.sellKeyText = s.add.text(0, 0, '', {
+        fontSize: '24px', color: '#44FF88', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5);
+      this.sellLabel = s.add.text(0, 24, '', {
+        fontSize: '14px', color: '#BBDDCC', fontFamily: TICKET_FONT,
+      }).setOrigin(0.5);
+      this.sellContainer.add([this.sellBg, this.sellKeyText, this.sellLabel]);
+    }
+
+    if (!tray) {
+      this.sellContainer.setVisible(false);
+      return;
+    }
+
+    const customer = s.customerManager.customers.find(c => c.tray === tray);
+    if (!customer || customer.personState !== 'at_counter') {
+      this.sellContainer.setVisible(false);
+      return;
+    }
+
+    const name = customer.name || 'Customer';
+
+    this.sellContainer.setPosition(tray.container.x, tray.container.y - 120);
+    this.sellContainer.setVisible(true);
+
+    this.sellBg.clear();
+    const label = `Sell to ${name}`;
+    const w = Math.max(180, label.length * 9 + 40);
+    this.sellBg.fillStyle(0x0a1a0a, 0.9);
+    this.sellBg.fillRoundedRect(-w / 2, -18, w, 56, 8);
+    this.sellBg.lineStyle(2, 0x44FF88, 0.9);
+    this.sellBg.strokeRoundedRect(-w / 2, -18, w, 56, 8);
+
+    this.sellKeyText.setText('SPACE');
+    this.sellLabel.setText(label);
+
+    // Pulse animation (only start once)
+    if (!this.sellPulsing) {
+      this.sellPulsing = true;
+      s.tweens.add({
+        targets: this.sellContainer,
+        scaleX: 1.06, scaleY: 1.06,
+        duration: 500,
+        yoyo: true,
+        repeat: -1,
+        ease: 'Sine.easeInOut',
+      });
+    }
+  }
+
+  sellFirstCompleted() {
+    const s = this.scene;
+    const tray = this.findCompletedTray();
+    if (!tray) return;
+
+    const customer = s.customerManager.customers.find(c => c.tray === tray);
+    if (!customer || customer.personState !== 'at_counter') return;
+
+    // Remove from prep track
+    if (tray.prepSlot) {
+      s.prepTrack.removeTray(tray.prepSlot);
+    }
+    tray.onPrepTrack = false;
+    tray.draggable = false;
+    tray.container.disableInteractive();
+    soundManager.whoosh();
+
+    // Animate tray flying to customer
+    s.tweens.add({
+      targets: tray.container,
+      x: customer.personX,
+      y: customer.personY,
+      scaleX: 0.5,
+      scaleY: 0.5,
+      duration: 350,
+      ease: 'Quad.easeIn',
+      onComplete: () => {
+        s.scoringManager.handleScore(tray);
+        tray.done = true;
+        s.destroyTray(tray);
+      },
+    });
+
+    // Update prompts
+    this.updateSellPrompt();
+    this.updateNextKeyPrompt();
   }
 
   // ======================== DELIVERY ARROW ========================
@@ -454,7 +796,7 @@ export class GameSceneInteraction {
     this.hideDeliveryArrow();
 
     const s = this.scene;
-    const customer = s.customerVessels.customers.find(c => c.tray === tray);
+    const customer = s.customerManager.customers.find(c => c.tray === tray);
     if (!customer || customer.personState !== 'at_counter') return;
 
     const container = s.add.container(customer.personX, customer.personY - 55).setDepth(50);
@@ -462,10 +804,10 @@ export class GameSceneInteraction {
     // Draw arrow using graphics
     const g = s.add.graphics();
     // Arrow shaft
-    g.fillStyle(0x44ff88, 0.9);
+    g.fillStyle(0xFFBB44, 0.9);
     g.fillRect(-3, -18, 6, 18);
     // Arrow head (triangle pointing down)
-    g.fillStyle(0x44ff88, 0.9);
+    g.fillStyle(0xFFBB44, 0.9);
     g.beginPath();
     g.moveTo(-10, 0);
     g.lineTo(10, 0);
@@ -473,7 +815,7 @@ export class GameSceneInteraction {
     g.closePath();
     g.fillPath();
     // Bright edge highlight
-    g.lineStyle(1, 0x88ffbb, 0.6);
+    g.lineStyle(1, 0xFFCC66, 0.6);
     g.beginPath();
     g.moveTo(-10, 0);
     g.lineTo(0, 14);
@@ -484,7 +826,7 @@ export class GameSceneInteraction {
 
     // Glow behind arrow
     const glow = s.add.graphics();
-    glow.fillStyle(0x44ff88, 0.15);
+    glow.fillStyle(0xFFBB44, 0.15);
     glow.fillCircle(0, 0, 20);
     container.addAt(glow, 0);
 

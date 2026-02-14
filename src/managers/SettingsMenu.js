@@ -50,7 +50,7 @@ export class SettingsMenu {
     panel.fillRoundedRect(centerX - panelWidth/2, centerY - panelHeight/2, panelWidth, panelHeight, 12);
 
     // Border
-    panel.lineStyle(3, 0x00ddee, 0.8);
+    panel.lineStyle(3, 0xFFBB44, 0.8);
     panel.strokeRoundedRect(centerX - panelWidth/2, centerY - panelHeight/2, panelWidth, panelHeight, 12);
 
     this.container.add(panel);
@@ -60,7 +60,7 @@ export class SettingsMenu {
       fontSize: '36px',
       fontFamily: GAME_FONT,
       fontStyle: 'bold',
-      color: '#00ddee'
+      color: '#FFBB44'
     }).setOrigin(0.5);
     this.container.add(title);
 
@@ -109,8 +109,8 @@ export class SettingsMenu {
       fontSize: '20px',
       fontFamily: GAME_FONT,
       fontStyle: 'bold',
-      color: crtEnabled ? '#44ff88' : '#ff6666',
-      backgroundColor: crtEnabled ? '#1a3a2a' : '#3a1a1a',
+      color: crtEnabled ? '#FFE8CC' : '#ff6666',
+      backgroundColor: crtEnabled ? '#3A2A1A' : '#3a1a1a',
       padding: { x: 16, y: 6 },
     }).setInteractive({ useHandCursor: true });
     this.container.add(this.crtToggle);
@@ -123,8 +123,8 @@ export class SettingsMenu {
       const newVal = !nowEnabled;
       localStorage.setItem('footers_crt', newVal ? 'true' : 'false');
       this.crtToggle.setText(newVal ? 'ON' : 'OFF');
-      this.crtToggle.setColor(newVal ? '#44ff88' : '#ff6666');
-      this.crtToggle.setBackgroundColor(newVal ? '#1a3a2a' : '#3a1a1a');
+      this.crtToggle.setColor(newVal ? '#FFE8CC' : '#ff6666');
+      this.crtToggle.setBackgroundColor(newVal ? '#3A2A1A' : '#3a1a1a');
 
       this.showRestartNote();
 
@@ -191,15 +191,13 @@ export class SettingsMenu {
         localStorage.removeItem('footers_gamestate');
         localStorage.removeItem('footers_crt');
         localStorage.removeItem('footers_highscore');
-        localStorage.removeItem('footers_challenges');
-
         // Reset in-memory state
         gameState.reset();
 
         // Visual feedback
         this.resetBtn.setText('\u2713 DATA CLEARED');
-        this.resetBtn.setColor('#44ff88');
-        this.resetBtn.setBackgroundColor('#1a3a2a');
+        this.resetBtn.setColor('#FFE8CC');
+        this.resetBtn.setBackgroundColor('#3A2A1A');
         this.resetBtn.disableInteractive();
 
         soundManager.cancelSound();
@@ -217,16 +215,16 @@ export class SettingsMenu {
       fontSize: '24px',
       fontFamily: GAME_FONT,
       fontStyle: 'bold',
-      color: '#44ff88'
+      color: '#FFE8CC'
     }).setOrigin(0.5).setInteractive({ useHandCursor: true });
 
     closeBtn.on('pointerover', () => {
-      closeBtn.setColor('#88ffbb');
+      closeBtn.setColor('#FFCC88');
       closeBtn.setScale(1.05);
     });
 
     closeBtn.on('pointerout', () => {
-      closeBtn.setColor('#44ff88');
+      closeBtn.setColor('#FFE8CC');
       closeBtn.setScale(1.0);
     });
 
@@ -290,7 +288,7 @@ export class SettingsMenu {
       x - sliderWidth/2 + sliderWidth * initialValue,
       y,
       14,
-      0x00ddee
+      0xFFBB44
     ).setInteractive({ draggable: true, useHandCursor: true });
 
     this.container.add(handle);
@@ -314,7 +312,7 @@ export class SettingsMenu {
 
       // Update fill
       fill.clear();
-      fill.fillStyle(0x00ddee, 0.6);
+      fill.fillStyle(0xFFBB44, 0.6);
       fill.fillRoundedRect(minX, y - sliderHeight/2, (clampedX - minX), sliderHeight, 4);
 
       // Update value text

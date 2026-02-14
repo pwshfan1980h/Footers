@@ -18,11 +18,26 @@ export class GameSceneScoring {
     tray.scored = true;
     s.ordersCompleted++;
 
-    const orderValue = (tray.order.totalPrice || DEFAULT_ORDER_VALUE) * s.locationModifiers.tipMult;
-    s.gameMoney += orderValue;
+    const orderValue = (tray.order.totalPrice || DEFAULT_ORDER_VALUE);
+    const baseScore = Math.floor(orderValue * SCORE_MULTIPLIER);
 
-    const scoreGain = Math.floor(orderValue * SCORE_MULTIPLIER);
+    // Speed bonus: 1x (slow) to 4x (instant), based on fraction of patience used
+    let speedMult = 1;
+    let elapsed = null;
+    const customer = s.customerManager.customers.find(c => c.tray === tray);
+    if (tray.spawnedAt && customer && customer.patienceMax > 0) {
+      elapsed = (Date.now() - tray.spawnedAt) / 1000;
+      const fraction = Math.min(1, Math.max(0, elapsed / customer.patienceMax));
+      // 4x at fraction=0, 1x at fraction=1, quadratic curve for generous mid-range
+      speedMult = 1 + 3 * Math.pow(1 - fraction, 2);
+    }
+
+    const scoreGain = Math.floor(baseScore * speedMult);
     s.currentScore += scoreGain;
+
+    if (elapsed != null && (s.fastestOrderThisShift == null || elapsed < s.fastestOrderThisShift)) {
+      s.fastestOrderThisShift = elapsed;
+    }
 
     const wasHighScore = s.currentScore > s.highScore;
     if (wasHighScore) {
@@ -30,6 +45,12 @@ export class GameSceneScoring {
       s.saveHighScore(s.highScore);
       soundManager.fanfare();
       this.showHighScoreFanfare();
+    } else if (speedMult >= 3.5) {
+      soundManager.sellBlazing();
+    } else if (speedMult >= 2.5) {
+      soundManager.sellSwift();
+    } else if (speedMult >= 1.5) {
+      soundManager.sellSteady();
     } else {
       soundManager.score();
     }
@@ -39,9 +60,15 @@ export class GameSceneScoring {
     s.refreshHUD();
     s.ticketBar.markTicketCompleted(tray.orderNum);
 
-    const popup = s.add.text(tray.container.x, tray.container.y - 70,
-      `$${orderValue.toFixed(2)}`, {
-      fontSize: '26px', color: '#0f0', fontFamily: GAME_FONT, fontStyle: 'bold',
+    // Score popup with multiplier info
+    const multLabel = speedMult >= 3.5 ? `x${speedMult.toFixed(1)}!!` : speedMult >= 2 ? `x${speedMult.toFixed(1)}!` : speedMult > 1.1 ? `x${speedMult.toFixed(1)}` : '';
+    const popupText = multLabel ? `+${scoreGain} ${multLabel}` : `+${scoreGain}`;
+    const popupColor = speedMult >= 3.5 ? '#FFD700' : speedMult >= 2 ? '#00FFCC' : '#0f0';
+    const popupSize = speedMult >= 3.5 ? '32px' : speedMult >= 2 ? '28px' : '26px';
+
+    const popup = s.add.text(tray.container.x, tray.container.y - 110,
+      popupText, {
+      fontSize: popupSize, color: popupColor, fontFamily: GAME_FONT, fontStyle: 'bold',
       align: 'center',
     }).setOrigin(0.5).setDepth(100);
 
@@ -51,14 +78,10 @@ export class GameSceneScoring {
     });
 
     // Speed rating — WoW combat numbers style
-    if (tray.spawnedAt) {
-      const elapsed = (Date.now() - tray.spawnedAt) / 1000;
-      if (s.fastestOrderThisShift == null || elapsed < s.fastestOrderThisShift) {
-        s.fastestOrderThisShift = elapsed;
-      }
-      const rating = this.getSpeedRating(elapsed);
+    if (elapsed != null) {
+      const rating = this.getSpeedRating(speedMult);
       if (rating) {
-        const speedText = s.add.text(tray.container.x + 40, tray.container.y - 90,
+        const speedText = s.add.text(tray.container.x + 60, tray.container.y - 130,
           rating.label, {
           fontSize: rating.size, color: rating.color, fontFamily: GAME_FONT, fontStyle: 'bold',
           stroke: '#000000', strokeThickness: 3,
@@ -82,15 +105,20 @@ export class GameSceneScoring {
       }
     }
 
-    s.customerVessels.undockVessel(tray);
+    s.customerManager.dismissCustomer(tray);
+
+    // Update next-key prompt (may shift to next active tray)
+    if (s.interactionManager && s.interactionManager.updateNextKeyPrompt) {
+      s.interactionManager.updateNextKeyPrompt();
+    }
 
     this.resolveSequential();
   }
 
-  getSpeedRating(seconds) {
-    if (seconds <= 4) return { label: 'BLAZING!', color: '#FFD700', size: '28px' };
-    if (seconds <= 8) return { label: 'SWIFT!', color: '#00FFCC', size: '24px' };
-    if (seconds <= 14) return { label: 'STEADY', color: '#AADDFF', size: '18px' };
+  getSpeedRating(speedMult) {
+    if (speedMult >= 3.5) return { label: 'BLAZING!', color: '#FFD700', size: '28px' };
+    if (speedMult >= 2.5) return { label: 'SWIFT!', color: '#00FFCC', size: '24px' };
+    if (speedMult >= 1.5) return { label: 'STEADY', color: '#AADDFF', size: '18px' };
     return null;
   }
 
@@ -122,6 +150,12 @@ export class GameSceneScoring {
     const s = this.scene;
     if (s.isPaused) return;
     s.ordersMissed++;
+
+    // Reset combo on miss
+    s.combo = 0;
+    s.comboTimer = 0;
+    s.hudManager.updateComboDisplay(0);
+
     s.refreshHUD();
     soundManager.buzz();
 
@@ -135,7 +169,7 @@ export class GameSceneScoring {
       onComplete: () => flash.destroy(),
     });
 
-    const miss = s.add.text(tray.container.x, tray.container.y - 40, '\u2717 MISSED!', {
+    const miss = s.add.text(tray.container.x, tray.container.y - 80, '\u2717 MISSED!', {
       fontSize: '36px', color: '#ff3333', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(100);
 
@@ -144,7 +178,12 @@ export class GameSceneScoring {
       onComplete: () => miss.destroy(),
     });
 
-    s.customerVessels.undockVessel(tray);
+    s.customerManager.dismissCustomer(tray);
+
+    // Update next-key prompt
+    if (s.interactionManager && s.interactionManager.updateNextKeyPrompt) {
+      s.interactionManager.updateNextKeyPrompt();
+    }
 
     // Game over: fired after too many missed orders
     if (s.ordersMissed >= MAX_MISSES) {
@@ -152,9 +191,6 @@ export class GameSceneScoring {
       s.time.delayedCall(GAME_OVER_DELAY, () => {
         s.scene.start('GameOver', {
           totalScore: s.currentScore,
-          day: s.day || 1,
-          earnings: s.gameMoney,
-          locationId: s.locationData?.id || null,
           ordersCompleted: s.ordersCompleted,
           ordersMissed: s.ordersMissed,
         });

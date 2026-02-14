@@ -1,14 +1,12 @@
 import Phaser from 'phaser';
 import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
-import { gameState } from '../data/GameState.js';
 import { DEBUG } from '../config.js';
 import { TutorialOverlay } from '../managers/TutorialOverlay.js';
 import { WarningSystem } from '../managers/WarningSystem.js';
 import { ParticleManager } from '../managers/ParticleManager.js';
 import { SettingsMenu } from '../managers/SettingsMenu.js';
 import { PrepTrack } from '../managers/PrepTrack.js';
-import { CustomerVessels } from '../managers/CustomerVessels.js';
-import { RevenueChallenges } from '../managers/RevenueChallenges.js';
+import { CustomerManager } from '../managers/CustomerManager.js';
 import { CustomerDeck } from '../managers/CustomerDeck.js';
 import { GameSceneBackground } from '../managers/GameSceneBackground.js';
 import { GameSceneHUD } from '../managers/GameSceneHUD.js';
@@ -17,12 +15,11 @@ import { GameSceneBins } from '../managers/GameSceneBins.js';
 import { GameSceneInteraction } from '../managers/GameSceneInteraction.js';
 import { GameSceneTray } from '../managers/GameSceneTray.js';
 import { GameSceneScoring } from '../managers/GameSceneScoring.js';
-import { RadioChatter } from '../managers/RadioChatter.js';
 import { NotificationManager } from '../managers/NotificationManager.js';
 import { soundManager } from '../SoundManager.js';
 import { musicManager } from '../MusicManager.js';
 import {
-  HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK, GAME_FONT,
+  HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK,
   FIRST_ORDER_DELAY, NEXT_ORDER_DELAY, SEQUENTIAL_ORDER_CAP,
 } from '../data/constants.js';
 import { THEME, LAYOUT } from '../data/theme.js';
@@ -35,13 +32,10 @@ export class GameScene extends Phaser.Scene {
     super('Game');
   }
 
-  init(data) {
+  init() {
     this.currentScore = 0;
     this.highScore = this.loadHighScore();
     this.gameTime = 0;
-
-    this.locationData = data?.location || null;
-    this.locationModifiers = data?.modifiers || { speedMult: 1.0, spawnMult: 1.0, tipMult: 1.0 };
   }
 
   loadHighScore() {
@@ -66,7 +60,6 @@ export class GameScene extends Phaser.Scene {
     Object.assign(this, THEME, LAYOUT);
     this.NEON_PINK = NEON_PINK;
 
-    this.gameMoney = 0;
     this.trays = [];
     this.tickets = [];
     this.ordersCompleted = 0;
@@ -87,14 +80,22 @@ export class GameScene extends Phaser.Scene {
     this.magnetActive = false;
     this.fastestOrderThisShift = null;
 
+    // Combo system
+    this.combo = 0;
+    this.maxCombo = 0;
+    this.comboTimer = 0;
+    this.comboTimeout = 5000; // ms before combo resets from inactivity
+
+    // Input buffer (for rhythm-game feel)
+    this.inputBuffer = null;
+    this.isPlacing = false; // true while placement animation is running
+
     this.tutorialOverlay = new TutorialOverlay(this);
     this.warningSystem = new WarningSystem(this);
     this.particleManager = new ParticleManager(this);
     this.settingsMenu = new SettingsMenu(this);
     this.prepTrack = new PrepTrack(this);
-    this.customerVessels = new CustomerVessels(this);
-    this.revenueChallenges = new RevenueChallenges(this);
-
+    this.customerManager = new CustomerManager(this);
     this.customerDeck = new CustomerDeck(this);
     this.backgroundManager = new GameSceneBackground(this);
     this.hudManager = new GameSceneHUD(this);
@@ -103,27 +104,9 @@ export class GameScene extends Phaser.Scene {
     this.interactionManager = new GameSceneInteraction(this);
     this.trayManager = new GameSceneTray(this);
     this.scoringManager = new GameSceneScoring(this);
-    this.radioChatter = new RadioChatter(this);
     this.notificationManager = new NotificationManager(this);
 
     this.escKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.ESC);
-
-    this.f1Key = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.F1);
-    this.hotkeyHints = [];
-    this.labelHints = [];
-    this.f1Key.on('down', (event) => {
-      if (event?.originalEvent) event.originalEvent.preventDefault();
-      this.hudManager.showHotkeyHints(true);
-    });
-    this.f1Key.on('up', () => this.hudManager.showHotkeyHints(false));
-    this.input.keyboard.on('keydown-F1', (event) => event.preventDefault());
-
-    // Tab key for cargo panel
-    this.tabKey = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.TAB);
-    this.tabKey.on('down', (event) => {
-      if (event?.originalEvent) event.originalEvent.preventDefault();
-      this.hudManager.toggleCargoPanel();
-    });
 
     // --- build scene ---
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, this.HULL_DARK);
@@ -149,9 +132,7 @@ export class GameScene extends Phaser.Scene {
     this.settingsMenu.create();
 
     this.prepTrack.create();
-    this.customerVessels.create();
-    this.revenueChallenges.create();
-    this.radioChatter.create();
+    this.customerManager.create();
     this.notificationManager.create();
 
     // Apply post-processing shaders (WebGL only)
@@ -167,12 +148,9 @@ export class GameScene extends Phaser.Scene {
     musicManager.start();
   }
 
-  ordersDisplay() {
-    return `Orders: ${this.ordersCompleted}`;
-  }
-
-  createHotkeyHint(x, y, key, depth = 22) {
-    return this.hudManager.createHotkeyHint(x, y, key, depth);
+  createHotkeyHint() {
+    // No-op — hotkey hints removed (next-key prompt replaces F1 overlay)
+    return null;
   }
 
   createHeldVisual(key, x, y) {
@@ -189,9 +167,9 @@ export class GameScene extends Phaser.Scene {
 
   flashTray(tray, color) {
     const flash = this.add.graphics();
-    const hw = 70;
+    const hw = 110;
     flash.fillStyle(color, 0.25);
-    flash.fillRoundedRect(-hw, -130, hw * 2, 145, 8);
+    flash.fillRoundedRect(-hw, -170, hw * 2, 200, 8);
     tray.container.add(flash);
     this.tweens.add({
       targets: flash, alpha: 0, duration: 600,
@@ -225,29 +203,6 @@ export class GameScene extends Phaser.Scene {
     });
   }
 
-  endShift() {
-    if (this.isPaused) return;
-    this.isPaused = true;
-
-    const earnings = this.gameMoney;
-    const locationId = this.locationData?.id || null;
-
-    gameState.updateAfterShift(locationId, earnings, this.ordersCompleted, this.ordersMissed, this.fastestOrderThisShift);
-
-    if (this.currentScore > this.highScore) {
-      this.saveHighScore(this.currentScore);
-    }
-
-    soundManager.fanfare();
-
-    this.time.delayedCall(600, () => {
-      this.scene.start('SystemMap', {
-        returnFromShift: true,
-        shiftEarnings: earnings,
-      });
-    });
-  }
-
   destroyTray(tray) {
     this.trayManager.destroyTray(tray);
   }
@@ -273,10 +228,7 @@ export class GameScene extends Phaser.Scene {
     }
 
     this.customerDeck.update(delta);
-    this.customerVessels.update(delta);
-    this.revenueChallenges.update(delta);
-    this.radioChatter.update(delta);
-
+    this.customerManager.update(delta);
     if (this.isStoreOpen && this.prepTrack.findEmptySlot()) {
       if (this.ordersSpawned < SEQUENTIAL_ORDER_CAP) {
         if (this.waitingForNext) {
@@ -299,17 +251,26 @@ export class GameScene extends Phaser.Scene {
 
     this.trays = this.trays.filter((t) => !t.done);
 
+    // Combo timeout
+    if (this.combo > 0) {
+      this.comboTimer += delta;
+      if (this.comboTimer >= this.comboTimeout) {
+        this.combo = 0;
+        this.comboTimer = 0;
+        this.hudManager.updateComboDisplay(0);
+      }
+    }
+
     this.updateDifficulty();
   }
 
   updateDifficulty() {
     const minutesPlayed = this.gameTime / 60;
     const diff = DIFFICULTY_PROGRESSION;
-    const mods = this.locationModifiers;
 
     this.spawnInterval = Math.max(
-      diff.minSpawnInterval / mods.spawnMult,
-      (diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease) / mods.spawnMult
+      diff.minSpawnInterval,
+      diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease
     );
   }
 }

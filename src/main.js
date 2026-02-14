@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { BootScene } from './scenes/BootScene.js';
 import { TitleScene } from './scenes/TitleScene.js';
-import { SystemMapScene } from './scenes/SystemMapScene.js';
 import { GameScene } from './scenes/GameScene.js';
 import { DayEndScene } from './scenes/DayEndScene.js';
 import { GameOverScene } from './scenes/GameOverScene.js';
@@ -27,7 +26,7 @@ const config = {
   width: GAME_WIDTH,
   height: GAME_HEIGHT,
   backgroundColor: '#1a1a2e',
-  scene: [BootScene, TitleScene, SystemMapScene, GameScene, DayEndScene, GameOverScene, WinScene],
+  scene: [BootScene, TitleScene, GameScene, DayEndScene, GameOverScene, WinScene],
   scale: {
     mode: Phaser.Scale.FIT,
     autoCenter: Phaser.Scale.CENTER_BOTH,

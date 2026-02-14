@@ -1,7 +1,7 @@
 /**
  * Shared color manipulation utilities.
  * Consolidates darken/lighten helpers previously duplicated across
- * GameSceneBackground, CustomerVessels, and this file.
+ * GameSceneBackground, CustomerManager, and this file.
  */
 
 /**

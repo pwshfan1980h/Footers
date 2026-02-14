@@ -8,7 +8,7 @@ export class WarningSystem {
   }
 
   update() {
-    const customers = this.scene.customerVessels?.customers || [];
+    const customers = this.scene.customerManager?.customers || [];
 
     // Track which orders are still active
     const activeIds = new Set();

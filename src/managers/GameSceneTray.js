@@ -3,13 +3,12 @@
  */
 import { INGREDIENTS, INGREDIENTS_BY_CATEGORY, TREATMENTS, DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
-import { gameState } from '../data/GameState.js';
 import {
   MAX_ACTIVE_ORDERS, CHEESE_CHANCE, SAUCE_CHANCE, DOUBLE_TREATMENT_CHANCE,
   BASE_PRICE, DEFAULT_INGREDIENT_PRICE, TREATMENT_PRICE,
   LAYER_HEIGHT_SAUCE, LAYER_HEIGHT_TOPPING, LAYER_HEIGHT_CHEESE,
   LAYER_HEIGHT_MEAT, LAYER_HEIGHT_BREAD,
-  GAME_FONT, SEQUENTIAL_ORDER_CAP,
+  GAME_FONT, TICKET_FONT, SEQUENTIAL_ORDER_CAP,
 } from '../data/constants.js';
 
 export class GameSceneTray {
@@ -34,10 +33,10 @@ export class GameSceneTray {
 
     const container = s.add.container(slot.x, slot.y).setDepth(10);
     container.setAlpha(0);
-    container.setScale(0.85);
+    container.setScale(1.3);
 
-    const hintText = s.add.text(0, -50, '', {
-      fontSize: '12px', color: '#ff0', fontFamily: GAME_FONT, fontStyle: 'bold',
+    const hintText = s.add.text(0, -75, '', {
+      fontSize: '12px', color: '#ff0', fontFamily: TICKET_FONT, fontStyle: 'bold',
       backgroundColor: '#00000088',
       padding: { x: 3, y: 1 },
     }).setOrigin(0.5).setDepth(11);
@@ -67,16 +66,21 @@ export class GameSceneTray {
 
     s.trays.push(tray);
 
-    container.setSize(140, 120);
+    container.setSize(200, 180);
     s.ordersSpawned++;
 
-    s.customerVessels.dockVessel(tray, () => {
+    s.customerManager.addCustomer(tray, () => {
       tray.waitingForCustomer = false;
       tray.spawnedAt = Date.now();
 
       s.ticketBar.addTicket(order, orderNum);
 
       s.updateTrayNextHint(tray);
+
+      // Update prominent next-key prompt
+      if (s.interactionManager.updateNextKeyPrompt) {
+        s.interactionManager.updateNextKeyPrompt();
+      }
 
       s.tweens.add({
         targets: container,
@@ -112,17 +116,11 @@ export class GameSceneTray {
       return out;
     };
 
-    const breads = gameState.getAvailableIngredients('bread')
-      .filter(k => gameState.getIngredientCount(k) >= 2); // need 2 for top+bottom
-    const meats = gameState.getAvailableIngredients('meat');
-    const cheeses = gameState.getAvailableIngredients('cheese');
-    const toppings = gameState.getAvailableIngredients('topping');
+    const breads = INGREDIENTS_BY_CATEGORY['bread'] || [];
+    const meats = INGREDIENTS_BY_CATEGORY['meat'] || [];
+    const cheeses = INGREDIENTS_BY_CATEGORY['cheese'] || [];
+    const toppings = INGREDIENTS_BY_CATEGORY['topping'] || [];
     const sauces = INGREDIENTS_BY_CATEGORY['sauce'] || [];
-
-    // Must have at least bread and meat to make an order
-    if (breads.length === 0 || meats.length === 0) {
-      return null;
-    }
 
     const minutesPlayed = s.gameTime / 60;
     const diff = DIFFICULTY_PROGRESSION;
@@ -219,21 +217,21 @@ export class GameSceneTray {
     const ly = -2 - tray.stackHeight;
     tray.stackHeight += layerH;
 
-    const rX = (Math.random() - 0.5) * 4;
-    const rY = (Math.random() - 0.5) * 2;
-    const w = 55;
+    const rX = (Math.random() - 0.5) * 6;
+    const rY = (Math.random() - 0.5) * 3;
+    const w = 90;
     const hw = w / 2;
 
     if (cat === 'sauce') {
       // Sauce stays as Graphics zigzag
       const g = s.add.graphics();
-      g.lineStyle(2.5, ing.color, 0.9);
+      g.lineStyle(3.5, ing.color, 0.9);
       g.beginPath();
-      const steps = 7;
-      g.moveTo(rX - hw + 6, ly + rY);
+      const steps = 9;
+      g.moveTo(rX - hw + 8, ly + rY);
       for (let i = 1; i <= steps; i++) {
-        const px = rX - hw + 6 + (i / steps) * (w - 12);
-        const py = ly + rY + (i % 2 === 0 ? -3 : 3);
+        const px = rX - hw + 8 + (i / steps) * (w - 16);
+        const py = ly + rY + (i % 2 === 0 ? -4 : 4);
         g.lineTo(px, py);
       }
       g.strokePath();
@@ -261,15 +259,15 @@ export class GameSceneTray {
 
     if (cat === 'bread') {
       const isBottom = tray.stackLayers.length === 0;
-      img.setScale(0.85, isBottom ? 0.33 : 0.28);
+      img.setScale(1.4, isBottom ? 0.55 : 0.46);
       if (!tray.breadLayers) tray.breadLayers = [];
       tray.breadLayers.push({ image: img, key: ingredientKey, isBottom, rX, rY, ly });
     } else if (cat === 'meat') {
-      img.setScale(0.43, 0.22);
+      img.setScale(0.72, 0.36);
     } else if (cat === 'cheese') {
-      img.setScale(0.43, 0.18);
+      img.setScale(0.72, 0.30);
     } else if (cat === 'topping') {
-      img.setScale(0.45, 0.22);
+      img.setScale(0.75, 0.36);
     }
 
     tray.container.add(img);
@@ -350,6 +348,11 @@ export class GameSceneTray {
     const s = this.scene;
     tray.completed = true;
     if (tray.hintText) tray.hintText.setText('');
+
+    // Update next-key prompt (may shift to next tray)
+    if (s.interactionManager.updateNextKeyPrompt) {
+      s.interactionManager.updateNextKeyPrompt();
+    }
 
     // Enable dragging now that the sandwich is complete
     tray.container.setInteractive({ draggable: true, useHandCursor: true });

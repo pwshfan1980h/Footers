@@ -1,17 +1,18 @@
 /**
- * CustomerDeck - Interior customer reception area with airlock, standing positions,
- * and decorative elements drawn between the hull portholes and the service counter.
+ * CustomerDeck - Cantina interior customer area with swinging saloon doors,
+ * standing positions, and warm decorative elements between the windows and counter.
  */
 import { GAME_WIDTH } from '../data/constants.js';
+import { soundManager } from '../SoundManager.js';
 
 export class CustomerDeck {
   constructor(scene) {
     this.scene = scene;
-    this.airlockState = 'closed'; // closed | opening | open | closing
-    this.airlockProgress = 0; // 0 = closed, 1 = fully open
-    this.airlockQueue = []; // callbacks waiting for airlock open/close
+    this.doorState = 'closed'; // closed | opening | open | closing
+    this.doorProgress = 0; // 0 = closed, 1 = fully open
+    this.doorQueue = []; // callbacks waiting for door open/close
     this.gfx = null;
-    this.airlockGfx = null;
+    this.doorGfx = null;
   }
 
   create() {
@@ -21,282 +22,298 @@ export class CustomerDeck {
     const deckH = deckBot - deckTop;
 
     this.gfx = s.add.graphics().setDepth(1.0);
-    this.airlockGfx = s.add.graphics().setDepth(1.5);
+    this.doorGfx = s.add.graphics().setDepth(1.5);
 
     const g = this.gfx;
 
-    // === WALLS ===
-    // Cool blue-gray interior walls
-    g.fillStyle(0x3A4555, 1);
+    // === WALLS (warm adobe interior) ===
+    g.fillStyle(0x5A4530, 1);
     g.fillRect(0, deckTop, GAME_WIDTH, deckH);
 
-    // Wall panel seams (horizontal)
-    g.lineStyle(1, 0x2A3545, 0.3);
-    g.lineBetween(0, deckTop + 30, GAME_WIDTH, deckTop + 30);
-    g.lineBetween(0, deckTop + deckH * 0.6, GAME_WIDTH, deckTop + deckH * 0.6);
+    // Stucco texture (horizontal cracks)
+    g.lineStyle(1, 0x4A3520, 0.2);
+    g.lineBetween(0, deckTop + 25, GAME_WIDTH, deckTop + 25);
+    g.lineBetween(0, deckTop + deckH * 0.55, GAME_WIDTH, deckTop + deckH * 0.55);
 
-    // Wall panel seams (vertical)
-    for (let x = 170; x < GAME_WIDTH; x += 215) {
-      g.lineStyle(1, 0x2A3545, 0.25);
+    // Vertical mortar lines
+    for (let x = 200; x < GAME_WIDTH; x += 250) {
+      g.lineStyle(1, 0x4A3520, 0.15);
       g.lineBetween(x, deckTop, x, deckBot);
     }
 
-    // === FLOOR ===
-    // Dark blue-gray deck plating at the bottom half
+    // Warm wear patches on walls
+    g.fillStyle(0x6A5538, 0.15);
+    g.fillEllipse(400, deckTop + 40, 120, 30);
+    g.fillStyle(0x4A3520, 0.1);
+    g.fillEllipse(1400, deckTop + 50, 80, 25);
+
+    // === FLOOR (warm stone/tile) ===
     const floorY = deckTop + deckH * 0.45;
-    g.fillStyle(0x2A3545, 1);
+    g.fillStyle(0x3A2A18, 1);
     g.fillRect(0, floorY, GAME_WIDTH, deckBot - floorY);
 
-    // Floor panel lines
-    g.lineStyle(1, 0x1A2535, 0.25);
-    for (let y = floorY + 10; y < deckBot; y += 15) {
+    // Stone floor tile lines
+    g.lineStyle(1, 0x2A1A10, 0.2);
+    for (let y = floorY + 12; y < deckBot; y += 18) {
       g.lineBetween(0, y, GAME_WIDTH, y);
     }
-    for (let x = 50; x < GAME_WIDTH; x += 128) {
-      g.lineStyle(1, 0x1A2535, 0.2);
+    for (let x = 60; x < GAME_WIDTH; x += 140) {
+      g.lineStyle(1, 0x2A1A10, 0.15);
       g.lineBetween(x, floorY, x, deckBot);
     }
 
-    // === OVERHEAD LIGHTING ===
-    // Warm fluorescent glow strips
-    const lightY = deckTop + 8;
-    g.fillStyle(0xFFEECC, 0.12);
-    g.fillRect(150, lightY, 375, 4);
-    g.fillRect(750, lightY, 469, 4);
-    g.fillRect(1406, lightY, 375, 4);
+    // === OVERHEAD LIGHTING (warm lanterns) ===
+    const lightY = deckTop + 6;
 
-    // Light glow halos
-    g.fillStyle(0xFFEECC, 0.06);
-    g.fillEllipse(338, lightY + 20, 450, 40);
-    g.fillEllipse(984, lightY + 20, 563, 40);
-    g.fillEllipse(1594, lightY + 20, 450, 40);
+    // Warm lantern glow strips
+    g.fillStyle(0xFFCC88, 0.15);
+    g.fillRect(180, lightY, 300, 4);
+    g.fillRect(800, lightY, 350, 4);
+    g.fillRect(1450, lightY, 300, 4);
 
-    // === CIRCULAR AIRLOCK FRAME ===
-    const alX = s.AIRLOCK_X;
-    const alY = s.AIRLOCK_Y;
-    const alR = s.AIRLOCK_RADIUS;
+    // Lantern halos
+    g.fillStyle(0xFFCC88, 0.08);
+    g.fillEllipse(330, lightY + 25, 400, 50);
+    g.fillEllipse(975, lightY + 25, 500, 50);
+    g.fillEllipse(1600, lightY + 25, 400, 50);
 
-    // Outer warning ring
-    g.lineStyle(3, 0xCCAA00, 0.3);
-    g.strokeCircle(alX, alY, alR + 10);
+    // Small hanging lantern fixtures
+    const lanternX = [250, 500, 900, 1100, 1500, 1750];
+    lanternX.forEach(lx => {
+      // Chain
+      g.lineStyle(1, 0x7A5830, 0.6);
+      g.lineBetween(lx, deckTop, lx, deckTop + 12);
+      // Lantern body
+      g.fillStyle(0x7A5830, 0.8);
+      g.fillRect(lx - 4, deckTop + 10, 8, 8);
+      // Warm glow
+      g.fillStyle(0xFFCC44, 0.25);
+      g.fillCircle(lx, deckTop + 14, 6);
+      g.fillStyle(0xFFCC44, 0.1);
+      g.fillCircle(lx, deckTop + 18, 12);
+    });
 
-    // Heavy chrome outer ring
-    g.lineStyle(6, 0x606878, 1);
-    g.strokeCircle(alX, alY, alR + 5);
-    // Inner chrome ring
-    g.lineStyle(3, 0x505060, 1);
-    g.strokeCircle(alX, alY, alR + 1);
+    // === DOOR FRAME ===
+    const alX = s.DOOR_X;
+    const alY = s.DOOR_Y;
+    const alR = s.DOOR_RADIUS;
+    const doorW = alR * 2 + 6;
+    const doorH = alR * 2 + 20;
+    const doorTop = alY - alR - 10;
 
-    // Highlight arc (top half — catches light)
-    g.lineStyle(2, 0x707888, 0.6);
-    g.beginPath();
-    g.arc(alX, alY, alR + 6, -Math.PI * 0.85, -Math.PI * 0.15);
-    g.strokePath();
+    // Wooden door frame
+    g.fillStyle(0x3A2A18, 1);
+    g.fillRect(alX - doorW / 2 - 6, doorTop - 8, doorW + 12, doorH + 16);
 
-    // Shadow arc (bottom half)
-    g.lineStyle(2, 0x404858, 0.8);
-    g.beginPath();
-    g.arc(alX, alY, alR + 6, Math.PI * 0.15, Math.PI * 0.85);
-    g.strokePath();
+    // Frame inner beveled edge
+    g.fillStyle(0x4A3A28, 1);
+    g.fillRect(alX - doorW / 2 - 3, doorTop - 4, doorW + 6, doorH + 8);
 
-    // Bolts at 8 positions around the frame
-    for (let i = 0; i < 8; i++) {
-      const angle = (i / 8) * Math.PI * 2;
-      const bx = alX + Math.cos(angle) * (alR + 6);
-      const by = alY + Math.sin(angle) * (alR + 6);
-      g.fillStyle(0x505060, 1);
-      g.fillCircle(bx, by, 2.5);
-      g.fillStyle(0x707888, 0.6);
-      g.fillCircle(bx - 0.5, by - 0.5, 1);
-    }
+    // Opening behind doors (dark interior)
+    g.fillStyle(0x120a05, 1);
+    g.fillRect(alX - doorW / 2, doorTop, doorW, doorH);
 
-    // Inner rim (recessed edge visible when door is open)
-    g.lineStyle(1, 0x2A3545, 0.6);
-    g.strokeCircle(alX, alY, alR - 1);
+    // Frame highlight
+    g.lineStyle(2, 0x5A4A30, 0.6);
+    g.strokeRect(alX - doorW / 2 - 4, doorTop - 6, doorW + 8, doorH + 12);
 
-    // "AIRLOCK" label above
+    // "ENTRANCE" sign (brass plate above door)
     const labelGfx = s.add.graphics().setDepth(1.2);
-    labelGfx.fillStyle(0x404050, 0.8);
-    labelGfx.fillRoundedRect(alX - 30, alY - alR - 22, 60, 12, 3);
+    labelGfx.fillStyle(0x7A5830, 0.8);
+    labelGfx.fillRoundedRect(alX - 55, doorTop - 24, 110, 18, 4);
+    labelGfx.fillStyle(0xC8A060, 0.6);
+    labelGfx.fillRoundedRect(alX - 52, doorTop - 21, 104, 13, 3);
 
-    // === HANDRAILS ===
+    // === BAR RAILING (replaces handrails) ===
     const railY = deckTop + 55;
-    g.fillStyle(0x707888, 0.7);
-    g.fillRect(112, railY, 713, 3);
-    g.fillRect(1095, railY, 713, 3);
+    const railGap = doorW / 2 + 16; // gap around door frame
+    const railLeftEnd = alX - railGap;
+    const railRightStart = alX + railGap;
+    // Dark wood railing
+    g.fillStyle(0x5A4020, 0.8);
+    g.fillRect(112, railY, railLeftEnd - 112, 4);
+    g.fillRect(railRightStart, railY, 1808 - railRightStart, 4);
     // Rail highlight
-    g.fillStyle(0x909AA8, 0.4);
-    g.fillRect(112, railY, 713, 1);
-    g.fillRect(1095, railY, 713, 1);
-    // Rail supports
-    for (let x = 112; x <= 825; x += 178) {
-      g.fillStyle(0x606878, 0.8);
-      g.fillRect(x, railY, 4, 12);
+    g.fillStyle(0x7A6040, 0.4);
+    g.fillRect(112, railY, railLeftEnd - 112, 1);
+    g.fillRect(railRightStart, railY, 1808 - railRightStart, 1);
+    // Rail supports (turned wood posts)
+    for (let x = 112; x <= railLeftEnd - 20; x += 160) {
+      g.fillStyle(0x4A3020, 0.9);
+      g.fillRect(x, railY, 5, 14);
+      g.fillStyle(0x6A5040, 0.5);
+      g.fillCircle(x + 2, railY + 7, 3);
     }
-    for (let x = 1095; x <= 1808; x += 178) {
-      g.fillStyle(0x606878, 0.8);
-      g.fillRect(x, railY, 4, 12);
+    for (let x = railRightStart + 20; x <= 1808; x += 160) {
+      g.fillStyle(0x4A3020, 0.9);
+      g.fillRect(x, railY, 5, 14);
+      g.fillStyle(0x6A5040, 0.5);
+      g.fillCircle(x + 2, railY + 7, 3);
     }
 
     // === DECORATIVE ELEMENTS ===
 
-    // Ceiling camera dome (top left)
-    g.fillStyle(0x333344, 0.9);
-    g.fillCircle(150, deckTop + 14, 6);
-    g.fillStyle(0x555566, 0.7);
-    g.fillCircle(150, deckTop + 13, 3);
-    g.fillStyle(0xFF4444, 0.6);
-    g.fillCircle(152, deckTop + 12, 1.5);
+    // Wanted poster (left wall)
+    g.fillStyle(0xD4C4A0, 0.5);
+    g.fillRect(130, deckTop + 12, 24, 30);
+    g.lineStyle(1, 0x8A7A5A, 0.4);
+    g.strokeRect(130, deckTop + 12, 24, 30);
 
-    // "NO SMOKING" sign (tiny, right wall)
-    g.fillStyle(0xCC2222, 0.5);
-    g.fillCircle(1781, deckTop + 22, 5);
-    g.lineStyle(1.5, 0xffffff, 0.5);
-    g.lineBetween(1778, deckTop + 19, 1784, deckTop + 25);
+    // Neon "OPEN" sign (right wall)
+    g.fillStyle(0xFF8844, 0.25);
+    g.fillRoundedRect(1740, deckTop + 12, 40, 18, 4);
+    g.fillStyle(0xFF8844, 0.1);
+    g.fillCircle(1760, deckTop + 21, 16);
 
-    // Standing position markers (subtle floor dots)
+    // Standing position markers (subtle floor marks)
     const positions = this.getStandingPositions();
     positions.forEach(pos => {
-      g.fillStyle(0x555544, 0.3);
+      g.fillStyle(0x4A3A20, 0.3);
       g.fillEllipse(pos.x, deckBot - 12, 30, 6);
     });
 
-    // Draw initial airlock doors (closed)
-    this.drawAirlockDoors();
+    // Draw initial saloon doors (closed)
+    this.drawDoors();
   }
 
   getStandingPositions() {
     return [
-      { x: 300, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
-      { x: 731, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
-      { x: 1189, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
-      { x: 1620, y: this.scene.CUSTOMER_DECK_BOTTOM - 30 },
+      { x: 300, y: 395 },
+      { x: 731, y: 395 },
+      { x: 1189, y: 395 },
+      { x: 1620, y: 395 },
     ];
   }
 
-  drawAirlockDoors() {
+  drawDoors() {
     const s = this.scene;
-    const g = this.airlockGfx;
+    const g = this.doorGfx;
     g.clear();
 
-    const cx = s.AIRLOCK_X;
-    const cy = s.AIRLOCK_Y;
-    const R = s.AIRLOCK_RADIUS;
-    const progress = this.airlockProgress;
+    const cx = s.DOOR_X;
+    const cy = s.DOOR_Y;
+    const R = s.DOOR_RADIUS;
+    const progress = this.doorProgress;
 
-    if (progress >= 1) return; // fully open — nothing to draw
+    if (progress >= 1) return; // fully open
 
-    // Iris aperture: 8 overlapping blades that rotate open
-    const numBlades = 8;
-    const bladeArc = (Math.PI * 2) / numBlades;
-    // Inner tip retreats from center toward edge as door opens
-    const innerR = R * progress * 0.95;
+    // Swinging saloon doors (two panels that swing outward)
+    const doorW = R;
+    const doorH = R * 2 + 10;
+    const doorTop = cy - R - 5;
 
-    for (let i = 0; i < numBlades; i++) {
-      const baseAngle = i * bladeArc - Math.PI / 2;
-      // Blades rotate outward as door opens
-      const rotAngle = baseAngle + progress * bladeArc * 0.6;
-      // Blade angular width (overlap when closed, shrinks slightly when opening)
-      const halfArc = bladeArc * 0.7 * (1 - progress * 0.2);
+    // Swing angle: 0 (closed) to PI/2.5 (open)
+    const swingAngle = progress * (Math.PI / 2.5);
 
-      // Alternate blade shade for depth
-      g.fillStyle(i % 2 === 0 ? 0x606878 : 0x586070, 1);
-      g.beginPath();
+    // Door panel apparent width shrinks as it swings open (perspective)
+    const apparentW = doorW * Math.cos(swingAngle);
 
-      // Inner tip point
-      const tipX = cx + Math.cos(rotAngle) * innerR;
-      const tipY = cy + Math.sin(rotAngle) * innerR;
-      g.moveTo(tipX, tipY);
+    // Left door
+    const leftDoorX = cx - apparentW;
+    if (apparentW > 1) {
+      // Door panel (dark wood)
+      g.fillStyle(0x4A3020, 1);
+      g.fillRect(leftDoorX, doorTop, apparentW, doorH);
 
-      // Arc along the outer edge of the airlock
-      const startAngle = rotAngle - halfArc;
-      const endAngle = rotAngle + halfArc;
-      const steps = 10;
-      for (let j = 0; j <= steps; j++) {
-        const a = startAngle + (endAngle - startAngle) * (j / steps);
-        g.lineTo(cx + Math.cos(a) * R, cy + Math.sin(a) * R);
-      }
+      // Panel detail (raised rectangle)
+      const panelInset = Math.max(2, apparentW * 0.15);
+      g.fillStyle(0x5A4030, 0.8);
+      g.fillRect(leftDoorX + panelInset, doorTop + 8, apparentW - panelInset * 2, doorH * 0.35);
+      g.fillRect(leftDoorX + panelInset, doorTop + doorH * 0.5, apparentW - panelInset * 2, doorH * 0.35);
 
-      g.closePath();
-      g.fillPath();
+      // Hinge (top and bottom)
+      g.fillStyle(0x7A5830, 0.9);
+      g.fillCircle(leftDoorX, doorTop + 10, 3);
+      g.fillCircle(leftDoorX, doorTop + doorH - 10, 3);
 
-      // Blade edge line (structural detail)
-      g.lineStyle(1, 0x707888, 0.35);
-      g.lineBetween(
-        tipX, tipY,
-        cx + Math.cos(startAngle) * R,
-        cy + Math.sin(startAngle) * R
-      );
+      // Edge highlight
+      g.fillStyle(0x6A5040, 0.5);
+      g.fillRect(leftDoorX + apparentW - 1, doorTop, 1, doorH);
     }
 
-    // Center hub (visible when partially open)
-    if (progress > 0.05 && progress < 0.95) {
-      const hubR = Math.max(2, innerR * 0.15);
-      g.fillStyle(0x505060, 0.7);
-      g.fillCircle(cx, cy, hubR);
+    // Right door
+    const rightDoorX = cx;
+    if (apparentW > 1) {
+      g.fillStyle(0x4A3020, 1);
+      g.fillRect(rightDoorX, doorTop, apparentW, doorH);
+
+      const panelInset = Math.max(2, apparentW * 0.15);
+      g.fillStyle(0x5A4030, 0.8);
+      g.fillRect(rightDoorX + panelInset, doorTop + 8, apparentW - panelInset * 2, doorH * 0.35);
+      g.fillRect(rightDoorX + panelInset, doorTop + doorH * 0.5, apparentW - panelInset * 2, doorH * 0.35);
+
+      // Hinge
+      g.fillStyle(0x7A5830, 0.9);
+      g.fillCircle(rightDoorX + apparentW, doorTop + 10, 3);
+      g.fillCircle(rightDoorX + apparentW, doorTop + doorH - 10, 3);
+
+      // Edge highlight
+      g.fillStyle(0x6A5040, 0.5);
+      g.fillRect(rightDoorX, doorTop, 1, doorH);
     }
 
-    // Glow ring around iris opening when animating
-    if (progress > 0 && progress < 1) {
-      const openR = R * progress;
-      g.lineStyle(2, 0x88DDFF, 0.12 + progress * 0.18);
-      g.strokeCircle(cx, cy, openR);
-    }
-  }
-
-  requestAirlockOpen(callback) {
-    if (this.airlockState === 'open') {
-      if (callback) callback();
-      return;
-    }
-    if (callback) this.airlockQueue.push({ type: 'open', cb: callback });
-    if (this.airlockState === 'closed' || this.airlockState === 'closing') {
-      this.airlockState = 'opening';
+    // Warm light spill when doors are partially open
+    if (progress > 0.1 && progress < 1) {
+      const gapW = (doorW - apparentW) * 2;
+      g.fillStyle(0xFFCC88, 0.08 + progress * 0.12);
+      g.fillRect(cx - gapW / 2, doorTop, gapW, doorH);
     }
   }
 
-  requestAirlockClose(callback) {
-    if (this.airlockState === 'closed') {
+  requestDoorOpen(callback) {
+    if (this.doorState === 'open') {
       if (callback) callback();
       return;
     }
-    if (callback) this.airlockQueue.push({ type: 'close', cb: callback });
-    if (this.airlockState === 'open' || this.airlockState === 'opening') {
-      this.airlockState = 'closing';
+    if (callback) this.doorQueue.push({ type: 'open', cb: callback });
+    if (this.doorState === 'closed' || this.doorState === 'closing') {
+      this.doorState = 'opening';
+      soundManager.doorCreak();
+    }
+  }
+
+  requestDoorClose(callback) {
+    if (this.doorState === 'closed') {
+      if (callback) callback();
+      return;
+    }
+    if (callback) this.doorQueue.push({ type: 'close', cb: callback });
+    if (this.doorState === 'open' || this.doorState === 'opening') {
+      this.doorState = 'closing';
     }
   }
 
   update(delta) {
-    const speed = delta / 400; // ~400ms to fully open/close
+    const speed = delta / 400;
 
-    if (this.airlockState === 'opening') {
-      this.airlockProgress = Math.min(1, this.airlockProgress + speed);
-      if (this.airlockProgress >= 1) {
-        this.airlockProgress = 1;
-        this.airlockState = 'open';
+    if (this.doorState === 'opening') {
+      this.doorProgress = Math.min(1, this.doorProgress + speed);
+      if (this.doorProgress >= 1) {
+        this.doorProgress = 1;
+        this.doorState = 'open';
         this._flushQueue('open');
       }
-      this.drawAirlockDoors();
-    } else if (this.airlockState === 'closing') {
-      this.airlockProgress = Math.max(0, this.airlockProgress - speed);
-      if (this.airlockProgress <= 0) {
-        this.airlockProgress = 0;
-        this.airlockState = 'closed';
+      this.drawDoors();
+    } else if (this.doorState === 'closing') {
+      this.doorProgress = Math.max(0, this.doorProgress - speed);
+      if (this.doorProgress <= 0) {
+        this.doorProgress = 0;
+        this.doorState = 'closed';
         this._flushQueue('close');
       }
-      this.drawAirlockDoors();
+      this.drawDoors();
     }
   }
 
   _flushQueue(type) {
     const remaining = [];
-    for (const item of this.airlockQueue) {
+    for (const item of this.doorQueue) {
       if (item.type === type) {
         item.cb();
       } else {
         remaining.push(item);
       }
     }
-    this.airlockQueue = remaining;
+    this.doorQueue = remaining;
   }
 }

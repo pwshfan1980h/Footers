@@ -11,10 +11,10 @@ export class PrepTrack {
     this.numSlots = 1;
 
     // Prep track position (above veggie bowls, centered)
-    this.trackY = 534;
+    this.trackY = 550;
     this.trackX = 750;
-    this.slotWidth = 140;
-    this.slotHeight = 90;
+    this.slotWidth = 210;
+    this.slotHeight = 140;
   }
 
   create() {
@@ -50,7 +50,7 @@ export class PrepTrack {
     const slotTop = slot.y - this.slotHeight / 2;
 
     // Glow ellipse behind the board
-    const glowColor = slot.occupied ? 0x44ff88 : 0x4488ff;
+    const glowColor = slot.occupied ? 0xFFBB44 : 0xC8A878;
     glow.fillStyle(glowColor, 0.18);
     glow.fillEllipse(slot.x, slot.y, this.slotWidth + 30, this.slotHeight + 20);
     glow.fillStyle(glowColor, 0.08);
@@ -62,7 +62,7 @@ export class PrepTrack {
 
     // Wood cutting board
     const color = slot.occupied ? 0xB89868 : 0xC8A878;
-    const borderColor = slot.occupied ? 0x44ff88 : 0x8B6A4A;
+    const borderColor = slot.occupied ? 0xFFBB44 : 0x8B6A4A;
 
     g.fillStyle(color, 0.9);
     g.fillRoundedRect(slotLeft, slotTop, this.slotWidth, this.slotHeight, 8);
@@ -88,7 +88,7 @@ export class PrepTrack {
     // Corner brackets
     const bracketLen = 12;
     const bracketInset = 4;
-    const bracketColor = slot.occupied ? 0x44ff88 : 0x8B6A4A;
+    const bracketColor = slot.occupied ? 0xFFBB44 : 0x8B6A4A;
     const bracketAlpha = slot.occupied ? 0.9 : 0.4;
     g.lineStyle(2, bracketColor, bracketAlpha);
     // Top-left

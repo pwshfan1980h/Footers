@@ -3,7 +3,7 @@
  */
 import { INGREDIENTS, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
-import { GAME_FONT, GAME_WIDTH, HALF_WIDTH, HALF_HEIGHT } from '../data/constants.js';
+import { GAME_FONT, TICKET_FONT, GAME_WIDTH, HALF_WIDTH, HALF_HEIGHT } from '../data/constants.js';
 
 export class GameSceneTicketBar {
   constructor(scene) {
@@ -32,7 +32,7 @@ export class GameSceneTicketBar {
     ticketLip.fillRect(0, 99, GAME_WIDTH, 1);
 
     s.add.text(8, 43, 'ORDERS:', {
-      fontSize: '10px', color: '#00bbdd', fontFamily: GAME_FONT, fontStyle: 'bold',
+      fontSize: '10px', color: '#FFBB44', fontFamily: TICKET_FONT, fontStyle: 'bold',
     }).setDepth(36);
 
     s.ticketContainer = s.add.container(0, 0).setDepth(36);
@@ -40,15 +40,15 @@ export class GameSceneTicketBar {
 
   addTicket(order, orderNum) {
     const s = this.scene;
-    const ticketFont = GAME_FONT;
-    const cardW = 130;
+    const ticketFont = TICKET_FONT;
+    const cardW = 145;
     const lineH = 12;
     const ingLines = order.ingredients.length;
     const treatLines = order.treatments ? order.treatments.length : 0;
     const footerLine = 0;
     const contentH = 22 + footerLine + ingLines * lineH + (treatLines > 0 ? 10 + treatLines * lineH : 0);
     const cardH = Math.max(80, contentH + 8);
-    const overlapStep = 100;
+    const overlapStep = 112;
     const targetX = 65 + (orderNum - 1) * overlapStep;
     const targetY = 43;
     const cardDepth = 36 + orderNum;
@@ -66,14 +66,14 @@ export class GameSceneTicketBar {
     card.add(bg);
 
     const numText = s.add.text(cardW / 2, 4, `#${orderNum}`, {
-      fontSize: '14px', color: '#333', fontFamily: GAME_FONT,
+      fontSize: '14px', color: '#333', fontFamily: TICKET_FONT,
     }).setOrigin(0.5, 0);
     card.add(numText);
 
     let yOff = 20;
 
     const priceTxt = s.add.text(cardW - 6, 5, `$${order.totalPrice.toFixed(2)}`, {
-      fontSize: '13px', color: '#006600', fontFamily: GAME_FONT, fontStyle: 'bold'
+      fontSize: '13px', color: '#006600', fontFamily: TICKET_FONT, fontStyle: 'bold'
     }).setOrigin(1, 0);
     card.add(priceTxt);
 

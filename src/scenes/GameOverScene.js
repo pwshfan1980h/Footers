@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
-import { gameState } from '../data/GameState.js';
-import { PENALTY_RATE, HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, DAY_NAMES, HULL_DARK, GAME_FONT } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, HULL_DARK, GAME_FONT } from '../data/constants.js';
 import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { createButton } from '../utils/uiHelpers.js';
 
@@ -12,24 +11,12 @@ export class GameOverScene extends Phaser.Scene {
 
   init(data) {
     this.finalScore = data.totalScore || 0;
-    this.day = data.day || 1;
-    this.locationId = data.locationId || null;
     this.ordersCompleted = data.ordersCompleted || 0;
     this.ordersMissed = data.ordersMissed || 0;
-
-    // Termination penalty: lose a fraction of shift earnings
-    this.rawEarnings = data.earnings || 0;
-    this.penaltyAmount = this.rawEarnings * PENALTY_RATE;
-    this.earnings = this.rawEarnings - this.penaltyAmount;
   }
 
   create() {
     const ALERT_RED = 0xff2244;
-
-    // Update game state with partial earnings
-    if (this.earnings > 0) {
-      gameState.updateAfterShift(this.locationId, this.earnings, this.ordersCompleted, this.ordersMissed);
-    }
 
     soundManager.init();
     soundManager.fired();
@@ -86,36 +73,19 @@ export class GameOverScene extends Phaser.Scene {
       fontSize: '24px', color: '#ff8888', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    // Stats panel — expanded with penalty breakdown
+    // Stats panel
     const statsPanel = this.add.graphics();
     statsPanel.fillStyle(HULL_DARK, 0.8);
-    statsPanel.fillRoundedRect(HALF_WIDTH - 250, 380, 500, 253, 12);
+    statsPanel.fillRoundedRect(HALF_WIDTH - 250, 380, 500, 180, 12);
     statsPanel.lineStyle(2, 0x442233, 0.6);
-    statsPanel.strokeRoundedRect(HALF_WIDTH - 250, 380, 500, 253, 12);
+    statsPanel.strokeRoundedRect(HALF_WIDTH - 250, 380, 500, 180, 12);
 
-    const dayNames = DAY_NAMES;
-    this.add.text(HALF_WIDTH, 408, `Lasted until: ${dayNames[this.day]}`, {
-      fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
+    this.add.text(HALF_WIDTH, 430, `Orders completed: ${this.ordersCompleted}`, {
+      fontSize: '22px', color: '#aaaacc', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 444, `Orders completed: ${this.ordersCompleted}`, {
-      fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
-    }).setOrigin(0.5);
-
-    this.add.text(HALF_WIDTH, 487, `Shift earnings: $${this.rawEarnings.toFixed(2)}`, {
-      fontSize: '18px', color: '#44ff88', fontFamily: GAME_FONT,
-    }).setOrigin(0.5);
-
-    this.add.text(HALF_WIDTH, 523, `Termination penalty: -$${this.penaltyAmount.toFixed(2)}`, {
-      fontSize: '18px', color: '#ff4444', fontFamily: GAME_FONT, fontStyle: 'bold',
-    }).setOrigin(0.5);
-
-    this.add.text(HALF_WIDTH, 568, `Amount kept: $${this.earnings.toFixed(2)}`, {
-      fontSize: '22px', color: '#ffd700', fontFamily: GAME_FONT,
-    }).setOrigin(0.5);
-
-    this.add.text(HALF_WIDTH, 610, `Final score: ${this.finalScore}`, {
-      fontSize: '18px', color: '#aaaacc', fontFamily: GAME_FONT,
+    this.add.text(HALF_WIDTH, 500, `Final score: ${this.finalScore}`, {
+      fontSize: '28px', color: '#ffd700', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Try again button
@@ -130,16 +100,16 @@ export class GameOverScene extends Phaser.Scene {
       onClick: () => this.scene.start('Game'),
     });
 
-    // Return to Map button
-    createButton(this, HALF_WIDTH + 10, 686, 220, 64, 'RETURN TO MAP', {
-      baseFill: 0x1a1a3a,
-      hoverFill: 0x2a2a4a,
-      accentColor: 0x4488ff,
-      hoverAccent: 0x6699ff,
-      textColor: '#6688ff',
-      hoverTextColor: '#88aaff',
+    // Main menu button
+    createButton(this, HALF_WIDTH + 10, 686, 220, 64, 'MAIN MENU', {
+      baseFill: 0x1a1510,
+      hoverFill: 0x2a2518,
+      accentColor: 0xFFBB44,
+      hoverAccent: 0xFFCC66,
+      textColor: '#FFBB44',
+      hoverTextColor: '#FFE8CC',
       fontSize: '18px',
-      onClick: () => this.scene.start('SystemMap', { returnFromShift: true, shiftEarnings: this.earnings }),
+      onClick: () => this.scene.start('Title'),
     });
   }
 }

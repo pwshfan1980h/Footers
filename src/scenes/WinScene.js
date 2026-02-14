@@ -6,11 +6,11 @@ import { createButton } from '../utils/uiHelpers.js';
 
 // Score-based performance ratings (checked in descending order)
 const RATINGS = [
-  { min: 5000, label: 'Legendary Station Chef', color: '#ffd700' },
-  { min: 3500, label: 'Master Food Technician', color: '#ff44aa' },
-  { min: 2000, label: 'Seasoned Space Cook',    color: '#00ffcc' },
-  { min: 1000, label: 'Orbital Apprentice',     color: '#88ddff' },
-  { min: 0,    label: 'Adequate Worker',         color: '#aaddff' },
+  { min: 5000, label: 'Legendary Cantina Chef', color: '#ffd700' },
+  { min: 3500, label: 'Master Grill Technician', color: '#ff44aa' },
+  { min: 2000, label: 'Seasoned Cantina Cook',   color: '#FFBB44' },
+  { min: 1000, label: 'Galactic Apprentice',     color: '#FFE8CC' },
+  { min: 0,    label: 'Adequate Worker',          color: '#C8A878' },
 ];
 
 export class WinScene extends Phaser.Scene {
@@ -52,10 +52,10 @@ export class WinScene extends Phaser.Scene {
       g.fillCircle(star.x, star.y, star.s);
     });
 
-    // Nebula glow behind title
-    g.fillStyle(0x442266, 0.2);
+    // Warm glow behind title
+    g.fillStyle(0x664422, 0.2);
     g.fillEllipse(HALF_WIDTH, 183, 938, 211);
-    g.fillStyle(0x224466, 0.15);
+    g.fillStyle(0x553311, 0.15);
     g.fillEllipse(HALF_WIDTH, 183, 750, 141);
 
     // Title
@@ -80,8 +80,8 @@ export class WinScene extends Phaser.Scene {
       repeat: -1,
     });
 
-    this.add.text(HALF_WIDTH, 323, 'You survived the whole week at the station!', {
-      fontSize: '22px', color: '#8899bb', fontFamily: GAME_FONT,
+    this.add.text(HALF_WIDTH, 323, 'You survived the whole week at the cantina!', {
+      fontSize: '22px', color: '#C8A878', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Score panel
@@ -105,7 +105,7 @@ export class WinScene extends Phaser.Scene {
     // Play again button
     createButton(this, HALF_WIDTH - 130, 658, 260, 64, 'PLAY AGAIN', {
       accentColor: NEON_CYAN,
-      onClick: () => this.scene.start('SystemMap'),
+      onClick: () => this.scene.start('Title'),
     });
   }
 }
