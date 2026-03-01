@@ -13,14 +13,14 @@ export class GameSceneTicketBar {
   create() {
     const s = this.scene;
 
-    s.add.rectangle(HALF_WIDTH, 70, GAME_WIDTH, 60, s.HULL_MID).setDepth(35);
-    s.add.rectangle(HALF_WIDTH, 40, GAME_WIDTH, 2, s.HULL_LIGHT).setDepth(35);
-    s.add.rectangle(HALF_WIDTH, 99, GAME_WIDTH, 2, s.HULL_LIGHT).setDepth(35);
+    s.add.rectangle(HALF_WIDTH, 70, GAME_WIDTH, 60, s.TICKET_BAR_BG).setDepth(35);
+    s.add.rectangle(HALF_WIDTH, 40, GAME_WIDTH, 2, s.TICKET_BAR_ACCENT).setDepth(35);
+    s.add.rectangle(HALF_WIDTH, 99, GAME_WIDTH, 2, s.TICKET_BAR_ACCENT).setDepth(35);
 
     const ticketLip = s.add.graphics().setDepth(35);
-    ticketLip.fillStyle(s.HULL_DARK, 1);
+    ticketLip.fillStyle(s.TICKET_BAR_BORDER, 1);
     ticketLip.fillRect(0, 99, GAME_WIDTH, 3);
-    ticketLip.fillStyle(s.HULL_LIGHT, 1);
+    ticketLip.fillStyle(s.TICKET_BAR_ACCENT, 1);
     ticketLip.beginPath();
     ticketLip.moveTo(0, 99);
     ticketLip.lineTo(GAME_WIDTH, 99);
@@ -32,7 +32,7 @@ export class GameSceneTicketBar {
     ticketLip.fillRect(0, 99, GAME_WIDTH, 1);
 
     s.add.text(8, 43, 'ORDERS:', {
-      fontSize: '10px', color: '#FFBB44', fontFamily: TICKET_FONT, fontStyle: 'bold',
+      fontSize: '16px', color: '#FFBB44', fontFamily: TICKET_FONT, fontStyle: 'bold',
     }).setDepth(36);
 
     s.ticketContainer = s.add.container(0, 0).setDepth(36);
@@ -41,14 +41,14 @@ export class GameSceneTicketBar {
   addTicket(order, orderNum) {
     const s = this.scene;
     const ticketFont = TICKET_FONT;
-    const cardW = 145;
-    const lineH = 12;
+    const cardW = 165;
+    const lineH = 18;
     const ingLines = order.ingredients.length;
     const treatLines = order.treatments ? order.treatments.length : 0;
     const footerLine = 0;
     const contentH = 22 + footerLine + ingLines * lineH + (treatLines > 0 ? 10 + treatLines * lineH : 0);
     const cardH = Math.max(80, contentH + 8);
-    const overlapStep = 112;
+    const overlapStep = 130;
     const targetX = 65 + (orderNum - 1) * overlapStep;
     const targetY = 43;
     const cardDepth = 36 + orderNum;
@@ -66,14 +66,14 @@ export class GameSceneTicketBar {
     card.add(bg);
 
     const numText = s.add.text(cardW / 2, 4, `#${orderNum}`, {
-      fontSize: '14px', color: '#333', fontFamily: TICKET_FONT,
+      fontSize: '18px', color: '#333', fontFamily: TICKET_FONT,
     }).setOrigin(0.5, 0);
     card.add(numText);
 
-    let yOff = 20;
+    let yOff = 24;
 
     const priceTxt = s.add.text(cardW - 6, 5, `$${order.totalPrice.toFixed(2)}`, {
-      fontSize: '13px', color: '#006600', fontFamily: TICKET_FONT, fontStyle: 'bold'
+      fontSize: '18px', color: '#006600', fontFamily: TICKET_FONT, fontStyle: 'bold'
     }).setOrigin(1, 0);
     card.add(priceTxt);
 
@@ -89,7 +89,7 @@ export class GameSceneTicketBar {
       const displayName = isTopBread ? `${ing.name} \u2191` : ing.name;
       const isNext = (i === 0);
       const txt = s.add.text(10, yOff + 3 + i * lineH, displayName, {
-        fontSize: '11px',
+        fontSize: '16px',
         color: isNext ? '#111' : '#665544',
         fontFamily: ticketFont,
         fontStyle: isNext ? 'bold' : 'normal',
@@ -109,7 +109,7 @@ export class GameSceneTicketBar {
       order.treatments.forEach((tKey, i) => {
         const treat = TREATMENTS[tKey];
         const txt = s.add.text(10, treatStartY + 4 + i * lineH, `[${treat.name}]`, {
-          fontSize: '11px',
+          fontSize: '16px',
           color: '#cc0000',
           fontFamily: ticketFont,
         });

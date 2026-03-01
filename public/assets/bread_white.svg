@@ -1,25 +1,49 @@
 <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="1" dy="1" result="offsetblur"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.25"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="offsetblur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.25"/>
     </filter>
+
+    <radialGradient id="crust-white" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#EAA655"/>
+      <stop offset="100%" stop-color="#C27A29"/>
+    </radialGradient>
+    <radialGradient id="inner-white" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#FFF2E0"/>
+    </radialGradient>
+  
   </defs>
   <g filter="url(#shadow)">
-    <!-- Pita-shaped crust (oval/round, flat) -->
-    <ellipse cx="64" cy="64" rx="48" ry="42" fill="#E8D4B8" stroke="#D2B48C" stroke-width="3"/>
-    <!-- Inner bread surface -->
-    <ellipse cx="64" cy="64" rx="40" ry="35" fill="#FFFAF5"/>
-    <!-- Subtle texture -->
-    <circle cx="50" cy="55" r="1.5" fill="#E3CBA8" opacity="0.3"/>
-    <circle cx="78" cy="60" r="1.5" fill="#E3CBA8" opacity="0.3"/>
-    <circle cx="60" cy="75" r="1.5" fill="#E3CBA8" opacity="0.3"/>
+
+    <!-- Cartoony Bread Crust -->
+    <path d="M 64 16 C 96 16, 120 36, 120 62 C 120 88, 96 112, 64 112 C 32 112, 8 88, 8 62 C 8 36, 32 16, 64 16 Z" 
+          fill="url(#crust-white)" stroke="#8C4E0A" stroke-width="4" stroke-linejoin="round"/>
+          
+    <!-- Inner bread -->
+    <path d="M 64 24 C 88 24, 108 40, 108 62 C 108 84, 88 100, 64 100 C 40 100, 20 84, 20 62 C 20 40, 40 24, 64 24 Z" 
+          fill="url(#inner-white)"/>
+          
+    <!-- Inner shadow / Rim light on inner bread -->
+    <path d="M 64 24 C 88 24, 108 40, 108 62 C 108 84, 88 100, 64 100 C 40 100, 20 84, 20 62 C 20 40, 40 24, 64 24 Z" 
+          fill="none" stroke="#E6D3B8" stroke-width="4" opacity="0.8"/>
+
+    <!-- Flour / texture specks -->
+    <g>
+      <circle cx="50" cy="50" r="2.5" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="80" cy="65" r="3" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="65" cy="80" r="2" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="45" cy="70" r="1.5" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="85" cy="45" r="2" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="35" cy="55" r="2" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="70" cy="35" r="2.5" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="40" cy="80" r="2" fill="#E3CBA8" opacity="0.6"/>
+<circle cx="90" cy="80" r="1.5" fill="#E3CBA8" opacity="0.6"/>
+
+    </g>
+    
+    <!-- Cartoon Highlight -->
+    <path d="M 32 36 C 44 28, 64 26, 80 30" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+  
   </g>
 </svg>

@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { DIFFICULTY_PROGRESSION } from '../data/ingredients.js';
+import { getWaveConfig } from '../data/waves.js';
 import { DEBUG } from '../config.js';
 import { TutorialOverlay } from '../managers/TutorialOverlay.js';
 import { WarningSystem } from '../managers/WarningSystem.js';
@@ -54,8 +55,6 @@ export class GameScene extends Phaser.Scene {
   }
 
   create() {
-    const diff = DIFFICULTY_PROGRESSION;
-
     // --- constants ---
     Object.assign(this, THEME, LAYOUT);
     this.NEON_PINK = NEON_PINK;
@@ -67,7 +66,6 @@ export class GameScene extends Phaser.Scene {
     this.orderNumber = 0;
     this.ordersSpawned = 0;
     this.isPaused = false;
-    this.spawnInterval = diff.initialSpawnInterval;
     this.waitingForNext = true;
     this.sequentialDelay = 0;
     this.spawnTimer = 0;
@@ -80,15 +78,28 @@ export class GameScene extends Phaser.Scene {
     this.magnetActive = false;
     this.fastestOrderThisShift = null;
 
+    // Wave system
+    this.currentWave = 1;
+    this.waveOrdersHandled = 0;
+    this.waveMissesThisWave = 0;
+    this.waveScoreStart = 0;
+    this.waveTransitioning = false;
+    this.waveConfig = getWaveConfig(1);
+    this.spawnInterval = this.waveConfig.spawnInterval;
+
+    // Challenge tracking
+    this.challengeProgress = 0;
+    this.challengeComplete = false;
+
     // Combo system
     this.combo = 0;
     this.maxCombo = 0;
     this.comboTimer = 0;
-    this.comboTimeout = 5000; // ms before combo resets from inactivity
+    this.comboTimeout = 5000;
 
-    // Input buffer (for rhythm-game feel)
+    // Input buffer
     this.inputBuffer = null;
-    this.isPlacing = false; // true while placement animation is running
+    this.isPlacing = false;
 
     this.tutorialOverlay = new TutorialOverlay(this);
     this.warningSystem = new WarningSystem(this);
@@ -142,6 +153,19 @@ export class GameScene extends Phaser.Scene {
       if (crtEnabled) {
         this.cameras.main.setPostPipeline(CRTPostFX);
       }
+    }
+
+    // Initialize wave display
+    if (this.hudManager.updateWaveDisplay) {
+      this.hudManager.updateWaveDisplay(this.currentWave, this.waveConfig.challenge);
+    }
+
+    // Show first wave unlock notification
+    if (this.waveConfig.unlock) {
+      const names = this.waveConfig.unlock.map(u => u.charAt(0).toUpperCase() + u.slice(1));
+      this.time.delayedCall(500, () => {
+        this.notificationManager.show(`Wave 1: ${names.join(' & ')} available`);
+      });
     }
 
     // Start ambient music (no-op if already playing)
@@ -229,22 +253,31 @@ export class GameScene extends Phaser.Scene {
 
     this.customerDeck.update(delta);
     this.customerManager.update(delta);
-    if (this.isStoreOpen && this.prepTrack.findEmptySlot()) {
-      if (this.ordersSpawned < SEQUENTIAL_ORDER_CAP) {
-        if (this.waitingForNext) {
-          this.sequentialDelay += delta;
-          const delay = this.ordersSpawned === 0 ? FIRST_ORDER_DELAY : NEXT_ORDER_DELAY;
-          if (this.sequentialDelay >= delay) {
-            this.trayManager.spawnTray();
-            this.waitingForNext = false;
-            this.sequentialDelay = 0;
+
+    // Spawning governed by wave config
+    if (this.isStoreOpen && !this.waveTransitioning && this.prepTrack.findEmptySlot()) {
+      const activeCustomers = this.customerManager.customers.filter(
+        c => c.personState !== 'gone' && c.personState !== 'departed'
+      ).length;
+      const maxC = this.waveConfig.maxConcurrent || 1;
+
+      if (activeCustomers < maxC) {
+        if (this.ordersSpawned < SEQUENTIAL_ORDER_CAP) {
+          if (this.waitingForNext) {
+            this.sequentialDelay += delta;
+            const delay = this.ordersSpawned === 0 ? FIRST_ORDER_DELAY : NEXT_ORDER_DELAY;
+            if (this.sequentialDelay >= delay) {
+              this.trayManager.spawnTray();
+              this.waitingForNext = false;
+              this.sequentialDelay = 0;
+            }
           }
-        }
-      } else {
-        this.spawnTimer += delta;
-        if (this.spawnTimer >= this.spawnInterval) {
-          this.trayManager.spawnTray();
-          this.spawnTimer = 0;
+        } else {
+          this.spawnTimer += delta;
+          if (this.spawnTimer >= this.spawnInterval) {
+            this.trayManager.spawnTray();
+            this.spawnTimer = 0;
+          }
         }
       }
     }
@@ -260,17 +293,137 @@ export class GameScene extends Phaser.Scene {
         this.hudManager.updateComboDisplay(0);
       }
     }
-
-    this.updateDifficulty();
   }
 
-  updateDifficulty() {
-    const minutesPlayed = this.gameTime / 60;
-    const diff = DIFFICULTY_PROGRESSION;
+  // Called by scoring/miss handlers to advance wave tracking
+  onOrderHandled(completed, tray, speedMult) {
+    this.waveOrdersHandled++;
+    if (!completed) this.waveMissesThisWave++;
 
-    this.spawnInterval = Math.max(
-      diff.minSpawnInterval,
-      diff.initialSpawnInterval - minutesPlayed * diff.spawnIntervalDecrease
-    );
+    // Challenge tracking
+    this.updateChallengeTracking(completed, tray, speedMult);
+
+    if (this.waveOrdersHandled >= this.waveConfig.customerCount && !this.waveTransitioning) {
+      // Check no_miss challenge at wave end
+      const ch = this.waveConfig.challenge;
+      if (ch && ch.type === 'no_miss' && this.waveMissesThisWave === 0 && !this.challengeComplete) {
+        this.challengeComplete = true;
+        this.hudManager.updateChallengeProgress(0, 0, true);
+      }
+      this.triggerWaveTransition();
+    }
+  }
+
+  updateChallengeTracking(completed, tray, speedMult) {
+    if (this.challengeComplete) return;
+    const ch = this.waveConfig.challenge;
+    if (!ch) return;
+
+    if (ch.type === 'speed' && completed && speedMult >= (ch.minMult || 2)) {
+      this.challengeProgress++;
+    } else if (ch.type === 'perfect' && completed && tray && tray.wrongPlacements === 0) {
+      this.challengeProgress++;
+    } else if (ch.type === 'count' && completed) {
+      this.challengeProgress++;
+    }
+
+    if (ch.type !== 'combo' && ch.type !== 'no_miss' && this.challengeProgress >= ch.target) {
+      this.challengeComplete = true;
+      this.hudManager.updateChallengeProgress(this.challengeProgress, ch.target, true);
+    } else if (ch.target > 0) {
+      this.hudManager.updateChallengeProgress(this.challengeProgress, ch.target, false);
+    }
+  }
+
+  // Called by interaction manager on combo change
+  onComboUpdate(combo) {
+    if (this.challengeComplete) return;
+    const ch = this.waveConfig.challenge;
+    if (!ch || ch.type !== 'combo') return;
+
+    if (combo >= ch.target) {
+      this.challengeComplete = true;
+      this.challengeProgress = combo;
+      this.hudManager.updateChallengeProgress(combo, ch.target, true);
+    } else {
+      this.challengeProgress = combo;
+      this.hudManager.updateChallengeProgress(combo, ch.target, false);
+    }
+  }
+
+  triggerWaveTransition() {
+    this.waveTransitioning = true;
+    const waveScore = this.currentScore - this.waveScoreStart;
+    const challengeBonus = this.challengeComplete ? 1000 : 0;
+    const waveBonus = 500 + this.currentWave * 100;
+    this.currentScore += waveBonus + challengeBonus;
+    this.refreshHUD();
+
+    this.showWaveCompleteOverlay(waveScore, waveBonus, challengeBonus, () => {
+      this.currentWave++;
+      this.waveConfig = getWaveConfig(this.currentWave);
+      this.spawnInterval = this.waveConfig.spawnInterval;
+      this.waveOrdersHandled = 0;
+      this.waveMissesThisWave = 0;
+      this.waveScoreStart = this.currentScore;
+      this.challengeProgress = 0;
+      this.challengeComplete = false;
+      this.waveTransitioning = false;
+
+      // Reset sequential spawning for new wave
+      this.ordersSpawned = 0;
+      this.waitingForNext = true;
+      this.sequentialDelay = 0;
+      this.spawnTimer = 0;
+
+      // Show unlock notification if any
+      if (this.waveConfig.unlock) {
+        const names = this.waveConfig.unlock.map(u => u.charAt(0).toUpperCase() + u.slice(1));
+        this.notificationManager.show(`NEW: ${names.join(' & ')} unlocked!`);
+      }
+
+      // Update wave display in HUD
+      if (this.hudManager.updateWaveDisplay) {
+        this.hudManager.updateWaveDisplay(this.currentWave, this.waveConfig.challenge);
+      }
+    });
+  }
+
+  showWaveCompleteOverlay(waveScore, waveBonus, challengeBonus, onDone) {
+    const s = this;
+    const overlay = s.add.graphics().setDepth(300);
+    overlay.fillStyle(0x000000, 0.6);
+    overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+    const titleText = s.add.text(HALF_WIDTH, 360, `Wave ${this.currentWave} Complete!`, {
+      fontSize: '52px', color: '#FFBB44', fontFamily: 'Oxanium', fontStyle: 'bold',
+      stroke: '#000', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(301);
+
+    const scoreText = s.add.text(HALF_WIDTH, 430, `Score: +${waveScore}   Wave Bonus: +${waveBonus}`, {
+      fontSize: '24px', color: '#FFE8CC', fontFamily: 'Oxanium',
+    }).setOrigin(0.5).setDepth(301);
+
+    let challengeText = null;
+    if (challengeBonus > 0) {
+      challengeText = s.add.text(HALF_WIDTH, 470, `Challenge Bonus: +${challengeBonus}`, {
+        fontSize: '22px', color: '#44FF88', fontFamily: 'Oxanium', fontStyle: 'bold',
+      }).setOrigin(0.5).setDepth(301);
+    }
+
+    const nextConfig = getWaveConfig(this.currentWave + 1);
+    const nextText = s.add.text(HALF_WIDTH, 530, `Next: Wave ${this.currentWave + 1}`, {
+      fontSize: '20px', color: '#AABBCC', fontFamily: 'Oxanium',
+    }).setOrigin(0.5).setDepth(301);
+
+    // Auto-dismiss after 3 seconds
+    s.time.delayedCall(3000, () => {
+      overlay.destroy();
+      titleText.destroy();
+      scoreText.destroy();
+      if (challengeText) challengeText.destroy();
+      nextText.destroy();
+      onDone();
+    });
   }
 }

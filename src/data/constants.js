@@ -27,7 +27,7 @@ export const NEXT_ORDER_DELAY = 1500;  // delay between early sequential orders
 export const SEQUENTIAL_ORDER_CAP = 3; // orders before switching to interval timer
 
 // --- Order Generation ---
-export const MAX_ACTIVE_ORDERS = 4;
+export const MAX_ACTIVE_ORDERS = 3;
 export const CHEESE_CHANCE = 0.7;
 export const SAUCE_CHANCE = 0.6;
 export const DOUBLE_TREATMENT_CHANCE = 0.3;

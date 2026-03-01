@@ -1,28 +1,49 @@
 <svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="1" dy="1" result="offsetblur"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.25"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="offsetblur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.25"/>
     </filter>
+
+    <radialGradient id="crust-sourdough" cx="50%" cy="50%" r="50%">
+      <stop offset="60%" stop-color="#D4B88E"/>
+      <stop offset="100%" stop-color="#A88D68"/>
+    </radialGradient>
+    <radialGradient id="inner-sourdough" cx="40%" cy="40%" r="60%">
+      <stop offset="0%" stop-color="#FFFBEA"/>
+      <stop offset="100%" stop-color="#EBE2C5"/>
+    </radialGradient>
+  
   </defs>
   <g filter="url(#shadow)">
-    <!-- Pita-shaped crust (oval/round, flat) - sourdough golden -->
-    <ellipse cx="64" cy="64" rx="48" ry="42" fill="#D7B483" stroke="#B8860B" stroke-width="3"/>
-    <!-- Inner bread surface -->
-    <ellipse cx="64" cy="64" rx="40" ry="35" fill="#FDF5E8"/>
-    <!-- Score marks (sourdough style) -->
-    <path d="M45,55 Q58,48 70,56" fill="none" stroke="#C49A6C" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    <path d="M58,50 Q70,44 82,52" fill="none" stroke="#C49A6C" stroke-width="2" stroke-linecap="round" opacity="0.5"/>
-    <!-- Flour dusting -->
-    <circle cx="52" cy="62" r="2" fill="#FFF" opacity="0.35"/>
-    <circle cx="76" cy="58" r="2" fill="#FFF" opacity="0.35"/>
-    <circle cx="62" cy="74" r="1.5" fill="#FFF" opacity="0.35"/>
+
+    <!-- Cartoony Bread Crust -->
+    <path d="M 64 16 C 96 16, 120 36, 120 62 C 120 88, 96 112, 64 112 C 32 112, 8 88, 8 62 C 8 36, 32 16, 64 16 Z" 
+          fill="url(#crust-sourdough)" stroke="#7A6242" stroke-width="4" stroke-linejoin="round"/>
+          
+    <!-- Inner bread -->
+    <path d="M 64 24 C 88 24, 108 40, 108 62 C 108 84, 88 100, 64 100 C 40 100, 20 84, 20 62 C 20 40, 40 24, 64 24 Z" 
+          fill="url(#inner-sourdough)"/>
+          
+    <!-- Inner shadow / Rim light on inner bread -->
+    <path d="M 64 24 C 88 24, 108 40, 108 62 C 108 84, 88 100, 64 100 C 40 100, 20 84, 20 62 C 20 40, 40 24, 64 24 Z" 
+          fill="none" stroke="#D4C69F" stroke-width="4" opacity="0.8"/>
+
+    <!-- Flour / texture specks -->
+    <g>
+      <circle cx="50" cy="50" r="2.5" fill="#C2B084" opacity="0.7"/>
+<circle cx="80" cy="65" r="3" fill="#C2B084" opacity="0.7"/>
+<circle cx="65" cy="80" r="2" fill="#C2B084" opacity="0.7"/>
+<circle cx="45" cy="70" r="1.5" fill="#C2B084" opacity="0.7"/>
+<circle cx="85" cy="45" r="2" fill="#C2B084" opacity="0.7"/>
+<ellipse cx="35" cy="55" rx="4" ry="3" fill="#C8B898" opacity="0.8"/>
+<ellipse cx="70" cy="35" rx="5" ry="3.75" fill="#C8B898" opacity="0.8"/>
+<ellipse cx="40" cy="80" rx="4" ry="3" fill="#C8B898" opacity="0.8"/>
+<circle cx="90" cy="80" r="1.5" fill="#C2B084" opacity="0.7"/>
+
+    </g>
+    
+    <!-- Cartoon Highlight -->
+    <path d="M 32 36 C 44 28, 64 26, 80 30" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+  
   </g>
 </svg>

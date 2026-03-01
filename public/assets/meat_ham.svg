@@ -1,25 +1,28 @@
 <svg width="256" height="256" viewBox="0 0 256 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
     <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feGaussianBlur in="SourceAlpha" stdDeviation="2"/>
-      <feOffset dx="1" dy="1" result="offsetblur"/>
-      <feComponentTransfer>
-        <feFuncA type="linear" slope="0.3"/>
-      </feComponentTransfer>
-      <feMerge>
-        <feMergeNode in="offsetblur"/>
-        <feMergeNode in="SourceGraphic"/>
-      </feMerge>
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
     </filter>
+
+      <radialGradient id="ham-grad" cx="40%" cy="40%" r="60%">
+        <stop offset="0%" stop-color="#FFB6C1"/>
+        <stop offset="80%" stop-color="#F08080"/>
+        <stop offset="100%" stop-color="#CD5C5C"/>
+      </radialGradient>
+      <radialGradient id="ham-grad2" cx="50%" cy="50%" r="50%">
+        <stop offset="0%" stop-color="#FFA07A"/>
+        <stop offset="100%" stop-color="#E9967A"/>
+      </radialGradient>
+    
   </defs>
   <g filter="url(#shadow)">
-    <!-- Folded Ham Slice -->
-    <path d="M50,120 Q60,100 100,110 T180,100 Q210,110 200,140 Q190,170 150,160 T70,170 Q40,150 50,120 Z" fill="#F08080" stroke="#CD5C5C" stroke-width="2"/>
-    <!-- Fold lines -->
-    <path d="M60,130 Q80,120 90,140" fill="none" stroke="#CD5C5C" stroke-width="2" opacity="0.5"/>
-    <path d="M160,120 Q170,140 190,135" fill="none" stroke="#CD5C5C" stroke-width="2" opacity="0.5"/>
-    <!-- Fat/Muscle Texture -->
-    <path d="M80,140 Q100,135 120,145" fill="none" stroke="#FFF" stroke-width="1" opacity="0.4"/>
-    <path d="M130,125 Q150,120 170,130" fill="none" stroke="#FFF" stroke-width="1" opacity="0.4"/>
+
+      <path d="M 40 100 C 40 40, 100 20, 160 40 C 220 60, 240 120, 200 180 C 160 240, 80 220, 40 180 C 10 150, 40 130, 40 100 Z" fill="url(#ham-grad)" stroke="#B22222" stroke-width="4"/>
+      <path d="M 100 70 C 120 50, 180 50, 180 100 C 180 150, 140 190, 100 190 C 60 190, 70 120, 100 70 Z" fill="url(#ham-grad2)" opacity="0.8"/>
+      <path d="M 90 75 Q 110 90 130 80 M 110 140 Q 130 160 150 140" fill="none" stroke="#FFF" stroke-width="3" stroke-linecap="round" opacity="0.6"/>
+      <!-- Fold -->
+      <path d="M 70 80 Q 90 130 160 160" fill="none" stroke="#CD5C5C" stroke-width="4" stroke-linecap="round" opacity="0.6"/>
+      <path d="M 70 76 Q 90 126 160 156" fill="none" stroke="#FFF" stroke-width="2" stroke-linecap="round" opacity="0.4"/>
+    
   </g>
 </svg>

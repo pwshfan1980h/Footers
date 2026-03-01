@@ -36,7 +36,7 @@ export class GameSceneInteraction {
     c.add(img);
 
     const label = s.add.text(0, 17, ing.name, {
-      fontSize: '13px', color: ing.textColor || '#000',
+      fontSize: '16px', color: ing.textColor || '#000',
       fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
     c.add(label);
@@ -370,15 +370,87 @@ export class GameSceneInteraction {
     s.trayHighlight.clear();
   }
 
-  // Find the active tray (first non-completed tray on prep track with a customer)
-  findActiveTray() {
+  // The selected tray is what hotkeys target. Player clicks trays to switch.
+  selectedTray = null;
+
+  selectTray(tray) {
+    const s = this.scene;
+    if (!tray || tray.done || tray.waitingForCustomer) return;
+    this.selectedTray = tray;
+
+    // Update prep track visual selection
+    if (tray.slotIndex != null) {
+      s.prepTrack.setSelectedSlot(tray.slotIndex);
+    }
+
+    // Dim non-selected trays, brighten selected
+    this.updateTrayVisuals();
+
+    // Highlight matching ticket
+    this.updateTicketHighlight();
+
+    this.updateNextKeyPrompt();
+  }
+
+  updateTrayVisuals() {
     const s = this.scene;
     for (const tray of s.trays) {
-      if (!tray.done && !tray.completed && tray.onPrepTrack && !tray.waitingForCustomer) {
-        return tray;
+      if (tray.done || tray.waitingForCustomer) continue;
+      if (tray === this.selectedTray) {
+        tray.container.setAlpha(1);
+      } else if (!tray.completed) {
+        tray.container.setAlpha(0.55);
       }
     }
-    return null;
+  }
+
+  updateTicketHighlight() {
+    const s = this.scene;
+    if (!s.tickets) return;
+    for (const ticket of s.tickets) {
+      if (!ticket.card || ticket.status !== 'active') continue;
+      const isSelected = this.selectedTray && ticket.orderNum === this.selectedTray.orderNum;
+      if (isSelected) {
+        ticket.card.setAlpha(1);
+      } else {
+        ticket.card.setAlpha(0.5);
+      }
+    }
+  }
+
+  selectNextAvailableTray() {
+    const s = this.scene;
+    const available = s.trays.filter(t => !t.done && !t.completed && t.onPrepTrack && !t.waitingForCustomer);
+    if (available.length > 0) {
+      this.selectTray(available[0]);
+    } else {
+      this.selectedTray = null;
+      s.prepTrack.clearSelection();
+      this.updateTicketHighlight();
+    }
+  }
+
+  cycleTray(direction = 1) {
+    const s = this.scene;
+    const available = s.trays.filter(t => !t.done && !t.completed && t.onPrepTrack && !t.waitingForCustomer);
+    if (available.length === 0) return;
+    if (!this.selectedTray || !available.includes(this.selectedTray)) {
+      this.selectTray(available[0]);
+      return;
+    }
+    const idx = available.indexOf(this.selectedTray);
+    const next = (idx + direction + available.length) % available.length;
+    this.selectTray(available[next]);
+  }
+
+  // Legacy compatibility — returns the selected tray
+  findActiveTray() {
+    if (this.selectedTray && !this.selectedTray.done && !this.selectedTray.completed &&
+        this.selectedTray.onPrepTrack && !this.selectedTray.waitingForCustomer) {
+      return this.selectedTray;
+    }
+    this.selectNextAvailableTray();
+    return this.selectedTray;
   }
 
   // Auto-place ingredient directly onto active tray (no held item state)
@@ -391,29 +463,26 @@ export class GameSceneInteraction {
     const result = s.trayManager.tryPlace(tray, ingredientKey);
 
     if (result === 'valid') {
-      // Combo increment
       s.combo++;
       s.comboTimer = 0;
       if (s.combo > s.maxCombo) s.maxCombo = s.combo;
 
-      // Audio escalation — rising pitch with combo
       soundManager.comboPlop(s.combo - 1);
       s.particleManager.ingredientPlaced(tray.container.x, s.LAND_Y, ing.color);
 
-      // Combo display
       s.hudManager.updateComboDisplay(s.combo);
+      if (s.onComboUpdate) s.onComboUpdate(s.combo);
 
-      // Small combo bonus points
       if (s.combo > 1) {
-        const bonus = s.combo * 2;
+        const bonus = s.combo * 5;
         s.currentScore += bonus;
         s.refreshHUD();
       }
     } else if (result === 'wrong') {
-      // Reset combo
       s.combo = 0;
       s.comboTimer = 0;
       s.hudManager.updateComboDisplay(0);
+      if (tray.wrongPlacements != null) tray.wrongPlacements++;
 
       soundManager.buzz();
       s.currentScore = Math.max(0, s.currentScore - WRONG_INGREDIENT_PENALTY);
@@ -501,8 +570,8 @@ export class GameSceneInteraction {
       this.seqBadges = [];
 
       // Name label for current step
-      this.seqNameLabel = s.add.text(0, 20, '', {
-        fontSize: '12px', color: '#FFE8CC', fontFamily: TICKET_FONT,
+      this.seqNameLabel = s.add.text(0, 24, '', {
+        fontSize: '16px', color: '#FFE8CC', fontFamily: TICKET_FONT,
       }).setOrigin(0.5);
       this.seqContainer.add(this.seqNameLabel);
 
@@ -516,7 +585,7 @@ export class GameSceneInteraction {
         const cx = startX + i * (badgeW + gap) + badgeW / 2;
         const bg = s.add.graphics();
         const txt = s.add.text(cx, 0, step.shortcut, {
-          fontSize: '14px', color: '#999', fontFamily: GAME_FONT, fontStyle: 'bold',
+          fontSize: '16px', color: '#999', fontFamily: GAME_FONT, fontStyle: 'bold',
         }).setOrigin(0.5);
         this.seqContainer.add([bg, txt]);
         this.seqBadges.push({ bg, txt, cx, badgeW, badgeH, step });
@@ -677,6 +746,15 @@ export class GameSceneInteraction {
       });
     });
 
+    // TAB key — cycle between active trays
+    const tabKey = s.input.keyboard.addKey(KC.TAB);
+    tabKey.emitOnRepeat = false;
+    tabKey.on('down', (evt) => {
+      evt.originalEvent?.preventDefault();
+      if (s.isPaused || !s.isStoreOpen) return;
+      this.cycleTray(1);
+    });
+
     // SPACE key — sell completed sandwich
     const spaceKey = s.input.keyboard.addKey(KC.SPACE);
     spaceKey.emitOnRepeat = false;
@@ -706,7 +784,7 @@ export class GameSceneInteraction {
         fontSize: '24px', color: '#44FF88', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5);
       this.sellLabel = s.add.text(0, 24, '', {
-        fontSize: '14px', color: '#BBDDCC', fontFamily: TICKET_FONT,
+        fontSize: '18px', color: '#BBDDCC', fontFamily: TICKET_FONT,
       }).setOrigin(0.5);
       this.sellContainer.add([this.sellBg, this.sellKeyText, this.sellLabel]);
     }
@@ -760,7 +838,6 @@ export class GameSceneInteraction {
     const customer = s.customerManager.customers.find(c => c.tray === tray);
     if (!customer || customer.personState !== 'at_counter') return;
 
-    // Remove from prep track
     if (tray.prepSlot) {
       s.prepTrack.removeTray(tray.prepSlot);
     }
@@ -769,7 +846,6 @@ export class GameSceneInteraction {
     tray.container.disableInteractive();
     soundManager.whoosh();
 
-    // Animate tray flying to customer
     s.tweens.add({
       targets: tray.container,
       x: customer.personX,
@@ -782,10 +858,11 @@ export class GameSceneInteraction {
         s.scoringManager.handleScore(tray);
         tray.done = true;
         s.destroyTray(tray);
+        // Auto-select next available tray after selling
+        this.selectNextAvailableTray();
       },
     });
 
-    // Update prompts
     this.updateSellPrompt();
     this.updateNextKeyPrompt();
   }

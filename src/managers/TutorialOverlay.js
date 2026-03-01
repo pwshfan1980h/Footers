@@ -86,7 +86,7 @@ export class TutorialOverlay {
 
     const pageNum = `${this.step + 1} / ${this.steps.length}`;
     const page = this.scene.add.text(HALF_WIDTH, y + 200, pageNum, {
-      fontSize: '14px', color: '#668899', fontFamily: GAME_FONT,
+      fontSize: '18px', color: '#668899', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
     page.setData('tutStep', true);
     overlay.add(page);

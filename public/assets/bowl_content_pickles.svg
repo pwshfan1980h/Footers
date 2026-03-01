@@ -1,18 +1,1 @@
-<svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
-  <!-- Pickle Slices Pile -->
-  <!-- Base pile shape -->
-  <ellipse cx="50" cy="45" rx="40" ry="12" fill="#6B8E23"/>
-
-  <!-- Pickle slices scattered -->
-  <ellipse cx="30" cy="40" rx="12" ry="8" fill="#6B8E23" stroke="#556B2F" stroke-width="1"/>
-  <ellipse cx="30" cy="40" rx="7" ry="5" fill="#9ACD32"/>
-
-  <ellipse cx="55" cy="35" rx="14" ry="9" fill="#6B8E23" stroke="#556B2F" stroke-width="1"/>
-  <ellipse cx="55" cy="35" rx="8" ry="5" fill="#9ACD32"/>
-
-  <ellipse cx="75" cy="40" rx="11" ry="7" fill="#6B8E23" stroke="#556B2F" stroke-width="1"/>
-  <ellipse cx="75" cy="40" rx="6" ry="4" fill="#9ACD32"/>
-
-  <ellipse cx="45" cy="28" rx="10" ry="6" fill="#6B8E23" stroke="#556B2F" stroke-width="1"/>
-  <ellipse cx="45" cy="28" rx="5" ry="3" fill="#9ACD32"/>
-</svg>
+<svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">\n<!-- Base contents -->\n<path d="M 15 50 Q 50 30 85 50 Z" fill="#827717" />\n<ellipse cx="35" cy="45" rx="15" ry="8" fill="#CDDC39" stroke="#33691E" stroke-width="1.5" transform="rotate(-15 35 45)"/>\n<ellipse cx="65" cy="45" rx="15" ry="8" fill="#CDDC39" stroke="#33691E" stroke-width="1.5" transform="rotate(15 65 45)"/>\n<ellipse cx="50" cy="35" rx="16" ry="9" fill="#D4E157" stroke="#33691E" stroke-width="1.5"/>\n<path d="M 40 35 L 60 35 M 40 38 L 60 38" fill="none" stroke="#F0F4C3" stroke-width="1" opacity="0.8"/>\n<path d="M 45 32 Q 50 30 55 32" fill="none" stroke="#FFF" stroke-width="1.5" stroke-linecap="round" opacity="0.6"/>\n</svg>

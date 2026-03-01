@@ -44,6 +44,51 @@ export class GameSceneHUD {
     // Strike indicators
     this.strikeGraphics = null;
     this.footerY = footerY;
+
+    // Wave display (left side, above footer)
+    this.waveText = s.add.text(20, footerY - 36, 'Wave 1', {
+      fontSize: '20px', color: '#88AACC', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setDepth(211);
+
+    // Challenge display (center-left, above footer)
+    this.challengeContainer = s.add.container(GAME_WIDTH / 2, footerY - 36).setDepth(212);
+    this.challengeBg = s.add.graphics();
+    this.challengeText = s.add.text(0, 0, '', {
+      fontSize: '18px', color: '#FFE8CC', fontFamily: GAME_FONT,
+    }).setOrigin(0.5);
+    this.challengeProgressText = s.add.text(0, 20, '', {
+      fontSize: '16px', color: '#AABBCC', fontFamily: GAME_FONT,
+    }).setOrigin(0.5);
+    this.challengeContainer.add([this.challengeBg, this.challengeText, this.challengeProgressText]);
+    this.challengeContainer.setVisible(false);
+  }
+
+  updateWaveDisplay(wave, challenge) {
+    this.waveText.setText(`Wave ${wave}`);
+
+    if (challenge && challenge.label) {
+      this.challengeContainer.setVisible(true);
+      this.challengeText.setText(challenge.label);
+      this.challengeProgressText.setText('');
+
+      this.challengeBg.clear();
+      const w = Math.max(300, challenge.label.length * 10 + 30);
+      this.challengeBg.fillStyle(0x1A2030, 0.8);
+      this.challengeBg.fillRoundedRect(-w / 2, -14, w, 46, 6);
+      this.challengeBg.lineStyle(1, 0x3A5068, 0.6);
+      this.challengeBg.strokeRoundedRect(-w / 2, -14, w, 46, 6);
+    } else {
+      this.challengeContainer.setVisible(false);
+    }
+  }
+
+  updateChallengeProgress(progress, target, complete) {
+    if (!this.challengeContainer.visible) return;
+    if (complete) {
+      this.challengeProgressText.setText('COMPLETE!').setColor('#44FF88');
+    } else if (target > 0) {
+      this.challengeProgressText.setText(`${progress} / ${target}`).setColor('#AABBCC');
+    }
   }
 
   refreshHUD() {
@@ -65,7 +110,7 @@ export class GameSceneHUD {
         fontSize: '36px', color: '#FFBB44', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5);
       this.comboLabel = s.add.text(0, 24, 'COMBO', {
-        fontSize: '14px', color: '#FFE8CC', fontFamily: GAME_FONT,
+        fontSize: '18px', color: '#FFE8CC', fontFamily: GAME_FONT,
       }).setOrigin(0.5);
       this.comboContainer.add([this.comboBg, this.comboText, this.comboLabel]);
     }

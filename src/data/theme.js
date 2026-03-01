@@ -12,7 +12,7 @@ export const THEME = {
   SMOKED_GLASS: 0x1a1008,
   SMOKED_GLASS_ALPHA: 0.35,
 
-  // Adobe / sandstone walls
+  // Adobe / sandstone walls (warm zone)
   HULL_DARK: 0x3A2A1A,
   HULL_MID: 0x5A4530,
   HULL_LIGHT: 0x7A6548,
@@ -20,7 +20,7 @@ export const THEME = {
   HULL_WARM: 0x6A5038,
   PANEL_SEAM: 0x2A1A0A,
 
-  // Brass / copper trim (replacing chrome)
+  // Brass / copper trim
   CHROME_DARK: 0x5A4020,
   CHROME_MID: 0x7A5830,
   CHROME_LIGHT: 0x9A7848,
@@ -46,11 +46,30 @@ export const THEME = {
   FRAME_DARK: 0x2a1a10,
   FRAME_LIGHT: 0x3a2a18,
 
-  // Counter / table (warm wood)
+  // Cool zone: counter / prep surface (dark slate metal)
+  COUNTER_DARK: 0x1E2830,
+  COUNTER_MID: 0x2A3540,
+  COUNTER_LIGHT: 0x3A4855,
+  COUNTER_TRIM: 0x506878,
+  COUNTER_HIGHLIGHT: 0x607888,
+
+  // Warm zone: prep cutting board (pops against cool counter)
   TABLE_TOP: 0x8B6A4A,
   TABLE_FRONT: 0x6B4A3A,
   TABLE_HIGHLIGHT: 0xC8A878,
   TABLE_SHADOW: 0x3A2A1A,
+
+  // Ticket bar (cool-toned, distinct from scene)
+  TICKET_BAR_BG: 0x151D28,
+  TICKET_BAR_BORDER: 0x2A3848,
+  TICKET_BAR_ACCENT: 0x3A5068,
+
+  // Bin zone accent colors (stronger overlays)
+  BIN_MEAT: 0x8B3030,
+  BIN_TOPPING: 0x308B30,
+  BIN_CHEESE: 0x8B8B30,
+  BIN_TREATMENT: 0x305080,
+  BIN_SAUCE: 0x805030,
 
   // Shelving (weathered wood)
   SHELF_TOP: 0x6a5838,

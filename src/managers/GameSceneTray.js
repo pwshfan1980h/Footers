@@ -27,7 +27,7 @@ export class GameSceneTray {
     if (!slot) return;
 
     const order = this.generateOrder();
-    if (!order) return; // insufficient stock for any order
+    if (!order) return;
     s.orderNumber++;
     const orderNum = s.orderNumber;
 
@@ -36,9 +36,9 @@ export class GameSceneTray {
     container.setScale(1.3);
 
     const hintText = s.add.text(0, -75, '', {
-      fontSize: '12px', color: '#ff0', fontFamily: TICKET_FONT, fontStyle: 'bold',
+      fontSize: '16px', color: '#ff0', fontFamily: TICKET_FONT, fontStyle: 'bold',
       backgroundColor: '#00000088',
-      padding: { x: 3, y: 1 },
+      padding: { x: 4, y: 2 },
     }).setOrigin(0.5).setDepth(11);
     container.add(hintText);
 
@@ -57,8 +57,10 @@ export class GameSceneTray {
       inHolding: false,
       onPrepTrack: true,
       prepSlot: slot,
+      slotIndex: slot.index,
       draggable: true,
       waitingForCustomer: true,
+      wrongPlacements: 0,
     };
 
     slot.occupied = true;
@@ -67,6 +69,16 @@ export class GameSceneTray {
     s.trays.push(tray);
 
     container.setSize(200, 180);
+
+    // Make tray clickable for selection
+    container.setInteractive({ useHandCursor: true });
+    container.on('pointerdown', () => {
+      if (s.isPaused || tray.done || tray.waitingForCustomer) return;
+      if (s.interactionManager.selectTray) {
+        s.interactionManager.selectTray(tray);
+      }
+    });
+
     s.ordersSpawned++;
 
     s.customerManager.addCustomer(tray, () => {
@@ -77,7 +89,13 @@ export class GameSceneTray {
 
       s.updateTrayNextHint(tray);
 
-      // Update prominent next-key prompt
+      // Auto-select this tray if no other is selected
+      if (s.interactionManager.selectedTray == null ||
+          s.interactionManager.selectedTray.done ||
+          s.interactionManager.selectedTray.completed) {
+        s.interactionManager.selectTray(tray);
+      }
+
       if (s.interactionManager.updateNextKeyPrompt) {
         s.interactionManager.updateNextKeyPrompt();
       }
@@ -122,16 +140,12 @@ export class GameSceneTray {
     const toppings = INGREDIENTS_BY_CATEGORY['topping'] || [];
     const sauces = INGREDIENTS_BY_CATEGORY['sauce'] || [];
 
-    const minutesPlayed = s.gameTime / 60;
-    const diff = DIFFICULTY_PROGRESSION;
-    const maxToppings = Math.min(
-      diff.maxMaxToppings,
-      Math.floor(diff.initialMaxToppings + minutesPlayed * diff.maxToppingsIncrease)
-    );
-    const treatmentChance = Math.min(
-      diff.maxTreatmentChance,
-      diff.initialTreatmentChance + minutesPlayed * diff.treatmentChanceIncrease
-    );
+    // Use wave config for complexity settings
+    const wc = s.waveConfig || {};
+    const maxToppings = wc.maxToppings != null ? wc.maxToppings : 2;
+    const treatmentChance = wc.treatmentChance != null ? wc.treatmentChance : 0;
+    const cheeseChance = wc.cheeseChance != null ? wc.cheeseChance : CHEESE_CHANCE;
+    const sauceChance = wc.sauceChance != null ? wc.sauceChance : SAUCE_CHANCE;
 
     const list = [];
     const bread = pick(breads);
@@ -139,25 +153,25 @@ export class GameSceneTray {
     list.push(bread);
     list.push(pick(meats));
 
-    if (cheeses.length > 0 && Math.random() < CHEESE_CHANCE) {
+    if (cheeses.length > 0 && cheeseChance > 0 && Math.random() < cheeseChance) {
       list.push(pick(cheeses));
     }
 
-    if (toppings.length > 0) {
+    if (toppings.length > 0 && maxToppings > 0) {
       const topCount = Math.floor(Math.random() * (maxToppings + 1));
       if (topCount > 0) {
         pickN(toppings, topCount).forEach((t) => list.push(t));
       }
     }
 
-    if (sauces.length > 0 && Math.random() < SAUCE_CHANCE) {
+    if (sauces.length > 0 && sauceChance > 0 && Math.random() < sauceChance) {
       list.push(pick(sauces));
     }
 
     list.push(bread);
 
     const treatments = [];
-    if (Math.random() < treatmentChance) {
+    if (treatmentChance > 0 && Math.random() < treatmentChance) {
       const allTreatments = Object.keys(TREATMENTS);
       const count = Math.random() < DOUBLE_TREATMENT_CHANCE ? 2 : 1;
       const chosen = pickN(allTreatments, count);

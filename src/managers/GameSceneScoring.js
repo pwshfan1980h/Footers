@@ -32,7 +32,11 @@ export class GameSceneScoring {
       speedMult = 1 + 3 * Math.pow(1 - fraction, 2);
     }
 
-    const scoreGain = Math.floor(baseScore * speedMult);
+    // Perfect order bonus: +50% if no wrong placements
+    const isPerfect = tray.wrongPlacements === 0;
+    const perfectMult = isPerfect ? 1.5 : 1.0;
+
+    const scoreGain = Math.floor(baseScore * speedMult * perfectMult);
     s.currentScore += scoreGain;
 
     if (elapsed != null && (s.fastestOrderThisShift == null || elapsed < s.fastestOrderThisShift)) {
@@ -60,9 +64,9 @@ export class GameSceneScoring {
     s.refreshHUD();
     s.ticketBar.markTicketCompleted(tray.orderNum);
 
-    // Score popup with multiplier info
     const multLabel = speedMult >= 3.5 ? `x${speedMult.toFixed(1)}!!` : speedMult >= 2 ? `x${speedMult.toFixed(1)}!` : speedMult > 1.1 ? `x${speedMult.toFixed(1)}` : '';
-    const popupText = multLabel ? `+${scoreGain} ${multLabel}` : `+${scoreGain}`;
+    const perfectLabel = isPerfect ? ' PERFECT' : '';
+    const popupText = multLabel ? `+${scoreGain} ${multLabel}${perfectLabel}` : `+${scoreGain}${perfectLabel}`;
     const popupColor = speedMult >= 3.5 ? '#FFD700' : speedMult >= 2 ? '#00FFCC' : '#0f0';
     const popupSize = speedMult >= 3.5 ? '32px' : speedMult >= 2 ? '28px' : '26px';
 
@@ -107,10 +111,12 @@ export class GameSceneScoring {
 
     s.customerManager.dismissCustomer(tray);
 
-    // Update next-key prompt (may shift to next active tray)
     if (s.interactionManager && s.interactionManager.updateNextKeyPrompt) {
       s.interactionManager.updateNextKeyPrompt();
     }
+
+    // Wave tracking
+    if (s.onOrderHandled) s.onOrderHandled(true, tray, speedMult);
 
     this.resolveSequential();
   }
@@ -180,12 +186,13 @@ export class GameSceneScoring {
 
     s.customerManager.dismissCustomer(tray);
 
-    // Update next-key prompt
     if (s.interactionManager && s.interactionManager.updateNextKeyPrompt) {
       s.interactionManager.updateNextKeyPrompt();
     }
 
-    // Game over: fired after too many missed orders
+    // Wave tracking
+    if (s.onOrderHandled) s.onOrderHandled(false, tray, 0);
+
     if (s.ordersMissed >= MAX_MISSES) {
       s.isPaused = true;
       s.time.delayedCall(GAME_OVER_DELAY, () => {

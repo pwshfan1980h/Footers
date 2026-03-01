@@ -1,18 +1,1 @@
-<svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">
-  <!-- Onion Pile -->
-  <!-- Base mound -->
-  <path d="M 15 50 Q 50 30 85 50" fill="#7B1FA2" opacity="0.6" />
-  
-  <!-- Rings -->
-  <!-- Back rings -->
-  <ellipse cx="40" cy="40" rx="15" ry="8" fill="none" stroke="#BA68C8" stroke-width="3" />
-  <ellipse cx="60" cy="40" rx="15" ry="8" fill="none" stroke="#E1BEE7" stroke-width="3" />
-  
-  <!-- Front rings -->
-  <ellipse cx="50" cy="45" rx="18" ry="9" fill="none" stroke="#9C27B0" stroke-width="3" />
-  <ellipse cx="30" cy="48" rx="12" ry="6" fill="none" stroke="#CE93D8" stroke-width="3" />
-  <ellipse cx="70" cy="48" rx="12" ry="6" fill="none" stroke="#BA68C8" stroke-width="3" />
-  
-  <!-- Loose arc -->
-  <path d="M 45 35 Q 50 25 55 35" fill="none" stroke="#E1BEE7" stroke-width="3" />
-</svg>
+<svg width="100" height="60" viewBox="0 0 100 60" xmlns="http://www.w3.org/2000/svg">\n<!-- Base contents -->\n<path d="M 15 50 Q 50 30 85 50 Z" fill="#7B1FA2" />\n<ellipse cx="40" cy="45" rx="16" ry="6" fill="none" stroke="#CE93D8" stroke-width="2" transform="rotate(-20 40 45)"/>\n<ellipse cx="40" cy="45" rx="13" ry="4" fill="none" stroke="#F3E5F5" stroke-width="1.5" transform="rotate(-20 40 45)"/>\n<ellipse cx="60" cy="45" rx="16" ry="6" fill="none" stroke="#CE93D8" stroke-width="2" transform="rotate(20 60 45)"/>\n<ellipse cx="60" cy="45" rx="13" ry="4" fill="none" stroke="#F3E5F5" stroke-width="1.5" transform="rotate(20 60 45)"/>\n<ellipse cx="50" cy="35" rx="18" ry="8" fill="none" stroke="#E1BEE7" stroke-width="2.5"/>\n<ellipse cx="50" cy="35" rx="14" ry="5" fill="none" stroke="#FFF" stroke-width="1.5"/>\n</svg>

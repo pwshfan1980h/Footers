@@ -24,36 +24,52 @@ export class GameSceneBins {
     const s = this.scene;
     const g = s.add.graphics().setDepth(9);
 
-    // Meats zone — warm reddish-brown
-    g.fillStyle(0x5A2020, 0.15);
+    // Meats zone — warm reddish tint, stronger overlay
+    g.fillStyle(s.BIN_MEAT, 0.25);
     g.fillRoundedRect(88, 535, 410, 330, 12);
-    g.lineStyle(1, 0x8B4040, 0.2);
+    g.lineStyle(2, 0xCC5050, 0.4);
     g.strokeRoundedRect(88, 535, 410, 330, 12);
+    // Left edge accent
+    g.fillStyle(0xCC5050, 0.5);
+    g.fillRect(88, 547, 3, 306);
 
-    // Toppings zone — earthy green (below prep area)
-    g.fillStyle(0x204A20, 0.15);
+    // Toppings zone — earthy green
+    g.fillStyle(s.BIN_TOPPING, 0.25);
     g.fillRoundedRect(565, 648, 430, 160, 12);
-    g.lineStyle(1, 0x408B40, 0.2);
+    g.lineStyle(2, 0x50CC50, 0.4);
     g.strokeRoundedRect(565, 648, 430, 160, 12);
+    g.fillStyle(0x50CC50, 0.5);
+    g.fillRect(565, 660, 3, 136);
 
     // Cheese zone — warm amber
-    g.fillStyle(0x4A4A10, 0.15);
+    g.fillStyle(s.BIN_CHEESE, 0.25);
     g.fillRoundedRect(1085, 555, 190, 260, 12);
-    g.lineStyle(1, 0x8B8B40, 0.2);
+    g.lineStyle(2, 0xCCCC50, 0.4);
     g.strokeRoundedRect(1085, 555, 190, 260, 12);
+    g.fillStyle(0xCCCC50, 0.5);
+    g.fillRect(1085, 567, 3, 236);
 
     // Treatments zone — blue
-    g.fillStyle(0x203050, 0.15);
+    g.fillStyle(s.BIN_TREATMENT, 0.25);
     g.fillRoundedRect(565, 815, 430, 175, 12);
-    g.lineStyle(1, 0x4060AA, 0.2);
+    g.lineStyle(2, 0x5080CC, 0.4);
     g.strokeRoundedRect(565, 815, 430, 175, 12);
+    g.fillStyle(0x5080CC, 0.5);
+    g.fillRect(565, 827, 3, 151);
 
-    // Zone labels
-    const labelStyle = { fontSize: '9px', color: '#7A6048', fontFamily: GAME_FONT };
-    s.add.text(293, 540, 'MEATS', labelStyle).setOrigin(0.5).setDepth(10);
-    s.add.text(780, 653, 'TOPPINGS', labelStyle).setOrigin(0.5).setDepth(10);
-    s.add.text(1180, 560, 'CHEESE', labelStyle).setOrigin(0.5).setDepth(10);
-    s.add.text(780, 820, 'TREATMENTS', { fontSize: '9px', color: '#6080AA', fontFamily: GAME_FONT }).setOrigin(0.5).setDepth(10);
+    // Zone labels — larger and brighter, color-coded
+    s.add.text(293, 540, 'MEATS', {
+      fontSize: '16px', color: '#DD8888', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(10);
+    s.add.text(780, 653, 'TOPPINGS', {
+      fontSize: '16px', color: '#88DD88', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(10);
+    s.add.text(1180, 560, 'CHEESE', {
+      fontSize: '16px', color: '#DDDD88', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(10);
+    s.add.text(780, 820, 'TREATMENTS', {
+      fontSize: '16px', color: '#88AADD', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(10);
   }
 
   getIsoPosition(col, row, baseX, baseY, spacingX, spacingY) {
@@ -103,7 +119,7 @@ export class GameSceneBins {
       }
 
       const label = s.add.text(x, y + 55, ing.name, {
-        fontSize: '13px', color: isLocked ? '#666' : '#ddd', fontFamily: GAME_FONT, fontStyle: 'bold',
+        fontSize: '16px', color: isLocked ? '#666' : '#ddd', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(21);
 
       if (hints[key] && !isLocked) {
@@ -163,7 +179,7 @@ export class GameSceneBins {
       });
 
       s.add.text(x, y + 38, b.label, {
-        fontSize: '14px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
+        fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
       const breadHints = { 'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C' };
@@ -231,7 +247,7 @@ export class GameSceneBins {
       });
 
       const label = s.add.text(x, y + 52, c.label, {
-        fontSize: '18px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
+        fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
       const hints = { 'cheese_american': 'W', 'cheese_swiss': 'E' };
@@ -297,7 +313,7 @@ export class GameSceneBins {
       }
 
       const label = s.add.text(v.x, v.y + 42, v.label, {
-        fontSize: '14px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
+        fontSize: '16px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
       if (!isLocked) {
@@ -328,8 +344,8 @@ export class GameSceneBins {
     const bottleImg = s.add.image(0, 0, bottleKey).setScale(0.25);
     container.add(bottleImg);
 
-    const label = s.add.text(0, -radius - 12, ingredient.name, {
-      fontSize: '12px', color: '#ccc', fontStyle: 'bold', fontFamily: GAME_FONT
+    const label = s.add.text(0, -radius - 14, ingredient.name, {
+      fontSize: '16px', color: '#ccc', fontStyle: 'bold', fontFamily: GAME_FONT
     }).setOrigin(0.5);
     container.add(label);
 
@@ -396,9 +412,9 @@ export class GameSceneBins {
       this.pickupTreatment(tKey);
     });
 
-    const labelY = (tKey === 'togo') ? 38 : (tKey === 'toasted') ? 36 : 34;
+    const labelY = (tKey === 'togo') ? 40 : (tKey === 'toasted') ? 38 : 36;
     const label = s.add.text(0, labelY, treat.name, {
-      fontSize: '12px', color: treat.label, fontFamily: GAME_FONT, fontStyle: 'bold',
+      fontSize: '16px', color: treat.label, fontFamily: GAME_FONT, fontStyle: 'bold',
       stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5);
     c.add(label);

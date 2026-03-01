@@ -17,12 +17,11 @@ export class CustomerManager {
     this.scene = scene;
     this.customers = [];
 
-    // 4 counter positions
+    // 3 counter positions aligned with prep track slots
     this.slots = [
-      { counterX: 300, counterY: 395, occupied: false },
-      { counterX: 731, counterY: 395, occupied: false },
-      { counterX: 1189, counterY: 395, occupied: false },
-      { counterX: 1620, counterY: 395, occupied: false },
+      { counterX: 430, counterY: 395, occupied: false, prepIndex: 0 },
+      { counterX: 960, counterY: 395, occupied: false, prepIndex: 1 },
+      { counterX: 1490, counterY: 395, occupied: false, prepIndex: 2 },
     ];
 
     // Suit variants — each has distinct visual traits
@@ -64,6 +63,10 @@ export class CustomerManager {
     const slot = this.slots.find(s => !s.occupied);
     if (!slot) return;
     slot.occupied = true;
+
+    // Store slot reference and prep index on the tray
+    tray.customerSlot = slot;
+    tray.slotIndex = slot.prepIndex;
 
     // ~25% chance of alien customer
     const isAlien = Math.random() < 0.25;
@@ -267,9 +270,14 @@ export class CustomerManager {
         c.personState = 'at_counter';
         // Close door behind them
         this.scene.customerDeck.requestDoorClose();
-        // Set patience timer (scales down with game time)
-        const minutesPlayed = this.scene.gameTime / 60;
-        c.patienceMax = Math.max(MIN_PATIENCE, BASE_PATIENCE - minutesPlayed * PATIENCE_DECREASE);
+        // Patience from wave config (falls back to time-based)
+        const wc = this.scene.waveConfig;
+        if (wc && wc.maxPatience) {
+          c.patienceMax = wc.maxPatience;
+        } else {
+          const minutesPlayed = this.scene.gameTime / 60;
+          c.patienceMax = Math.max(MIN_PATIENCE, BASE_PATIENCE - minutesPlayed * PATIENCE_DECREASE);
+        }
         c.patience = c.patienceMax;
         // Fire arrival callback — reveals the order
         if (c.onArrive) c.onArrive();
@@ -361,8 +369,8 @@ export class CustomerManager {
       if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_counter') {
         if (!c.numText) {
           c.numText = this.scene.add.text(x, y - 28 * sc, `#${c.tray.orderNum}`, {
-            fontSize: `${Math.max(12, Math.round(3 * sc))}px`, color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
-            backgroundColor: '#00000066', padding: { x: 3, y: 1 },
+            fontSize: '16px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
+            backgroundColor: '#00000066', padding: { x: 4, y: 2 },
           }).setOrigin(0.5).setDepth(2.5);
         }
         c.numText.setPosition(x, y - 28 * sc);
@@ -526,13 +534,13 @@ export class CustomerManager {
     }
 
     // Order number badge
-    if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_counter') {
-      if (!c.numText) {
-        c.numText = this.scene.add.text(x, y - 30 * sc, `#${c.tray.orderNum}`, {
-          fontSize: '12px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
-          backgroundColor: '#00000066', padding: { x: 3, y: 1 },
-        }).setOrigin(0.5).setDepth(2.5);
-      }
+      if (c.tray && c.tray.orderNum !== undefined && c.personState === 'at_counter') {
+        if (!c.numText) {
+          c.numText = this.scene.add.text(x, y - 30 * sc, `#${c.tray.orderNum}`, {
+            fontSize: '16px', color: '#FFE8CC', fontFamily: GAME_FONT, fontStyle: 'bold',
+            backgroundColor: '#00000066', padding: { x: 4, y: 2 },
+          }).setOrigin(0.5).setDepth(2.5);
+        }
       c.numText.setPosition(x + headTurnOff, y - 30 * sc);
       c.numText.setAlpha(1);
     } else if (c.numText) {

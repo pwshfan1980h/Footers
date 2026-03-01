@@ -1,24 +1,11 @@
 <svg width="128" height="88" viewBox="0 0 128 88" xmlns="http://www.w3.org/2000/svg">
-  <!-- Roast Beef Pile -->
-  <!-- Base shadow -->
-  <ellipse cx="64" cy="65" rx="52" ry="22" fill="#000" opacity="0.25"/>
-  
-  <!-- Pile of folded beef slices -->
-  <!-- Bottom layer -->
-  <path d="M 24 55 Q 30 40 50 50 T 80 55 T 104 50 Q 110 60 100 70 Q 64 82 28 70 Q 18 60 24 55 Z" fill="#6B3000"/>
-  <path d="M 28 52 Q 34 38 54 48 T 84 52 T 100 48" fill="none" stroke="#522400" stroke-width="2"/>
-
-  <!-- Mid layer -->
-  <path d="M 34 45 Q 40 30 60 40 T 90 45 T 100 40 Q 106 50 96 60 Q 64 72 34 60 Q 28 50 34 45 Z" fill="#8B4513"/>
-  
-  <!-- Flaps/folds -->
-  <path d="M 40 48 Q 50 35 64 48 T 90 45" fill="none" stroke="#A0522D" stroke-width="3" opacity="0.5"/>
-  <path d="M 38 52 Q 48 60 64 55 T 88 58" fill="none" stroke="#522400" stroke-width="1.5"/>
-
-  <!-- Top ruffle -->
-  <path d="M 44 35 Q 54 20 74 30 T 94 35 T 84 50 Q 64 58 44 50 Q 38 40 44 35 Z" fill="#A0522D"/>
-  
-  <!-- Texture (pinkish centers) -->
-  <path d="M 54 35 Q 64 28 74 35" fill="none" stroke="#BC8F8F" stroke-width="2" opacity="0.6"/>
-  <path d="M 50 45 Q 64 38 78 45" fill="none" stroke="#BC8F8F" stroke-width="2" opacity="0.4"/>
+  <defs>
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="2" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.3"/>
+    </filter>
+<linearGradient id="pile-rb-grad" x1="0%" y1="0%" x2="0%" y2="100%">\n<stop offset="0%" stop-color="#a64d4d"/>\n<stop offset="100%" stop-color="#4d1a1a"/>\n</linearGradient>\n
+  </defs>
+  <g filter="url(#shadow)">
+<!-- Base shadow -->\n  <ellipse cx="64" cy="65" rx="50" ry="20" fill="#000" opacity="0.3" />\n<path d="M 20 55 C 30 20, 70 20, 80 45 C 90 70, 40 80, 20 55 Z" fill="url(#pile-rb-grad)" stroke="#260d0d" stroke-width="2" />\n<path d="M 50 45 C 60 10, 100 10, 110 35 C 120 60, 70 70, 50 45 Z" fill="url(#pile-rb-grad)" stroke="#260d0d" stroke-width="2" />\n<path d="M 35 40 C 45 5, 85 5, 95 30 C 105 55, 55 65, 35 40 Z" fill="#803333" stroke="#260d0d" stroke-width="2" />\n<!-- glossy highlights -->\n<path d="M 45 25 Q 65 15 80 25" fill="none" stroke="#e6b3b3" stroke-width="2" stroke-linecap="round" opacity="0.5"/>\n<path d="M 35 40 Q 55 30 70 40" fill="none" stroke="#e6b3b3" stroke-width="2" stroke-linecap="round" opacity="0.4"/>\n
+  </g>
 </svg>
