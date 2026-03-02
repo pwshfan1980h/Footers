@@ -98,8 +98,6 @@ export class CustomerDeck {
 
     // Swinging saloon doors (two panels that swing outward)
     const doorW = R;
-    const doorH = R * 2 + 10;
-    const doorTop = cy - R - 5;
 
     // Swing angle: 0 (closed) to PI/2.5 (open)
     const swingAngle = progress * (Math.PI / 2.5);
