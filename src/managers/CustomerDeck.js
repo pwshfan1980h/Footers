@@ -39,10 +39,10 @@ export class CustomerDeck {
     g.fillRect(0, deckBot - 6, GAME_WIDTH, 10);
 
     // Door frame aligned to counter start
-    const doorBase = s.COUNTER_Y - 6;
-    const doorH = 150;
-    const doorTop = doorBase - doorH;
-    const doorW = 140;
+    const doorTop = s.DOOR_Y - s.DOOR_RADIUS - 5;
+    const doorH = s.DOOR_RADIUS * 2 + 10;
+    const doorBase = doorTop + doorH;
+    const doorW = 120;
     const alX = s.DOOR_X;
 
     g.fillStyle(0x2e2620, 1);
@@ -61,7 +61,7 @@ export class CustomerDeck {
     const positions = this.getStandingPositions();
     positions.forEach(pos => {
       g.fillStyle(0x000000, 0.12);
-      g.fillEllipse(pos.x, doorBase + 4, 42, 10);
+      g.fillEllipse(pos.x, pos.y + 4, 42, 10);
     });
 
     // Update derived door geometry for swing drawing
