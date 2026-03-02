@@ -1,58 +1,203 @@
-<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg">
+<svg width="512" height="256" viewBox="0 0 512 256" xmlns="http://www.w3.org/2000/svg">
   <defs>
-    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="2" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.25"/>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="8" stdDeviation="6" flood-color="#000" flood-opacity="0.35"/>
+    </filter>
+    <filter id="inner-shadow">
+      <feOffset dx="0" dy="0"/>
+      <feGaussianBlur stdDeviation="4" result="offset-blur"/>
+      <feComposite operator="out" in="SourceGraphic" in2="offset-blur" result="inverse"/>
+      <feFlood flood-color="black" flood-opacity="0.4" result="color"/>
+      <feComposite operator="in" in="color" in2="inverse" result="shadow"/>
+      <feComposite operator="over" in="shadow" in2="SourceGraphic"/>
     </filter>
 
     <radialGradient id="crust-sourdough" cx="50%" cy="50%" r="50%">
-      <stop offset="60%" stop-color="#D4B88E"/>
-      <stop offset="100%" stop-color="#A88D68"/>
+      <stop offset="50%" stop-color="#DEC199"/>
+      <stop offset="100%" stop-color="#B3956F"/>
     </radialGradient>
-    <radialGradient id="inner-sourdough" cx="40%" cy="40%" r="60%">
-      <stop offset="0%" stop-color="#FFFBEA"/>
-      <stop offset="100%" stop-color="#EBE2C5"/>
+    <radialGradient id="inner-sourdough" cx="45%" cy="45%" r="65%">
+      <stop offset="0%" stop-color="#FFFDF2"/>
+      <stop offset="100%" stop-color="#EFE7CF"/>
     </radialGradient>
   
   </defs>
   <g filter="url(#shadow)">
 
     <!-- Cartoony Bread Crust -->
-    <path d="M 64 16 C 96 16, 120 36, 120 62 C 120 88, 96 112, 64 112 C 32 112, 8 88, 8 62 C 8 36, 32 16, 64 16 Z" 
-          fill="url(#crust-sourdough)" stroke="#7A6242" stroke-width="4" stroke-linejoin="round"/>
+    <path d="M 256 20 C 460 20, 492 60, 492 128 C 492 196, 460 236, 256 236 C 52 236, 20 196, 20 128 C 20 60, 52 20, 256 20 Z" fill="url(#crust-sourdough)" stroke="#80694B" stroke-width="12" stroke-linejoin="round"/>
           
-    <!-- Inner bread -->
-    <path d="M 64 24 C 88 24, 108 40, 108 62 C 108 84, 88 100, 64 100 C 40 100, 20 84, 20 62 C 20 40, 40 24, 64 24 Z" 
-          fill="url(#inner-sourdough)"/>
+    <!-- Inner bread crumb -->
+    <path d="M 256 32 C 436 32, 460 68, 460 128 C 460 188, 436 224, 256 224 C 76 224, 52 188, 52 128 C 52 68, 76 32, 256 32 Z" fill="url(#inner-sourdough)"/>
           
-    <!-- Inner shadow / Rim light on inner bread -->
-    <path d="M 64 24 C 88 24, 108 40, 108 62 C 108 84, 88 100, 64 100 C 40 100, 20 84, 20 62 C 20 40, 40 24, 64 24 Z" 
-          fill="none" stroke="#D4C69F" stroke-width="4" opacity="0.8"/>
+    <!-- Inner soft shadow / rim -->
+    <path d="M 256 32 C 436 32, 460 68, 460 128 C 460 188, 436 224, 256 224 C 76 224, 52 188, 52 128 C 52 68, 76 32, 256 32 Z" fill="none" stroke="#DFD1B0" stroke-width="12" opacity="0.85" filter="blur(3px)"/>
 
-    <!-- Flour / texture specks -->
     <g>
-      <circle cx="50" cy="50" r="2.5" fill="#C2B084" opacity="0.7"/>
-<circle cx="80" cy="65" r="3" fill="#C2B084" opacity="0.7"/>
-<circle cx="65" cy="80" r="2" fill="#C2B084" opacity="0.7"/>
-<circle cx="45" cy="70" r="1.5" fill="#C2B084" opacity="0.7"/>
-<circle cx="85" cy="45" r="2" fill="#C2B084" opacity="0.7"/>
-<ellipse cx="35" cy="55" rx="4" ry="3" fill="#C8B898" opacity="0.8"/>
-<ellipse cx="70" cy="35" rx="5" ry="3.75" fill="#C8B898" opacity="0.8"/>
-<ellipse cx="40" cy="80" rx="4" ry="3" fill="#C8B898" opacity="0.8"/>
-<circle cx="90" cy="80" r="1.5" fill="#C2B084" opacity="0.7"/>
+      <circle cx="220.18313260297313" cy="192.48708613747357" r="1.6500953541209042" fill="#C2B084" opacity="0.75"/>
+<circle cx="217.485299705483" cy="143.2059358946558" r="3.3450734661650343" fill="#C2B084" opacity="0.75"/>
+<circle cx="435.7582120038558" cy="184.78953954364758" r="2.5317335322017627" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="430.93741693895157" cy="181.2121919114795" rx="11.689826637909324" ry="4.342072048626751" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="276.004243455329" cy="37.55337670396786" r="3.059103390164434" fill="#C2B084" opacity="0.75"/>
+<circle cx="71.01831574106744" cy="47.6246523909881" r="2.592775195543102" fill="#C2B084" opacity="0.75"/>
+<circle cx="419.8362239722686" cy="143.20803640497041" r="2.524008396048008" fill="#C2B084" opacity="0.75"/>
+<circle cx="439.26096343104615" cy="177.0891973640996" r="3.203968983276635" fill="#C2B084" opacity="0.75"/>
+<circle cx="363.91399220316686" cy="39.88806980589281" r="2.4874989091300606" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="286.56872419909183" cy="135.32179707001893" rx="9.819123938879045" ry="4.581109009535196" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="189.95212462352447" cy="218.46384129551666" r="3.546339594829945" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="47.84727655298947" cy="128.16537680118233" rx="9.416877312956537" ry="3.371962573502486" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<ellipse cx="239.661899108935" cy="33.79429034786449" rx="4.954438974603189" ry="6.683718837842665" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="382.43875829540804" cy="131.46423272816077" r="2.0045878409835227" fill="#C2B084" opacity="0.75"/>
+<circle cx="108.28908076937576" cy="85.49089625615532" r="2.799628939737695" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="33.32281322641348" cy="68.09463665736192" rx="7.983652649986939" ry="8.170758726098068" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<ellipse cx="385.90823856644397" cy="48.90680430535218" rx="4.86672763035676" ry="5.914179994296367" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="297.351094568393" cy="38.923337610566406" r="1.117488602538276" fill="#C2B084" opacity="0.75"/>
+<circle cx="252.81995865959945" cy="133.4762128932582" r="3.966525163714408" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="267.3923566298464" cy="223.31513720014323" rx="10.540964705152973" ry="8.181435406383422" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="212.53390113890643" cy="185.93796036683008" r="3.5594529058841777" fill="#C2B084" opacity="0.75"/>
+<circle cx="373.0026908065689" cy="199.82510675480796" r="2.2946833830322992" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="130.33865103558657" cy="209.93886725477054" rx="10.78545528193077" ry="4.203347013357031" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="159.17737523171064" cy="103.6298916922453" r="3.075255026868817" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="117.01113199722906" cy="101.53709948870573" rx="4.627701263861782" ry="3.0989322916492137" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="244.24159800816756" cy="48.43450586474755" r="1.3288483468870942" fill="#C2B084" opacity="0.75"/>
+<circle cx="453.495586266635" cy="69.86074406426431" r="2.1309913666808584" fill="#C2B084" opacity="0.75"/>
+<circle cx="98.24196707899426" cy="209.2231115558976" r="1.3896804992845384" fill="#C2B084" opacity="0.75"/>
+<circle cx="395.89059305569646" cy="110.50666387268413" r="1.6671167553816972" fill="#C2B084" opacity="0.75"/>
+<circle cx="43.602415198379305" cy="61.810930752830814" r="3.198356543469654" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="218.36463094595751" cy="53.448143177283924" rx="6.789533275976091" ry="6.351669893692071" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="299.54465787854053" cy="168.86965254373476" r="3.677847087275714" fill="#C2B084" opacity="0.75"/>
+<circle cx="202.51424402745198" cy="56.47655830353647" r="1.6248360252781198" fill="#C2B084" opacity="0.75"/>
+<circle cx="321.7874188431861" cy="97.72455852535049" r="1.2723934770396095" fill="#C2B084" opacity="0.75"/>
+<circle cx="68.01795761001122" cy="104.51902045578719" r="2.5286424143825235" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="191.8773577311531" cy="196.52090567289147" rx="7.478487432013337" ry="6.241766430581628" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="274.0004584354808" cy="220.71422552892494" r="1.936620533912611" fill="#C2B084" opacity="0.75"/>
+<circle cx="190.06569856588217" cy="33.09066402585636" r="3.9888052380704537" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="298.09713151062044" cy="174.87276627066962" rx="10.475376745009761" ry="4.793222199615412" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<ellipse cx="84.20294696704427" cy="123.84759010487316" rx="8.079454234893973" ry="5.44826260412502" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="273.0169869727722" cy="95.78528509050612" r="2.3962055865378913" fill="#C2B084" opacity="0.75"/>
+<circle cx="229.00758018450762" cy="66.44907289055234" r="1.5961265584060953" fill="#C2B084" opacity="0.75"/>
+<circle cx="223.29515714728714" cy="114.88870493284614" r="2.651411009172623" fill="#C2B084" opacity="0.75"/>
+<circle cx="383.16107118797476" cy="187.15475522613252" r="1.3312407538176214" fill="#C2B084" opacity="0.75"/>
+<circle cx="335.58216813886924" cy="86.36040992169373" r="1.3171148674304156" fill="#C2B084" opacity="0.75"/>
+<circle cx="42.95261858066671" cy="124.96018191138204" r="2.2056388432227436" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="118.45145572931487" cy="78.28278474341141" rx="5.011024211846871" ry="3.0878965265638945" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="107.66754647845639" cy="110.2206260797647" r="3.561275533527158" fill="#C2B084" opacity="0.75"/>
+<circle cx="141.0738055532682" cy="198.46214072250754" r="2.300310300262963" fill="#C2B084" opacity="0.75"/>
+<circle cx="220.53676599012763" cy="151.1456440422711" r="2.9194980674331035" fill="#C2B084" opacity="0.75"/>
+<circle cx="227.67069807281925" cy="40.72469178205713" r="2.512779761505847" fill="#C2B084" opacity="0.75"/>
+<circle cx="411.2180298584863" cy="185.5981050217598" r="1.73339417351997" fill="#C2B084" opacity="0.75"/>
+<circle cx="170.490822251755" cy="192.04916374188315" r="3.2120357978474154" fill="#C2B084" opacity="0.75"/>
+<circle cx="340.3217730161271" cy="90.6406171585437" r="1.4012981814456702" fill="#C2B084" opacity="0.75"/>
+<circle cx="407.24447618529587" cy="40.277241175210996" r="1.2590802071214315" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="90.69135901887083" cy="176.93804582312393" rx="4.7880126422243094" ry="6.088097104873009" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="144.2411549885419" cy="142.5246266769284" r="2.2740800879473153" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="428.5200022111723" cy="149.42088249046358" rx="10.852494469279609" ry="4.782886194901546" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="337.6395779662698" cy="67.0595251745263" r="3.9160700499015793" fill="#C2B084" opacity="0.75"/>
+<circle cx="201.72741438059853" cy="142.43408912140794" r="3.913724120284906" fill="#C2B084" opacity="0.75"/>
+<circle cx="113.07272793305323" cy="91.13742063789611" r="2.9314703277523737" fill="#C2B084" opacity="0.75"/>
+<circle cx="271.1105125883106" cy="98.3027679476593" r="1.072103508815746" fill="#C2B084" opacity="0.75"/>
+<circle cx="49.349421911692474" cy="37.71631136133599" r="2.04526811879236" fill="#C2B084" opacity="0.75"/>
+<circle cx="123.34353912776787" cy="99.06313710884181" r="3.4452362276551645" fill="#C2B084" opacity="0.75"/>
+<circle cx="155.4108254946402" cy="34.44911890392798" r="2.0168087080870585" fill="#C2B084" opacity="0.75"/>
+<circle cx="414.86650594793986" cy="84.5327097985741" r="3.065337408962158" fill="#C2B084" opacity="0.75"/>
+<circle cx="48.69199741087611" cy="129.73246283117686" r="2.4218046304902354" fill="#C2B084" opacity="0.75"/>
+<circle cx="451.0952088304346" cy="148.8126081799071" r="3.748376642850144" fill="#C2B084" opacity="0.75"/>
+<circle cx="70.64233080163125" cy="33.52302105712018" r="2.904154142781664" fill="#C2B084" opacity="0.75"/>
+<circle cx="438.5626043951213" cy="45.416342007245056" r="3.1065453511996295" fill="#C2B084" opacity="0.75"/>
+<circle cx="391.66439243831394" cy="192.233985973036" r="1.2821979629244546" fill="#C2B084" opacity="0.75"/>
+<circle cx="105.24494532260586" cy="207.00666985223754" r="3.3950738040690527" fill="#C2B084" opacity="0.75"/>
+<circle cx="403.5913203352888" cy="86.7455085510137" r="1.7527047918426744" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="368.7276304529764" cy="200.35617468289627" rx="11.569200075347782" ry="3.147436656110739" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="302.0881029223099" cy="68.37510077237874" r="3.1779574357689784" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="395.22342181780516" cy="220.16107179817638" rx="6.227292093500241" ry="6.937083923484873" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<ellipse cx="217.14923711095452" cy="135.6301642317042" rx="4.533730084758009" ry="7.530691427190526" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="477.47482053418395" cy="129.71634666916896" r="3.3981572331810894" fill="#C2B084" opacity="0.75"/>
+<circle cx="417.9128219523056" cy="69.00094313197762" r="2.4905258616741115" fill="#C2B084" opacity="0.75"/>
+<circle cx="395.3523856156977" cy="179.75773777057296" r="2.062993304924644" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="305.67247731054675" cy="174.1784881846619" rx="5.922813525589291" ry="6.540567440819462" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="249.7272871573129" cy="192.80980299483895" r="3.749549564106712" fill="#C2B084" opacity="0.75"/>
+<circle cx="375.14912369432955" cy="158.4686583244708" r="2.4570959542811472" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="84.46283460907762" cy="184.98348973603754" rx="10.915667920392242" ry="3.349322284168923" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="387.89604780199494" cy="114.88222932294848" r="3.149725491782879" fill="#C2B084" opacity="0.75"/>
+<circle cx="328.30217065519116" cy="146.32452900901117" r="1.4879850702300732" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="267.07148255023526" cy="78.38720669495038" rx="11.180596268795611" ry="6.736030705771427" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="66.1292971750257" cy="217.37124667873263" r="1.2045538177346462" fill="#C2B084" opacity="0.75"/>
+<circle cx="106.63930479542478" cy="38.91219619860397" r="3.253142715197146" fill="#C2B084" opacity="0.75"/>
+<circle cx="294.73891844351607" cy="30.65512084279175" r="2.4900025319903154" fill="#C2B084" opacity="0.75"/>
+<circle cx="300.49167241106096" cy="184.50891294330623" r="2.5888668830446626" fill="#C2B084" opacity="0.75"/>
+<circle cx="84.6479266110247" cy="183.11701436047463" r="2.8185838540359747" fill="#C2B084" opacity="0.75"/>
+<circle cx="183.11421423782747" cy="182.24583026799758" r="1.7556852442926303" fill="#C2B084" opacity="0.75"/>
+<circle cx="359.0234802851626" cy="44.73291826214838" r="3.154030430433944" fill="#C2B084" opacity="0.75"/>
+<circle cx="179.74142369222204" cy="74.52755879585939" r="1.0989214120934148" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="287.1818071525993" cy="172.59283279797145" rx="8.48850659862414" ry="3.410219071535396" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<ellipse cx="127.28458067365635" cy="191.10944286407099" rx="8.545100524167772" ry="7.339238543806473" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="375.0420235187683" cy="91.74210123164849" r="1.1888843131420503" fill="#C2B084" opacity="0.75"/>
+<circle cx="217.9851676238514" cy="81.17875483671426" r="3.50944383943707" fill="#C2B084" opacity="0.75"/>
+<circle cx="49.8531668615405" cy="172.649310831287" r="2.6512094319330277" fill="#C2B084" opacity="0.75"/>
+<circle cx="91.04392816387065" cy="200.93414805696813" r="1.129460619795888" fill="#C2B084" opacity="0.75"/>
+<circle cx="177.86591983086075" cy="210.55584937180157" r="1.4476858976502776" fill="#C2B084" opacity="0.75"/>
+<circle cx="53.597493438167625" cy="124.12322933106475" r="1.5849887296814058" fill="#C2B084" opacity="0.75"/>
+<circle cx="216.21906165872005" cy="199.96658558202077" r="3.5585145178658024" fill="#C2B084" opacity="0.75"/>
+<circle cx="216.69120157436973" cy="65.04518491243563" r="1.9525708426956743" fill="#C2B084" opacity="0.75"/>
+<circle cx="290.5014971950381" cy="48.126159855027446" r="1.4691326210342182" fill="#C2B084" opacity="0.75"/>
+<circle cx="223.08531038197597" cy="109.36540380077375" r="2.325995337173195" fill="#C2B084" opacity="0.75"/>
+<circle cx="134.4418959792012" cy="146.30755885653878" r="1.0740019214850582" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="163.17226281382008" cy="109.43384949142899" rx="9.416710838583473" ry="4.073913144869156" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="265.8312031085763" cy="210.69737565661805" r="2.665769017267797" fill="#C2B084" opacity="0.75"/>
+<circle cx="259.6382972594455" cy="59.94073020562837" r="3.1440546005311925" fill="#C2B084" opacity="0.75"/>
+<circle cx="71.69657558606949" cy="38.61139039903232" r="1.2578080477540396" fill="#C2B084" opacity="0.75"/>
+<circle cx="478.3702990374654" cy="94.39170554983215" r="3.7679259773208464" fill="#C2B084" opacity="0.75"/>
+<circle cx="401.84197928033376" cy="208.9009110864133" r="1.7220213576451375" fill="#C2B084" opacity="0.75"/>
+<circle cx="267.5859145355149" cy="82.61040303809395" r="3.5547141525438155" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="231.77001683143288" cy="67.35435179024944" rx="8.726951976630389" ry="7.651581274328826" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="291.7370342466197" cy="185.40605039083272" r="1.7963546937977777" fill="#C2B084" opacity="0.75"/>
+<circle cx="188.5929795523228" cy="74.71736861343999" r="1.5142214974235397" fill="#C2B084" opacity="0.75"/>
+<circle cx="356.1090649383614" cy="45.19693283144557" r="2.434140916638489" fill="#C2B084" opacity="0.75"/>
+<circle cx="139.82952041538434" cy="111.90357745506462" r="3.712591622767016" fill="#C2B084" opacity="0.75"/>
+<circle cx="455.28111189435157" cy="218.66971438216237" r="1.9766577359603084" fill="#C2B084" opacity="0.75"/>
+<circle cx="369.2373116779974" cy="122.73328922410947" r="1.2002970278584293" fill="#C2B084" opacity="0.75"/>
+<circle cx="75.29536701633278" cy="55.24513057376366" r="1.9599320086405632" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="347.8067370864086" cy="188.01442625529077" rx="4.754462189787952" ry="6.154935549359166" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="259.69983736508766" cy="103.41898287434003" r="3.194657410655319" fill="#C2B084" opacity="0.75"/>
+<circle cx="235.68696207637913" cy="201.19926246698643" r="1.773399341323871" fill="#C2B084" opacity="0.75"/>
+<circle cx="137.24229401337976" cy="72.31531777744073" r="1.1618166281986542" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="113.18929085599387" cy="112.93213937580255" rx="4.016039887982323" ry="6.763944509507981" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="186.60641189142694" cy="191.18264637530933" r="3.635436361009298" fill="#C2B084" opacity="0.75"/>
+<circle cx="423.66364467823485" cy="40.42291880002282" r="2.435466011231395" fill="#C2B084" opacity="0.75"/>
+<circle cx="199.769522666345" cy="210.6173661352548" r="2.8174312777577315" fill="#C2B084" opacity="0.75"/>
+<circle cx="392.0879894204929" cy="127.81317453774832" r="2.053071344710007" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="59.15412412285846" cy="187.5232400286531" rx="8.697415030094113" ry="5.825799238341092" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="161.82138957476676" cy="54.38221422145332" r="2.2868641705534207" fill="#C2B084" opacity="0.75"/>
+<circle cx="441.5539476903203" cy="82.83314767439863" r="1.2599541926416467" fill="#C2B084" opacity="0.75"/>
+<circle cx="56.36832114709551" cy="149.50919117260008" r="1.560992108604679" fill="#C2B084" opacity="0.75"/>
+<circle cx="268.9025241998032" cy="168.42112397223545" r="1.9545038701961075" fill="#C2B084" opacity="0.75"/>
+<circle cx="284.55843146840647" cy="224.26384702005464" r="2.9881749516078333" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="128.82932635391913" cy="206.8093674484012" rx="6.748285072571135" ry="4.323772429545453" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="320.4685836555329" cy="103.48012669343618" r="1.082047890452713" fill="#C2B084" opacity="0.75"/>
+<circle cx="254.2199108004946" cy="212.211810509598" r="1.1899633242844154" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="409.13087010283385" cy="147.01563305607368" rx="5.386492200279301" ry="6.269134736771728" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="33.4975009468526" cy="196.9710134404913" r="3.6878133773858552" fill="#C2B084" opacity="0.75"/>
+<circle cx="359.76130943305645" cy="180.4364087067305" r="1.4476805738764202" fill="#C2B084" opacity="0.75"/>
+<circle cx="215.53676076119004" cy="205.20763480370078" r="3.65719596856132" fill="#C2B084" opacity="0.75"/>
+<circle cx="49.73869994562124" cy="151.4083016332117" r="2.2773061026347556" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="345.60860401586143" cy="41.96881212416854" rx="7.4666217825639025" ry="7.7208615060026125" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="399.99421625254837" cy="185.516999397494" r="2.339226049526744" fill="#C2B084" opacity="0.75"/>
+<ellipse cx="216.70598591455155" cy="101.26391691751166" rx="8.69813612678583" ry="4.157768549203591" fill="#C8B898" opacity="0.85" filter="url(#inner-shadow)" />
+<circle cx="120.85476981562618" cy="177.4499533152367" r="1.7273214804685901" fill="#C2B084" opacity="0.75"/>
 
     </g>
     
-    <!-- Cartoon Highlight -->
-    <path d="M 32 36 C 44 28, 64 26, 80 30" fill="none" stroke="#FFFFFF" stroke-width="4" stroke-linecap="round" opacity="0.4"/>
+    <path d="M 64 64 C 180 44, 320 40, 450 48" fill="none" stroke="#FFFFFF" stroke-width="8" stroke-linecap="round" opacity="0.35"/>
   
-    <!-- Toasted marks -->
-    <path d="M 40 40 L 90 40 M 45 60 L 85 60 M 35 80 L 95 80" fill="none" stroke="#6b3e1b" stroke-width="12" stroke-linecap="round" opacity="0.3" filter="blur(2px)"/>
-    <path d="M 40 40 L 90 40 M 45 60 L 85 60 M 35 80 L 95 80" fill="none" stroke="#4a260d" stroke-width="6" stroke-linecap="round" opacity="0.4"/>
+    <!-- Grill marks -->
+    <path d="M 20 70 L 492 70 M 20 128 L 492 128 M 20 186 L 492 186" fill="none" stroke="#5c2f0d" stroke-width="20" stroke-linecap="round" opacity="0.25" filter="blur(3px)"/>
+    <path d="M 20 70 L 492 70 M 20 128 L 492 128 M 20 186 L 492 186" fill="none" stroke="#4a260d" stroke-width="8" stroke-linecap="round" opacity="0.5"/>
+    <path d="M 40 50 L 200 200 M 130 50 L 500 160 M 0 100 L 120 200" fill="none" stroke="#5c2f0d" stroke-width="6" stroke-linecap="round" opacity="0.15"/>
     <radialGradient id="toast-grad" cx="50%" cy="50%" r="50%">
-      <stop offset="40%" stop-color="#8a4d1f" stop-opacity="0"/>
-      <stop offset="100%" stop-color="#5c2f0d" stop-opacity="0.4"/>
+      <stop offset="30%" stop-color="#8a4d1f" stop-opacity="0"/>
+      <stop offset="100%" stop-color="#5c2f0d" stop-opacity="0.45"/>
     </radialGradient>
-    <path d="M 64 28 C 84 28, 100 40, 102 60 C 104 80, 86 92, 64 94 C 42 96, 26 80, 28 60 C 30 40, 44 28, 64 28 Z" fill="url(#toast-grad)"/>
+    <path d="M 256 20 C 460 20, 492 60, 492 128 C 492 196, 460 236, 256 236 C 52 236, 20 196, 20 128 C 20 60, 52 20, 256 20 Z" fill="url(#toast-grad)"/>
 
   </g>
 </svg>

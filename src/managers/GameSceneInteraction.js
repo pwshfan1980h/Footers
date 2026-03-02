@@ -185,6 +185,7 @@ export class GameSceneInteraction {
     });
 
     s.escKey.on('down', () => {
+      if (s.welcomePopupOpen) return;
       if (s.settingsMenu.isOpen) {
         s.settingsMenu.close();
       } else if (s.heldItem) {

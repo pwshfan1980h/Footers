@@ -104,7 +104,7 @@ export class GameOverScene extends Phaser.Scene {
       textColor: '#FFBB44',
       hoverTextColor: '#FFE8CC',
       fontSize: '18px',
-      onClick: () => this.scene.start('Title'),
+      onClick: () => this.scene.start('Game'),
     });
   }
 }

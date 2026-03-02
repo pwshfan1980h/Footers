@@ -98,7 +98,7 @@ export class WinScene extends Phaser.Scene {
     // Play again button
     createButton(this, HALF_WIDTH - 130, 658, 260, 64, 'PLAY AGAIN', {
       accentColor: NEON_CYAN,
-      onClick: () => this.scene.start('Title'),
+      onClick: () => this.scene.start('Game'),
     });
   }
 }

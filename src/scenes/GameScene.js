@@ -22,6 +22,7 @@ import { musicManager } from '../MusicManager.js';
 import {
   HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_PINK,
   FIRST_ORDER_DELAY, NEXT_ORDER_DELAY, SEQUENTIAL_ORDER_CAP,
+  GAME_FONT, TICKET_FONT,
 } from '../data/constants.js';
 import { THEME, LAYOUT } from '../data/theme.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
@@ -76,6 +77,7 @@ export class GameScene extends Phaser.Scene {
     this.glowGraphics = null;
     this.magnetActive = false;
     this.fastestOrderThisShift = null;
+    this.welcomePopupOpen = false;
 
     // Wave system
     this.currentWave = 1;
@@ -167,17 +169,145 @@ export class GameScene extends Phaser.Scene {
 
     // Start ambient music (no-op if already playing)
     musicManager.start();
+
+    this.showWelcomePopup();
   }
 
-  createHotkeyHint() {
-    // No-op — hotkey hints removed (next-key prompt replaces F1 overlay)
-    return null;
-  }
+  showWelcomePopup() {
+    this.welcomePopupOpen = true;
+    this.isPaused = true;
 
-  createHeldVisual(key, x, y) {
-    return this.interactionManager.createHeldVisual(key, x, y);
-  }
+    const panelWidth = 980;
+    const panelHeight = 620;
+    const panelX = HALF_WIDTH - panelWidth / 2;
+    const panelY = HALF_HEIGHT - panelHeight / 2;
 
+    const modalBlocker = this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0xF2D3A1, 0.22)
+      .setDepth(248)
+      .setInteractive({ useHandCursor: false });
+
+    const modalShade = this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x000000, 0.4)
+      .setDepth(249);
+
+    const panel = this.add.graphics().setDepth(250);
+    panel.fillStyle(0x1A130E, 0.95);
+    panel.fillRoundedRect(panelX, panelY, panelWidth, panelHeight, 24);
+    panel.lineStyle(4, 0xC8862F, 0.95);
+    panel.strokeRoundedRect(panelX, panelY, panelWidth, panelHeight, 24);
+
+    const innerGlow = this.add.graphics().setDepth(250);
+    innerGlow.fillStyle(0xFFBB44, 0.08);
+    innerGlow.fillRoundedRect(panelX + 12, panelY + 12, panelWidth - 24, panelHeight - 24, 18);
+
+    const title = this.add.text(HALF_WIDTH, panelY + 90, 'WELCOME SANDWICH MAKERS!', {
+      fontFamily: TICKET_FONT,
+      fontSize: '52px',
+      color: '#FFCF78',
+      fontStyle: 'bold',
+      stroke: '#4A2A08',
+      strokeThickness: 6,
+    }).setOrigin(0.5).setDepth(251);
+
+    const subtitle = this.add.text(HALF_WIDTH, panelY + 155, 'Welcome to Footers Cantina. Build fast, stay in order, keep the line moving.', {
+      fontFamily: GAME_FONT,
+      fontSize: '24px',
+      color: '#FFE8CC',
+      align: 'center',
+      wordWrap: { width: panelWidth - 140 },
+    }).setOrigin(0.5).setDepth(251);
+
+    const tips = this.add.text(HALF_WIDTH, panelY + 300,
+      '1) Press the hotkey shown in each bin to place ingredients instantly.\n'
+      + '2) Build in exact ticket order. Wrong picks cost points.\n'
+      + '3) Keep combos alive and finish before patience runs out.\n'
+      + '4) Press ESC to open settings when you need a breather.', {
+        fontFamily: GAME_FONT,
+        fontSize: '28px',
+        color: '#FFE8CC',
+        align: 'left',
+        lineSpacing: 12,
+      })
+      .setOrigin(0.5)
+      .setDepth(251);
+
+    const startBtnBg = this.add.graphics().setDepth(251);
+    startBtnBg.fillStyle(0x3F2A15, 1);
+    startBtnBg.fillRoundedRect(HALF_WIDTH - 180, panelY + 500, 360, 76, 14);
+    startBtnBg.lineStyle(3, 0xFFBB44, 0.95);
+    startBtnBg.strokeRoundedRect(HALF_WIDTH - 180, panelY + 500, 360, 76, 14);
+
+    const startBtnText = this.add.text(HALF_WIDTH, panelY + 538, 'BEGIN SHIFT', {
+      fontFamily: TICKET_FONT,
+      fontSize: '32px',
+      color: '#FFCF78',
+      fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(252);
+
+    const startHitArea = this.add.rectangle(HALF_WIDTH, panelY + 538, 360, 76, 0x000000, 0)
+      .setDepth(253)
+      .setInteractive({ useHandCursor: true });
+
+    startHitArea.on('pointerover', () => {
+      startBtnText.setColor('#FFE8CC');
+      startBtnBg.clear();
+      startBtnBg.fillStyle(0x52361C, 1);
+      startBtnBg.fillRoundedRect(HALF_WIDTH - 180, panelY + 500, 360, 76, 14);
+      startBtnBg.lineStyle(3, 0xFFD488, 1);
+      startBtnBg.strokeRoundedRect(HALF_WIDTH - 180, panelY + 500, 360, 76, 14);
+    });
+
+    startHitArea.on('pointerout', () => {
+      startBtnText.setColor('#FFCF78');
+      startBtnBg.clear();
+      startBtnBg.fillStyle(0x3F2A15, 1);
+      startBtnBg.fillRoundedRect(HALF_WIDTH - 180, panelY + 500, 360, 76, 14);
+      startBtnBg.lineStyle(3, 0xFFBB44, 0.95);
+      startBtnBg.strokeRoundedRect(HALF_WIDTH - 180, panelY + 500, 360, 76, 14);
+    });
+
+    const closePopup = () => {
+      if (!this.welcomePopupOpen) return;
+      this.welcomePopupOpen = false;
+      this.isPaused = false;
+      soundManager.init();
+      soundManager.ding();
+
+      const modalObjects = [
+        modalBlocker,
+        modalShade,
+        panel,
+        innerGlow,
+        title,
+        subtitle,
+        tips,
+        startBtnBg,
+        startBtnText,
+        startHitArea,
+      ];
+
+      this.tweens.add({
+        targets: modalObjects,
+        alpha: 0,
+        duration: 220,
+        ease: 'Sine.easeOut',
+        onComplete: () => {
+          modalObjects.forEach(obj => obj.destroy());
+        },
+      });
+    };
+
+    startHitArea.on('pointerdown', closePopup);
+    this.input.keyboard.once('keydown-ENTER', closePopup);
+    this.input.keyboard.once('keydown-SPACE', closePopup);
+
+    this.tweens.add({
+      targets: [panel, innerGlow, title, subtitle, tips, startBtnBg, startBtnText],
+      alpha: { from: 0, to: 1 },
+      y: '-=10',
+      duration: 320,
+      ease: 'Sine.easeOut',
+    });
+  }
   refreshHUD() {
     this.hudManager.refreshHUD();
   }

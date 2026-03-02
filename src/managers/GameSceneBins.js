@@ -38,40 +38,51 @@ export class GameSceneBins {
 
     // Toppings zone — earthy green
     g.fillStyle(s.BIN_TOPPING, 0.25);
-    g.fillRoundedRect(565, 648 + yOff, 430, 160, 12);
+    g.fillRoundedRect(520, 535 + yOff, 385, 230, 12);
     g.lineStyle(2, 0x50CC50, 0.4);
-    g.strokeRoundedRect(565, 648 + yOff, 430, 160, 12);
+    g.strokeRoundedRect(520, 535 + yOff, 385, 230, 12);
     g.fillStyle(0x50CC50, 0.5);
-    g.fillRect(565, 660 + yOff, 3, 136);
+    g.fillRect(520, 547 + yOff, 3, 206);
 
     // Cheese zone — warm amber
     g.fillStyle(s.BIN_CHEESE, 0.25);
-    g.fillRoundedRect(1085, 555 + yOff, 190, 260, 12);
+    g.fillRoundedRect(1085, 535 + yOff, 190, 330, 12);
     g.lineStyle(2, 0xCCCC50, 0.4);
-    g.strokeRoundedRect(1085, 555 + yOff, 190, 260, 12);
+    g.strokeRoundedRect(1085, 535 + yOff, 190, 330, 12);
     g.fillStyle(0xCCCC50, 0.5);
-    g.fillRect(1085, 567 + yOff, 3, 236);
+    g.fillRect(1085, 547 + yOff, 3, 306);
 
     // Treatments zone — blue
     g.fillStyle(s.BIN_TREATMENT, 0.25);
-    g.fillRoundedRect(565, 815 + yOff, 430, 175, 12);
+    g.fillRoundedRect(520, 770 + yOff, 280, 95, 12);
     g.lineStyle(2, 0x5080CC, 0.4);
-    g.strokeRoundedRect(565, 815 + yOff, 430, 175, 12);
+    g.strokeRoundedRect(520, 770 + yOff, 280, 95, 12);
     g.fillStyle(0x5080CC, 0.5);
-    g.fillRect(565, 827 + yOff, 3, 151);
+    g.fillRect(520, 782 + yOff, 3, 71);
+
+    // Sauces zone — light blue 
+    g.fillStyle(0x50AACC, 0.25);
+    g.fillRoundedRect(810, 770 + yOff, 260, 95, 12);
+    g.lineStyle(2, 0x50AACC, 0.4);
+    g.strokeRoundedRect(810, 770 + yOff, 260, 95, 12);
+    g.fillStyle(0x50AACC, 0.5);
+    g.fillRect(810, 782 + yOff, 3, 71);
 
     // Zone labels — larger and brighter, color-coded
     s.add.text(293, 540 + yOff, 'MEATS', {
       fontSize: '16px', color: '#DD8888', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
-    s.add.text(780, 653 + yOff, 'TOPPINGS', {
+    s.add.text(712, 540 + yOff, 'TOPPINGS', {
       fontSize: '16px', color: '#88DD88', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
-    s.add.text(1180, 560 + yOff, 'CHEESE', {
+    s.add.text(1180, 540 + yOff, 'CHEESE', {
       fontSize: '16px', color: '#DDDD88', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
-    s.add.text(780, 820 + yOff, 'TREATMENTS', {
+    s.add.text(660, 775 + yOff, 'TREATMENTS', {
       fontSize: '16px', color: '#88AADD', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(10);
+    s.add.text(940, 775 + yOff, 'SAUCES', {
+      fontSize: '16px', color: '#88CCDD', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
   }
 
@@ -91,8 +102,6 @@ export class GameSceneBins {
     const spacingX = 188;
     const spacingY = 98;
     const day = s.day ?? 99;
-
-    const hints = { 'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4', 'meat_prosciutto': 'Q' };
 
     keys.forEach((key, i) => {
       const ing = INGREDIENTS[key];
@@ -124,10 +133,6 @@ export class GameSceneBins {
       const label = s.add.text(x, y + 55, ing.name, {
         fontSize: '16px', color: isLocked ? '#666' : '#ddd', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(21);
-
-      if (hints[key] && !isLocked) {
-        s.createHotkeyHint(x + 34, y - 24, hints[key]);
-      }
 
       s.meatPileItems.push({ img: pile, label, key, isLocked });
     });
@@ -185,9 +190,6 @@ export class GameSceneBins {
         fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
-      const breadHints = { 'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C' };
-      s.createHotkeyHint(x + 34, y - 24, breadHints[b.key]);
-
       s.loafItems.push({ img: loaf, key: b.key });
     });
   }
@@ -209,15 +211,17 @@ export class GameSceneBins {
   createTreatments() {
     // Row 1: prep + sauces
     const yOff = this.binYOffset;
-    this.createTreatmentItem('toasted', 635, 860 + yOff);
-    this.createTreatmentItem('togo', 735, 860 + yOff);
-    this.createSauceBottle('sauce_mayo', 835, 860 + yOff);
-    this.createSauceBottle('sauce_mustard', 935, 860 + yOff);
 
-    // Row 2: seasonings (centered)
-    this.createTreatmentItem('salt', 680, 950 + yOff);
-    this.createTreatmentItem('pepper', 780, 950 + yOff);
-    this.createTreatmentItem('oil_vinegar', 880, 950 + yOff);
+    // Treatments (Toasted, To-Go, Salt, Pepper)
+    this.createTreatmentItem('toasted', 565, 815 + yOff);
+    this.createTreatmentItem('togo', 635, 815 + yOff);
+    this.createTreatmentItem('salt', 695, 815 + yOff);
+    this.createTreatmentItem('pepper', 755, 815 + yOff);
+
+    // Sauces below Toppings
+    this.createSauceBottle('sauce_mayo', 855, 865 + yOff);
+    this.createSauceBottle('sauce_mustard', 925, 865 + yOff);
+    this.createTreatmentItem('oil_vinegar', 1010, 815 + yOff);
   }
 
   createCheeseStacks() {
@@ -254,11 +258,6 @@ export class GameSceneBins {
         fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
 
-      const hints = { 'cheese_american': 'W', 'cheese_swiss': 'E' };
-      if (hints[c.key]) {
-        s.createHotkeyHint(x + 42, y - 26, hints[c.key]);
-      }
-
       s.cheeseStackItems.push({ img: stack, key: c.key });
     });
   }
@@ -276,11 +275,11 @@ export class GameSceneBins {
     s.veggieBowlItems = [];
     const day = s.day ?? 99;
 
-    const row1Y = 695 + this.binYOffset;
-    const row1StartX = 638;
-    const spacingX = 141;
-    const row2Y = 775 + this.binYOffset;
-    const row2StartX = 638;
+    const row1Y = 605 + this.binYOffset;
+    const row1StartX = 580;
+    const spacingX = 120;
+    const row2Y = 695 + this.binYOffset;
+    const row2StartX = 580;
 
     const row1Veggies = [
       { key: 'top_lettuce', label: 'Lettuce', asset: 'bowl_content_lettuce', hotkey: '5' },
@@ -319,10 +318,6 @@ export class GameSceneBins {
       const label = s.add.text(v.x, v.y + 42, v.label, {
         fontSize: '16px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
-
-      if (!isLocked) {
-        s.createHotkeyHint(v.x + 28, v.y - 20, v.hotkey);
-      }
 
       s.veggieBowlItems.push({ img: vegImg, label, ...v });
     });
@@ -369,11 +364,6 @@ export class GameSceneBins {
       soundManager.init();
       this.pickupSauce(key);
     });
-
-    const sauceHints = { 'sauce_mayo': 'A', 'sauce_mustard': 'S' };
-    if (sauceHints[key]) {
-      s.createHotkeyHint(x + radius + 4, y - radius - 4, sauceHints[key], 31);
-    }
 
     s.sauceBottleItems.push({ container, key });
   }
@@ -422,19 +412,6 @@ export class GameSceneBins {
       stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5);
     c.add(label);
-
-    const treatHints = { 'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V' };
-    const hintOffsets = {
-      'toasted': { x: 32, y: -12 },
-      'togo': { x: 28, y: -30 },
-      'salt': { x: 12, y: -18 },
-      'pepper': { x: 12, y: -18 },
-      'oil_vinegar': { x: 26, y: -20 },
-    };
-    if (treatHints[tKey]) {
-      const off = hintOffsets[tKey] || { x: 30, y: -30 };
-      s.createHotkeyHint(x + off.x, y + off.y, treatHints[tKey], 32);
-    }
 
     s.treatmentItems[tKey] = c;
   }

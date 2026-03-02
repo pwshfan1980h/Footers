@@ -84,7 +84,7 @@ export class DayEndScene extends Phaser.Scene {
       accentColor: NEON_CYAN,
       onClick: () => {
         soundManager.ding();
-        this.scene.start('Title');
+        this.scene.start('Game');
       },
     });
   }

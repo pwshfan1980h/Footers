@@ -73,11 +73,13 @@ export class BootScene extends Phaser.Scene {
     Promise.all([
       document.fonts.load('16px "Oxanium"'),
       document.fonts.load('bold 16px "Oxanium"'),
+      document.fonts.load('16px "Orbitron"'),
+      document.fonts.load('bold 16px "Orbitron"'),
     ]).then(() => {
-      this.scene.start('Title');
+      this.scene.start('Game');
     }).catch(() => {
       // If font loading fails, proceed anyway with fallbacks
-      this.scene.start('Title');
+      this.scene.start('Game');
     });
   }
 }
