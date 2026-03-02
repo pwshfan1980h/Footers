@@ -89,10 +89,9 @@ export class GameSceneTray {
 
       s.updateTrayNextHint(tray);
 
-      // Auto-select this tray if no other is selected
-      if (s.interactionManager.selectedTray == null ||
-          s.interactionManager.selectedTray.done ||
-          s.interactionManager.selectedTray.completed) {
+      // Auto-select this tray if nothing active or previous selection is invalid
+      const sel = s.interactionManager.selectedTray;
+      if (sel == null || sel.done || sel.completed || sel.waitingForCustomer) {
         s.interactionManager.selectTray(tray);
       }
 
@@ -233,7 +232,7 @@ export class GameSceneTray {
 
     const rX = (Math.random() - 0.5) * 6;
     const rY = (Math.random() - 0.5) * 3;
-    const w = 90;
+    const w = 110;
     const hw = w / 2;
 
     if (cat === 'sauce') {
@@ -273,15 +272,15 @@ export class GameSceneTray {
 
     if (cat === 'bread') {
       const isBottom = tray.stackLayers.length === 0;
-      img.setScale(1.4, isBottom ? 0.55 : 0.46);
+      img.setScale(1.68, isBottom ? 0.64 : 0.56);
       if (!tray.breadLayers) tray.breadLayers = [];
       tray.breadLayers.push({ image: img, key: ingredientKey, isBottom, rX, rY, ly });
     } else if (cat === 'meat') {
-      img.setScale(0.72, 0.36);
+      img.setScale(0.64, 0.32);
     } else if (cat === 'cheese') {
-      img.setScale(0.72, 0.30);
+      img.setScale(0.68, 0.28);
     } else if (cat === 'topping') {
-      img.setScale(0.75, 0.36);
+      img.setScale(0.7, 0.34);
     }
 
     tray.container.add(img);

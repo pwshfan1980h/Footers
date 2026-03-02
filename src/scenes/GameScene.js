@@ -24,7 +24,6 @@ import {
   FIRST_ORDER_DELAY, NEXT_ORDER_DELAY, SEQUENTIAL_ORDER_CAP,
 } from '../data/constants.js';
 import { THEME, LAYOUT } from '../data/theme.js';
-import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
 
 
@@ -146,19 +145,17 @@ export class GameScene extends Phaser.Scene {
     this.customerManager.create();
     this.notificationManager.create();
 
-    // Apply post-processing shaders (WebGL only)
+    // Apply warning pulse shader (WebGL only)
     if (this.renderer.pipelines) {
       this.cameras.main.setPostPipeline(WarningPulsePostFX);
-      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
-      if (crtEnabled) {
-        this.cameras.main.setPostPipeline(CRTPostFX);
-      }
     }
 
     // Initialize wave display
     if (this.hudManager.updateWaveDisplay) {
       this.hudManager.updateWaveDisplay(this.currentWave, this.waveConfig.challenge);
     }
+
+    this.announceCurrentChallenge();
 
     // Show first wave unlock notification
     if (this.waveConfig.unlock) {
@@ -319,6 +316,15 @@ export class GameScene extends Phaser.Scene {
     const ch = this.waveConfig.challenge;
     if (!ch) return;
 
+    // "No miss" challenges are binary: any miss breaks the bonus
+    if (ch.type === 'no_miss') {
+      if (!completed) {
+        this.hudManager.setChallengeFailed('Missed an order — bonus lost');
+        this.notificationManager.show('Challenge failed: missed an order.', { borderColor: 0xFF6677 });
+      }
+      return;
+    }
+
     if (ch.type === 'speed' && completed && speedMult >= (ch.minMult || 2)) {
       this.challengeProgress++;
     } else if (ch.type === 'perfect' && completed && tray && tray.wrongPlacements === 0) {
@@ -327,11 +333,20 @@ export class GameScene extends Phaser.Scene {
       this.challengeProgress++;
     }
 
+    if (ch.target > 0 && this.challengeProgress === 1) {
+      this.notificationManager.show(`Challenge progress: ${this.challengeProgress} / ${ch.target}`, { borderColor: this.NEON_PINK });
+    }
+
     if (ch.type !== 'combo' && ch.type !== 'no_miss' && this.challengeProgress >= ch.target) {
       this.challengeComplete = true;
       this.hudManager.updateChallengeProgress(this.challengeProgress, ch.target, true);
+      this.notificationManager.show('Challenge complete! Bonus locked in.', { borderColor: this.NEON_PINK });
     } else if (ch.target > 0) {
       this.hudManager.updateChallengeProgress(this.challengeProgress, ch.target, false);
+
+      if (this.challengeProgress === ch.target - 1) {
+        this.notificationManager.show('Challenge: one more to go!', { borderColor: this.NEON_PINK });
+      }
     }
   }
 
@@ -345,9 +360,14 @@ export class GameScene extends Phaser.Scene {
       this.challengeComplete = true;
       this.challengeProgress = combo;
       this.hudManager.updateChallengeProgress(combo, ch.target, true);
+      this.notificationManager.show('Challenge complete! Bonus locked in.', { borderColor: this.NEON_PINK });
     } else {
       this.challengeProgress = combo;
       this.hudManager.updateChallengeProgress(combo, ch.target, false);
+
+      if (combo === ch.target - 1) {
+        this.notificationManager.show('Challenge: one more to go!', { borderColor: this.NEON_PINK });
+      }
     }
   }
 
@@ -386,6 +406,8 @@ export class GameScene extends Phaser.Scene {
       if (this.hudManager.updateWaveDisplay) {
         this.hudManager.updateWaveDisplay(this.currentWave, this.waveConfig.challenge);
       }
+
+      this.announceCurrentChallenge();
     });
   }
 
@@ -425,5 +447,17 @@ export class GameScene extends Phaser.Scene {
       nextText.destroy();
       onDone();
     });
+  }
+
+  announceCurrentChallenge() {
+    const ch = this.waveConfig.challenge;
+    if (!ch) return;
+
+    const target = ch.target || (ch.type === 'no_miss' ? 1 : 0);
+    if (this.hudManager.updateChallengeProgress) {
+      this.hudManager.updateChallengeProgress(ch.type === 'no_miss' ? 0 : 0, target, false);
+    }
+
+    this.notificationManager.show(`Challenge: ${ch.label} (+1000 bonus)`, { borderColor: this.NEON_PINK });
   }
 }

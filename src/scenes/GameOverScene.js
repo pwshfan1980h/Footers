@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, HULL_DARK, GAME_FONT } from '../data/constants.js';
-import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { createButton } from '../utils/uiHelpers.js';
 
 export class GameOverScene extends Phaser.Scene {
@@ -20,12 +19,6 @@ export class GameOverScene extends Phaser.Scene {
 
     soundManager.init();
     soundManager.fired();
-
-    // Apply post-processing shaders (WebGL only)
-    if (this.renderer.pipelines) {
-      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
-      if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
-    }
 
     // Dark background with red tint
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x150505);

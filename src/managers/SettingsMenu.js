@@ -96,51 +96,15 @@ export class SettingsMenu {
       }
     });
 
-    // CRT Shader Toggle
-    const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
-    const crtLabel = this.scene.add.text(centerX - 180, centerY + 50, 'CRT Shader', {
-      fontSize: '20px',
-      fontFamily: GAME_FONT,
-      color: '#ffffff'
-    });
-    this.container.add(crtLabel);
-
-    this.crtToggle = this.scene.add.text(centerX + 80, centerY + 50, crtEnabled ? 'ON' : 'OFF', {
-      fontSize: '20px',
-      fontFamily: GAME_FONT,
-      fontStyle: 'bold',
-      color: crtEnabled ? '#FFE8CC' : '#ff6666',
-      backgroundColor: crtEnabled ? '#3A2A1A' : '#3a1a1a',
-      padding: { x: 16, y: 6 },
-    }).setInteractive({ useHandCursor: true });
-    this.container.add(this.crtToggle);
-
-    this.crtToggle.on('pointerover', () => this.crtToggle.setScale(1.05));
-    this.crtToggle.on('pointerout', () => this.crtToggle.setScale(1.0));
-
-    this.crtToggle.on('pointerdown', () => {
-      const nowEnabled = localStorage.getItem('footers_crt') !== 'false';
-      const newVal = !nowEnabled;
-      localStorage.setItem('footers_crt', newVal ? 'true' : 'false');
-      this.crtToggle.setText(newVal ? 'ON' : 'OFF');
-      this.crtToggle.setColor(newVal ? '#FFE8CC' : '#ff6666');
-      this.crtToggle.setBackgroundColor(newVal ? '#3A2A1A' : '#3a1a1a');
-
-      this.showRestartNote();
-
-      soundManager.init();
-      soundManager.plop();
-    });
-
     // === RESET ALL DATA ===
     // Divider line
     const divider = this.scene.add.graphics();
     divider.lineStyle(1, 0x444455, 0.5);
-    divider.lineBetween(centerX - 200, centerY + 95, centerX + 200, centerY + 95);
+    divider.lineBetween(centerX - 200, centerY + 50, centerX + 200, centerY + 50);
     this.container.add(divider);
 
     // Warning icon + label
-    const resetLabel = this.scene.add.text(centerX - 180, centerY + 108, '\u26A0  Danger Zone', {
+    const resetLabel = this.scene.add.text(centerX - 180, centerY + 63, '\u26A0  Danger Zone', {
       fontSize: '16px',
       fontFamily: GAME_FONT,
       color: '#ff6666'
@@ -148,7 +112,7 @@ export class SettingsMenu {
     this.container.add(resetLabel);
 
     // Reset button
-    this.resetBtn = this.scene.add.text(centerX, centerY + 145, 'RESET ALL DATA', {
+    this.resetBtn = this.scene.add.text(centerX, centerY + 100, 'RESET ALL DATA', {
       fontSize: '18px',
       fontFamily: GAME_FONT,
       fontStyle: 'bold',
@@ -189,7 +153,6 @@ export class SettingsMenu {
 
         // Clear all game localStorage keys
         localStorage.removeItem('footers_gamestate');
-        localStorage.removeItem('footers_crt');
         localStorage.removeItem('footers_highscore');
         // Reset in-memory state
         gameState.reset();
@@ -255,17 +218,6 @@ export class SettingsMenu {
         this.resetBtn.setColor('#ff4444');
         this.resetBtn.setBackgroundColor('#3a1a1a');
       }
-    }
-  }
-
-  showRestartNote() {
-    if (!this.restartNote) {
-      this.restartNote = this.scene.add.text(HALF_WIDTH, HALF_HEIGHT + 175, 'Change takes effect on next scene load.', {
-        fontSize: '14px',
-        fontFamily: GAME_FONT,
-        color: '#ffcc44'
-      }).setOrigin(0.5);
-      this.container.add(this.restartNote);
     }
   }
 

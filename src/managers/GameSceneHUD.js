@@ -53,13 +53,39 @@ export class GameSceneHUD {
     // Challenge display (center-left, above footer)
     this.challengeContainer = s.add.container(GAME_WIDTH / 2, footerY - 36).setDepth(212);
     this.challengeBg = s.add.graphics();
-    this.challengeText = s.add.text(0, 0, '', {
+    this.challengeBarBg = s.add.graphics();
+    this.challengeBarFill = s.add.graphics();
+
+    this.challengeHeader = s.add.text(0, -26, 'CHALLENGE', {
+      fontSize: '14px', color: '#FFBB44', fontFamily: GAME_FONT, fontStyle: 'bold',
+      align: 'center',
+    }).setOrigin(0.5);
+
+    this.challengeText = s.add.text(0, -6, '', {
       fontSize: '18px', color: '#FFE8CC', fontFamily: GAME_FONT,
+      wordWrap: { width: 360, useAdvancedWrap: true },
+      align: 'center',
     }).setOrigin(0.5);
-    this.challengeProgressText = s.add.text(0, 20, '', {
+    this.challengeProgressText = s.add.text(0, 12, '', {
       fontSize: '16px', color: '#AABBCC', fontFamily: GAME_FONT,
+      align: 'center',
     }).setOrigin(0.5);
-    this.challengeContainer.add([this.challengeBg, this.challengeText, this.challengeProgressText]);
+
+    this.challengeBarWidth = 320;
+    this.challengeBarHeight = 8;
+    this.challengeBarY = 26;
+    this.challengeTarget = 0;
+    this.challengeProgressValue = 0;
+    this.currentChallenge = null;
+
+    this.challengeContainer.add([
+      this.challengeBg,
+      this.challengeHeader,
+      this.challengeText,
+      this.challengeProgressText,
+      this.challengeBarBg,
+      this.challengeBarFill,
+    ]);
     this.challengeContainer.setVisible(false);
   }
 
@@ -70,25 +96,100 @@ export class GameSceneHUD {
       this.challengeContainer.setVisible(true);
       this.challengeText.setText(challenge.label);
       this.challengeProgressText.setText('');
+      this.currentChallenge = challenge;
+      this.challengeTarget = challenge.target || 0;
+      this.challengeProgressValue = 0;
 
       this.challengeBg.clear();
       const w = Math.max(300, challenge.label.length * 10 + 30);
-      this.challengeBg.fillStyle(0x1A2030, 0.8);
-      this.challengeBg.fillRoundedRect(-w / 2, -14, w, 46, 6);
+      const h = 64;
+      this.challengeBg.fillStyle(0x1A2030, 0.9);
+      this.challengeBg.fillRoundedRect(-w / 2, -h / 2, w, h, 8);
       this.challengeBg.lineStyle(1, 0x3A5068, 0.6);
-      this.challengeBg.strokeRoundedRect(-w / 2, -14, w, 46, 6);
+      this.challengeBg.strokeRoundedRect(-w / 2, -h / 2, w, h, 8);
+
+      this.challengeBarWidth = Math.max(260, Math.min(w - 40, 420));
+      this.renderChallengeBar(0, this.challengeTarget, false, false);
+
+      // Show the starting target immediately
+      if (challenge.type === 'no_miss') {
+        this.challengeProgressText.setText('No missed orders').setColor('#AABBCC');
+        this.renderChallengeBar(1, 1, false, false);
+      } else if (this.challengeTarget > 0) {
+        this.challengeProgressText.setText(`0 / ${this.challengeTarget}`).setColor('#AABBCC');
+      }
     } else {
       this.challengeContainer.setVisible(false);
+      this.currentChallenge = null;
     }
   }
 
   updateChallengeProgress(progress, target, complete) {
     if (!this.challengeContainer.visible) return;
-    if (complete) {
-      this.challengeProgressText.setText('COMPLETE!').setColor('#44FF88');
-    } else if (target > 0) {
-      this.challengeProgressText.setText(`${progress} / ${target}`).setColor('#AABBCC');
+    const s = this.scene;
+
+    if (typeof target === 'number') {
+      this.challengeTarget = target;
     }
+    this.challengeProgressValue = progress;
+    const tgt = this.challengeTarget || 0;
+    const type = this.currentChallenge ? this.currentChallenge.type : null;
+
+    let progressLabel = '';
+    if (complete) {
+      progressLabel = 'COMPLETE!';
+      this.challengeProgressText.setColor('#44FF88');
+    } else if (type === 'no_miss') {
+      progressLabel = progress > 0 ? 'Missed — bonus lost' : 'No missed orders';
+      this.challengeProgressText.setColor(progress > 0 ? '#FF6677' : '#AABBCC');
+    } else if (tgt > 0) {
+      progressLabel = `${progress} / ${tgt}`;
+      this.challengeProgressText.setColor('#AABBCC');
+    }
+
+    this.challengeProgressText.setText(progressLabel);
+    this.renderChallengeBar(progress, tgt, complete, progressLabel.includes('lost'));
+
+    // Subtle pop when progress changes
+    this.challengeContainer.setScale(1.05);
+    s.tweens.add({
+      targets: this.challengeContainer,
+      scaleX: 1,
+      scaleY: 1,
+      duration: 150,
+      ease: 'Back.easeOut',
+    });
+  }
+
+  setChallengeFailed(message) {
+    if (!this.challengeContainer.visible) return;
+    const label = message || 'Challenge failed';
+    this.challengeProgressText.setText(label).setColor('#FF6677');
+    this.renderChallengeBar(0, 1, false, true);
+  }
+
+  renderChallengeBar(progress, target, complete, failed) {
+    const barW = this.challengeBarWidth || 300;
+    const barH = this.challengeBarHeight || 8;
+    const barY = this.challengeBarY || 26;
+
+    this.challengeBarBg.clear();
+    this.challengeBarBg.fillStyle(0x0F1824, 0.85);
+    this.challengeBarBg.fillRoundedRect(-barW / 2, barY, barW, barH, 4);
+    this.challengeBarBg.lineStyle(1, 0x3A5068, 0.8);
+    this.challengeBarBg.strokeRoundedRect(-barW / 2, barY, barW, barH, 4);
+
+    this.challengeBarFill.clear();
+    const type = this.currentChallenge ? this.currentChallenge.type : null;
+    let pct = target > 0 ? Math.min(1, progress / target) : (complete ? 1 : progress > 0 ? 0 : 1);
+    if (type === 'no_miss' && !complete && !failed) {
+      pct = 1;
+    }
+    const fillW = Math.max(0, barW * pct);
+    const color = failed ? 0xFF6677 : complete ? 0x44FF88 : 0x66C2FF;
+    const alpha = failed ? 0.7 : 0.9;
+    this.challengeBarFill.fillStyle(color, alpha);
+    this.challengeBarFill.fillRoundedRect(-barW / 2, barY, fillW, barH, 4);
   }
 
   refreshHUD() {

@@ -1,7 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, SPACE_BLACK, NEON_CYAN, GAME_FONT } from '../data/constants.js';
-import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { SettingsMenu } from '../managers/SettingsMenu.js';
 
 const ACCENT_CSS = '#FFBB44';
@@ -19,14 +18,14 @@ export class TitleScene extends Phaser.Scene {
     this.transitionStarted = false;
 
     // Desert sky background
-    this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x0a0610);
+    this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x0c1324);
 
-    // Sky gradient — purple-blue at top, warm at horizon
+    // Sky gradient — twilight indigo at top, warm ember near horizon
     const skyGfx = this.add.graphics().setDepth(0);
-    skyGfx.fillStyle(0x1a1030, 0.4);
-    skyGfx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT * 0.4);
-    skyGfx.fillStyle(0x331a08, 0.3);
-    skyGfx.fillEllipse(HALF_WIDTH, GAME_HEIGHT * 0.55, GAME_WIDTH * 1.3, 400);
+    skyGfx.fillStyle(0x1c2b4a, 0.55);
+    skyGfx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT * 0.45);
+    skyGfx.fillStyle(0x5a2c24, 0.35);
+    skyGfx.fillEllipse(HALF_WIDTH, GAME_HEIGHT * 0.55, GAME_WIDTH * 1.3, 420);
 
     // Stars
     this.createStarfield();
@@ -58,10 +57,10 @@ export class TitleScene extends Phaser.Scene {
 
     // Ground / desert floor
     const groundY = 560;
-    skyGfx.fillStyle(0x2A1A10, 1);
+    skyGfx.fillStyle(0x1f1a24, 1);
     skyGfx.fillRect(0, groundY, GAME_WIDTH, GAME_HEIGHT - groundY);
-    skyGfx.fillStyle(0x3A2A18, 0.3);
-    skyGfx.fillRect(0, groundY, GAME_WIDTH, 3);
+    skyGfx.fillStyle(0x2f3a52, 0.35);
+    skyGfx.fillRect(0, groundY, GAME_WIDTH, 4);
 
     // === CANTINA BUILDING FACADE (irregular desert architecture) ===
     const buildingGfx = this.add.graphics().setDepth(1);
@@ -73,7 +72,7 @@ export class TitleScene extends Phaser.Scene {
     const buildRight = bx + bw / 2;
 
     // Main wall with stepped roofline (not a rectangle)
-    buildingGfx.fillStyle(0x5A4530, 1);
+    buildingGfx.fillStyle(0x705040, 1);
     buildingGfx.beginPath();
     buildingGfx.moveTo(buildLeft - 40, groundY);
     buildingGfx.lineTo(buildLeft - 40, buildTop + 60);       // left wing low
@@ -91,30 +90,30 @@ export class TitleScene extends Phaser.Scene {
     buildingGfx.fillPath();
 
     // Stucco texture
-    buildingGfx.fillStyle(0x6A5540, 0.15);
+    buildingGfx.fillStyle(0x8a6a50, 0.14);
     buildingGfx.fillEllipse(bx - 100, buildTop + 80, 150, 40);
-    buildingGfx.fillStyle(0x4A3520, 0.1);
+    buildingGfx.fillStyle(0x5a3a38, 0.12);
     buildingGfx.fillEllipse(bx + 120, buildTop + 120, 100, 30);
 
     // Horizontal mortar lines
-    buildingGfx.lineStyle(1, 0x4A3520, 0.2);
+    buildingGfx.lineStyle(1, 0x4e4a66, 0.3);
     buildingGfx.lineBetween(buildLeft, buildTop + 50, buildRight, buildTop + 50);
     buildingGfx.lineBetween(buildLeft, buildTop + 130, buildRight, buildTop + 130);
     buildingGfx.lineBetween(buildLeft, buildTop + 220, buildRight, buildTop + 220);
 
     // Roof overhang across main section
-    buildingGfx.fillStyle(0x3A2A18, 1);
+    buildingGfx.fillStyle(0x2c2d3c, 1);
     buildingGfx.fillRect(buildLeft - 50, buildTop + 55, bw + 100, 8);
-    buildingGfx.fillStyle(0x4A3A28, 0.6);
-    buildingGfx.fillRect(buildLeft - 50, buildTop + 55, bw + 100, 2);
+    buildingGfx.fillStyle(0x3a4860, 0.6);
+    buildingGfx.fillRect(buildLeft - 50, buildTop + 55, bw + 100, 3);
 
     // Chimneys / vents on roofline
-    buildingGfx.fillStyle(0x4A3520, 0.9);
+    buildingGfx.fillStyle(0x4a3a4a, 0.9);
     buildingGfx.fillRect(buildLeft + 30, buildTop - 35, 14, 30);
     buildingGfx.fillRect(buildRight - 60, buildTop - 25, 10, 22);
 
     // Side pillars
-    buildingGfx.fillStyle(0x4A3520, 1);
+    buildingGfx.fillStyle(0x4a3a4a, 1);
     buildingGfx.fillRect(buildLeft - 44, buildTop + 60, 12, bh - 60);
     buildingGfx.fillRect(buildRight + 32, buildTop + 75, 12, bh - 75);
 
@@ -123,13 +122,13 @@ export class TitleScene extends Phaser.Scene {
     const winW = 80;
     const winH = 100;
     [buildLeft + 50, buildRight - 50 - winW].forEach(wx => {
-      buildingGfx.fillStyle(0x120a05, 0.8);
+      buildingGfx.fillStyle(0x0d111c, 0.82);
       buildingGfx.fillRect(wx, winY, winW, winH);
       buildingGfx.fillStyle(0xFFCC88, 0.12);
       buildingGfx.fillRect(wx + 4, winY + 4, winW - 8, winH - 8);
-      buildingGfx.lineStyle(3, 0x3A2A18, 1);
+      buildingGfx.lineStyle(3, 0x2f3a52, 0.9);
       buildingGfx.strokeRect(wx, winY, winW, winH);
-      buildingGfx.fillStyle(0x4A3A28, 1);
+      buildingGfx.fillStyle(0x3b485c, 1);
       buildingGfx.fillRect(wx - 4, winY + winH, winW + 8, 5);
     });
 
@@ -154,7 +153,7 @@ export class TitleScene extends Phaser.Scene {
     buildingGfx.fillRect(290, groundY - 12, 3, 14);
 
     // Cargo hauler (right side, larger)
-    buildingGfx.fillStyle(0x4A3828, 0.6);
+    buildingGfx.fillStyle(0x3c3a52, 0.65);
     buildingGfx.beginPath();
     buildingGfx.moveTo(1560, groundY - 15);
     buildingGfx.lineTo(1580, groundY - 40);
@@ -165,14 +164,14 @@ export class TitleScene extends Phaser.Scene {
     buildingGfx.closePath();
     buildingGfx.fillPath();
     // Engine pods
-    buildingGfx.fillStyle(0x3A2A18, 0.5);
+    buildingGfx.fillStyle(0x2c3448, 0.55);
     buildingGfx.fillEllipse(1570, groundY - 25, 14, 18);
     // Cargo markings
-    buildingGfx.lineStyle(1, 0x5A4838, 0.3);
+    buildingGfx.lineStyle(1, 0x4c5c7a, 0.35);
     buildingGfx.lineBetween(1620, groundY - 42, 1620, groundY - 18);
     buildingGfx.lineBetween(1660, groundY - 43, 1660, groundY - 17);
     // Landing gear
-    buildingGfx.fillStyle(0x3A3030, 0.4);
+    buildingGfx.fillStyle(0x2c3448, 0.5);
     buildingGfx.fillRect(1610, groundY - 10, 3, 12);
     buildingGfx.fillRect(1690, groundY - 10, 3, 12);
 
@@ -183,9 +182,9 @@ export class TitleScene extends Phaser.Scene {
     const doorLeft = bx - doorW / 2;
 
     // Door frame (dark wood)
-    buildingGfx.fillStyle(0x3A2A18, 1);
+    buildingGfx.fillStyle(0x2c2d3c, 1);
     buildingGfx.fillRect(doorLeft - 10, doorTop - 10, doorW + 20, doorH + 10);
-    buildingGfx.fillStyle(0x4A3A28, 0.8);
+    buildingGfx.fillStyle(0x3b485c, 0.85);
     buildingGfx.fillRect(doorLeft - 6, doorTop - 6, doorW + 12, doorH + 6);
 
     // Dark interior behind doors
@@ -241,12 +240,6 @@ export class TitleScene extends Phaser.Scene {
       fontSize: '22px',
       color: SUBTITLE_COLOR,
     }).setOrigin(0.5).setDepth(4).setAlpha(0);
-
-    // Apply CRT shader
-    if (this.renderer.pipelines) {
-      const crtEnabled = localStorage.getItem('footers_crt') !== 'false';
-      if (crtEnabled) this.cameras.main.setPostPipeline(CRTPostFX);
-    }
 
     // Settings menu
     this.isPaused = false;

@@ -1,5 +1,4 @@
 import Phaser from 'phaser';
-import { CRTPostFX } from '../shaders/CRTPostFX.js';
 import { WarningPulsePostFX } from '../shaders/WarningPulsePostFX.js';
 import { WarpPostFX } from '../shaders/WarpPostFX.js';
 
@@ -11,7 +10,6 @@ export class BootScene extends Phaser.Scene {
   preload() {
     // Register post-processing shader pipelines (WebGL only)
     if (this.renderer.pipelines) {
-      this.renderer.pipelines.addPostPipeline('CRTPostFX', CRTPostFX);
       this.renderer.pipelines.addPostPipeline('WarningPulsePostFX', WarningPulsePostFX);
       this.renderer.pipelines.addPostPipeline('WarpPostFX', WarpPostFX);
     }

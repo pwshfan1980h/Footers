@@ -9,6 +9,7 @@ import { GAME_FONT } from '../data/constants.js';
 export class GameSceneBins {
   constructor(scene) {
     this.scene = scene;
+    this.binYOffset = 60;
   }
 
   create() {
@@ -24,50 +25,52 @@ export class GameSceneBins {
     const s = this.scene;
     const g = s.add.graphics().setDepth(9);
 
+    const yOff = this.binYOffset;
+
     // Meats zone — warm reddish tint, stronger overlay
     g.fillStyle(s.BIN_MEAT, 0.25);
-    g.fillRoundedRect(88, 535, 410, 330, 12);
+    g.fillRoundedRect(88, 535 + yOff, 410, 330, 12);
     g.lineStyle(2, 0xCC5050, 0.4);
-    g.strokeRoundedRect(88, 535, 410, 330, 12);
+    g.strokeRoundedRect(88, 535 + yOff, 410, 330, 12);
     // Left edge accent
     g.fillStyle(0xCC5050, 0.5);
-    g.fillRect(88, 547, 3, 306);
+    g.fillRect(88, 547 + yOff, 3, 306);
 
     // Toppings zone — earthy green
     g.fillStyle(s.BIN_TOPPING, 0.25);
-    g.fillRoundedRect(565, 648, 430, 160, 12);
+    g.fillRoundedRect(565, 648 + yOff, 430, 160, 12);
     g.lineStyle(2, 0x50CC50, 0.4);
-    g.strokeRoundedRect(565, 648, 430, 160, 12);
+    g.strokeRoundedRect(565, 648 + yOff, 430, 160, 12);
     g.fillStyle(0x50CC50, 0.5);
-    g.fillRect(565, 660, 3, 136);
+    g.fillRect(565, 660 + yOff, 3, 136);
 
     // Cheese zone — warm amber
     g.fillStyle(s.BIN_CHEESE, 0.25);
-    g.fillRoundedRect(1085, 555, 190, 260, 12);
+    g.fillRoundedRect(1085, 555 + yOff, 190, 260, 12);
     g.lineStyle(2, 0xCCCC50, 0.4);
-    g.strokeRoundedRect(1085, 555, 190, 260, 12);
+    g.strokeRoundedRect(1085, 555 + yOff, 190, 260, 12);
     g.fillStyle(0xCCCC50, 0.5);
-    g.fillRect(1085, 567, 3, 236);
+    g.fillRect(1085, 567 + yOff, 3, 236);
 
     // Treatments zone — blue
     g.fillStyle(s.BIN_TREATMENT, 0.25);
-    g.fillRoundedRect(565, 815, 430, 175, 12);
+    g.fillRoundedRect(565, 815 + yOff, 430, 175, 12);
     g.lineStyle(2, 0x5080CC, 0.4);
-    g.strokeRoundedRect(565, 815, 430, 175, 12);
+    g.strokeRoundedRect(565, 815 + yOff, 430, 175, 12);
     g.fillStyle(0x5080CC, 0.5);
-    g.fillRect(565, 827, 3, 151);
+    g.fillRect(565, 827 + yOff, 3, 151);
 
     // Zone labels — larger and brighter, color-coded
-    s.add.text(293, 540, 'MEATS', {
+    s.add.text(293, 540 + yOff, 'MEATS', {
       fontSize: '16px', color: '#DD8888', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
-    s.add.text(780, 653, 'TOPPINGS', {
+    s.add.text(780, 653 + yOff, 'TOPPINGS', {
       fontSize: '16px', color: '#88DD88', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
-    s.add.text(1180, 560, 'CHEESE', {
+    s.add.text(1180, 560 + yOff, 'CHEESE', {
       fontSize: '16px', color: '#DDDD88', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
-    s.add.text(780, 820, 'TREATMENTS', {
+    s.add.text(780, 820 + yOff, 'TREATMENTS', {
       fontSize: '16px', color: '#88AADD', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5).setDepth(10);
   }
@@ -84,7 +87,7 @@ export class GameSceneBins {
     s.meatPileItems = [];
 
     const baseX = 178;
-    const baseY = 590;
+    const baseY = 590 + this.binYOffset;
     const spacingX = 188;
     const spacingY = 98;
     const day = s.day ?? 99;
@@ -149,7 +152,7 @@ export class GameSceneBins {
     const s = this.scene;
     s.loafItems = [];
     const baseX = 1538;
-    const baseY = 605;
+    const baseY = 605 + this.binYOffset;
     const spacingY = 98;
 
     const breads = [
@@ -205,22 +208,23 @@ export class GameSceneBins {
 
   createTreatments() {
     // Row 1: prep + sauces
-    this.createTreatmentItem('toasted', 635, 860);
-    this.createTreatmentItem('togo', 735, 860);
-    this.createSauceBottle('sauce_mayo', 835, 860);
-    this.createSauceBottle('sauce_mustard', 935, 860);
+    const yOff = this.binYOffset;
+    this.createTreatmentItem('toasted', 635, 860 + yOff);
+    this.createTreatmentItem('togo', 735, 860 + yOff);
+    this.createSauceBottle('sauce_mayo', 835, 860 + yOff);
+    this.createSauceBottle('sauce_mustard', 935, 860 + yOff);
 
     // Row 2: seasonings (centered)
-    this.createTreatmentItem('salt', 680, 950);
-    this.createTreatmentItem('pepper', 780, 950);
-    this.createTreatmentItem('oil_vinegar', 880, 950);
+    this.createTreatmentItem('salt', 680, 950 + yOff);
+    this.createTreatmentItem('pepper', 780, 950 + yOff);
+    this.createTreatmentItem('oil_vinegar', 880, 950 + yOff);
   }
 
   createCheeseStacks() {
     const s = this.scene;
     s.cheeseStackItems = [];
     const baseX = 1163;
-    const baseY = 619;
+    const baseY = 619 + this.binYOffset;
     const spacingY = 120;
 
     const cheeses = [
@@ -272,10 +276,10 @@ export class GameSceneBins {
     s.veggieBowlItems = [];
     const day = s.day ?? 99;
 
-    const row1Y = 695;
+    const row1Y = 695 + this.binYOffset;
     const row1StartX = 638;
     const spacingX = 141;
-    const row2Y = 775;
+    const row2Y = 775 + this.binYOffset;
     const row2StartX = 638;
 
     const row1Veggies = [

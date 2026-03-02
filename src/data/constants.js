@@ -38,9 +38,9 @@ export const TREATMENT_PRICE = 0.25;
 // --- Interaction & Visuals ---
 export const HELD_ITEM_WIDTH = 130;
 export const HELD_ITEM_HEIGHT = 56;
-export const SCALE_MEAT_CHEESE = 0.65;
-export const SCALE_TOPPING = 0.5;
-export const SCALE_BREAD = 0.75;
+export const SCALE_MEAT_CHEESE = 0.6;
+export const SCALE_TOPPING = 0.55;
+export const SCALE_BREAD = 1.05;
 export const SCALE_SAUCE = 0.4;
 export const TRAY_MAGNET_RADIUS = 100;
 
@@ -58,7 +58,7 @@ export const LAYER_HEIGHT_SAUCE = 4;
 export const LAYER_HEIGHT_TOPPING = 10;
 export const LAYER_HEIGHT_CHEESE = 7;
 export const LAYER_HEIGHT_MEAT = 9;
-export const LAYER_HEIGHT_BREAD = 10;
+export const LAYER_HEIGHT_BREAD = 12;
 
 // --- Fonts ---
 export const GAME_FONT = 'Oxanium';
