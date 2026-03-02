@@ -1,5 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
+import { musicManager } from '../MusicManager.js';
 import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, HULL_DARK, GAME_FONT } from '../data/constants.js';
 import { createButton } from '../utils/uiHelpers.js';
 
@@ -19,6 +20,7 @@ export class GameOverScene extends Phaser.Scene {
 
     soundManager.init();
     soundManager.fired();
+    musicManager.stop();
 
     // Dark background with red tint
     this.add.rectangle(HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, 0x150505);

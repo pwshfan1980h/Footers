@@ -26,151 +26,48 @@ export class CustomerDeck {
 
     const g = this.gfx;
 
-    // === WALLS (warm adobe interior) ===
-    g.fillStyle(0x5A4530, 1);
+    // Simplified wall block
+    g.fillStyle(0x4b3a2c, 1);
     g.fillRect(0, deckTop, GAME_WIDTH, deckH);
+    g.fillStyle(0x3a2d22, 0.4);
+    g.fillRect(0, deckTop, GAME_WIDTH, 12);
+    g.fillStyle(0x5c4534, 0.2);
+    g.fillRect(0, deckBot - 20, GAME_WIDTH, 20);
 
-    // Stucco texture (horizontal cracks)
-    g.lineStyle(1, 0x4A3520, 0.2);
-    g.lineBetween(0, deckTop + 25, GAME_WIDTH, deckTop + 25);
-    g.lineBetween(0, deckTop + deckH * 0.55, GAME_WIDTH, deckTop + deckH * 0.55);
+    // Clean base strip above counter
+    g.fillStyle(0x1f2430, 0.75);
+    g.fillRect(0, deckBot - 6, GAME_WIDTH, 10);
 
-    // Vertical mortar lines
-    for (let x = 200; x < GAME_WIDTH; x += 250) {
-      g.lineStyle(1, 0x4A3520, 0.15);
-      g.lineBetween(x, deckTop, x, deckBot);
-    }
-
-    // Warm wear patches on walls
-    g.fillStyle(0x6A5538, 0.15);
-    g.fillEllipse(400, deckTop + 40, 120, 30);
-    g.fillStyle(0x4A3520, 0.1);
-    g.fillEllipse(1400, deckTop + 50, 80, 25);
-
-    // === FLOOR (warm stone/tile) ===
-    const floorY = deckTop + deckH * 0.45;
-    g.fillStyle(0x3A2A18, 1);
-    g.fillRect(0, floorY, GAME_WIDTH, deckBot - floorY);
-
-    // Stone floor tile lines
-    g.lineStyle(1, 0x2A1A10, 0.2);
-    for (let y = floorY + 12; y < deckBot; y += 18) {
-      g.lineBetween(0, y, GAME_WIDTH, y);
-    }
-    for (let x = 60; x < GAME_WIDTH; x += 140) {
-      g.lineStyle(1, 0x2A1A10, 0.15);
-      g.lineBetween(x, floorY, x, deckBot);
-    }
-
-    // === OVERHEAD LIGHTING (warm lanterns) ===
-    const lightY = deckTop + 6;
-
-    // Warm lantern glow strips
-    g.fillStyle(0xFFCC88, 0.15);
-    g.fillRect(180, lightY, 300, 4);
-    g.fillRect(800, lightY, 350, 4);
-    g.fillRect(1450, lightY, 300, 4);
-
-    // Lantern halos
-    g.fillStyle(0xFFCC88, 0.08);
-    g.fillEllipse(330, lightY + 25, 400, 50);
-    g.fillEllipse(975, lightY + 25, 500, 50);
-    g.fillEllipse(1600, lightY + 25, 400, 50);
-
-    // Small hanging lantern fixtures
-    const lanternX = [250, 500, 900, 1100, 1500, 1750];
-    lanternX.forEach(lx => {
-      // Chain
-      g.lineStyle(1, 0x7A5830, 0.6);
-      g.lineBetween(lx, deckTop, lx, deckTop + 12);
-      // Lantern body
-      g.fillStyle(0x7A5830, 0.8);
-      g.fillRect(lx - 4, deckTop + 10, 8, 8);
-      // Warm glow
-      g.fillStyle(0xFFCC44, 0.25);
-      g.fillCircle(lx, deckTop + 14, 6);
-      g.fillStyle(0xFFCC44, 0.1);
-      g.fillCircle(lx, deckTop + 18, 12);
-    });
-
-    // === DOOR FRAME ===
+    // Door frame aligned to counter start
+    const doorBase = s.COUNTER_Y - 6;
+    const doorH = 150;
+    const doorTop = doorBase - doorH;
+    const doorW = 140;
     const alX = s.DOOR_X;
-    const alY = s.DOOR_Y;
-    const alR = s.DOOR_RADIUS;
-    const doorW = alR * 2 + 6;
-    const doorH = alR * 2 + 20;
-    const doorTop = alY - alR - 10;
 
-    // Wooden door frame
-    g.fillStyle(0x3A2A18, 1);
+    g.fillStyle(0x2e2620, 1);
     g.fillRect(alX - doorW / 2 - 6, doorTop - 8, doorW + 12, doorH + 16);
 
-    // Frame inner beveled edge
-    g.fillStyle(0x4A3A28, 1);
+    g.fillStyle(0x3b2f28, 1);
     g.fillRect(alX - doorW / 2 - 3, doorTop - 4, doorW + 6, doorH + 8);
 
-    // Opening behind doors (dark interior)
-    g.fillStyle(0x120a05, 1);
+    g.fillStyle(0x0c0a0a, 1);
     g.fillRect(alX - doorW / 2, doorTop, doorW, doorH);
 
-    // Frame highlight
     g.lineStyle(2, 0x5A4A30, 0.6);
     g.strokeRect(alX - doorW / 2 - 4, doorTop - 6, doorW + 8, doorH + 12);
 
-    // "ENTRANCE" sign (brass plate above door)
-    const labelGfx = s.add.graphics().setDepth(1.2);
-    labelGfx.fillStyle(0x7A5830, 0.8);
-    labelGfx.fillRoundedRect(alX - 55, doorTop - 24, 110, 18, 4);
-    labelGfx.fillStyle(0xC8A060, 0.6);
-    labelGfx.fillRoundedRect(alX - 52, doorTop - 21, 104, 13, 3);
-
-    // === BAR RAILING (replaces handrails) ===
-    const railY = deckTop + 55;
-    const railGap = doorW / 2 + 16; // gap around door frame
-    const railLeftEnd = alX - railGap;
-    const railRightStart = alX + railGap;
-    // Dark wood railing
-    g.fillStyle(0x5A4020, 0.8);
-    g.fillRect(112, railY, railLeftEnd - 112, 4);
-    g.fillRect(railRightStart, railY, 1808 - railRightStart, 4);
-    // Rail highlight
-    g.fillStyle(0x7A6040, 0.4);
-    g.fillRect(112, railY, railLeftEnd - 112, 1);
-    g.fillRect(railRightStart, railY, 1808 - railRightStart, 1);
-    // Rail supports (turned wood posts)
-    for (let x = 112; x <= railLeftEnd - 20; x += 160) {
-      g.fillStyle(0x4A3020, 0.9);
-      g.fillRect(x, railY, 5, 14);
-      g.fillStyle(0x6A5040, 0.5);
-      g.fillCircle(x + 2, railY + 7, 3);
-    }
-    for (let x = railRightStart + 20; x <= 1808; x += 160) {
-      g.fillStyle(0x4A3020, 0.9);
-      g.fillRect(x, railY, 5, 14);
-      g.fillStyle(0x6A5040, 0.5);
-      g.fillCircle(x + 2, railY + 7, 3);
-    }
-
-    // === DECORATIVE ELEMENTS ===
-
-    // Wanted poster (left wall)
-    g.fillStyle(0xD4C4A0, 0.5);
-    g.fillRect(130, deckTop + 12, 24, 30);
-    g.lineStyle(1, 0x8A7A5A, 0.4);
-    g.strokeRect(130, deckTop + 12, 24, 30);
-
-    // Neon "OPEN" sign (right wall)
-    g.fillStyle(0xFF8844, 0.25);
-    g.fillRoundedRect(1740, deckTop + 12, 40, 18, 4);
-    g.fillStyle(0xFF8844, 0.1);
-    g.fillCircle(1760, deckTop + 21, 16);
-
-    // Standing position markers (subtle floor marks)
+    // Subtle floor anchors for standing positions
     const positions = this.getStandingPositions();
     positions.forEach(pos => {
-      g.fillStyle(0x4A3A20, 0.3);
-      g.fillEllipse(pos.x, deckBot - 12, 30, 6);
+      g.fillStyle(0x000000, 0.12);
+      g.fillEllipse(pos.x, doorBase + 4, 42, 10);
     });
+
+    // Update derived door geometry for swing drawing
+    this.doorHeight = doorH;
+    this.doorTop = doorTop;
+    this.doorBase = doorBase;
 
     // Draw initial saloon doors (closed)
     this.drawDoors();
@@ -191,8 +88,10 @@ export class CustomerDeck {
     g.clear();
 
     const cx = s.DOOR_X;
-    const cy = s.DOOR_Y;
-    const R = s.DOOR_RADIUS;
+    const doorH = this.doorHeight || (s.DOOR_RADIUS * 2 + 10);
+    const doorTop = this.doorTop || (s.DOOR_Y - s.DOOR_RADIUS - 5);
+    const R = doorH / 2 - 5;
+    const cy = doorTop + doorH / 2;
     const progress = this.doorProgress;
 
     if (progress >= 1) return; // fully open
