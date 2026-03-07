@@ -13,6 +13,9 @@ export class GameOverScene extends Phaser.Scene {
     this.finalScore = data.totalScore || 0;
     this.ordersCompleted = data.ordersCompleted || 0;
     this.ordersMissed = data.ordersMissed || 0;
+    this.waveReached = data.wave || 1;
+    this.highScore = data.highScore || 0;
+    this.isNewHighScore = this.finalScore > 0 && this.finalScore >= this.highScore && this.highScore > 0;
   }
 
   create() {
@@ -68,19 +71,39 @@ export class GameOverScene extends Phaser.Scene {
       fontSize: '24px', color: '#ff8888', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
+    // NEW HIGH SCORE banner
+    if (this.isNewHighScore) {
+      const hsBanner = this.add.text(HALF_WIDTH, 348, '★ NEW HIGH SCORE ★', {
+        fontSize: '26px', color: '#FFD700', fontFamily: GAME_FONT, fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 3,
+      }).setOrigin(0.5);
+      this.tweens.add({
+        targets: hsBanner, scaleX: 1.08, scaleY: 1.08,
+        duration: 600, yoyo: true, repeat: -1, ease: 'Sine.easeInOut',
+      });
+    }
+
     // Stats panel
     const statsPanel = this.add.graphics();
     statsPanel.fillStyle(HULL_DARK, 0.8);
-    statsPanel.fillRoundedRect(HALF_WIDTH - 250, 380, 500, 180, 12);
+    statsPanel.fillRoundedRect(HALF_WIDTH - 260, 375, 520, 210, 12);
     statsPanel.lineStyle(2, 0x442233, 0.6);
-    statsPanel.strokeRoundedRect(HALF_WIDTH - 250, 380, 500, 180, 12);
+    statsPanel.strokeRoundedRect(HALF_WIDTH - 260, 375, 520, 210, 12);
 
-    this.add.text(HALF_WIDTH, 430, `Orders completed: ${this.ordersCompleted}`, {
-      fontSize: '22px', color: '#aaaacc', fontFamily: GAME_FONT,
+    this.add.text(HALF_WIDTH, 410, `Wave reached: ${this.waveReached}`, {
+      fontSize: '22px', color: '#FFBB44', fontFamily: GAME_FONT, fontStyle: 'bold',
     }).setOrigin(0.5);
 
-    this.add.text(HALF_WIDTH, 500, `Final score: ${this.finalScore}`, {
-      fontSize: '28px', color: '#ffd700', fontFamily: GAME_FONT,
+    this.add.text(HALF_WIDTH, 450, `Orders completed: ${this.ordersCompleted}`, {
+      fontSize: '20px', color: '#aaaacc', fontFamily: GAME_FONT,
+    }).setOrigin(0.5);
+
+    this.add.text(HALF_WIDTH, 490, `Final score: ${this.finalScore}`, {
+      fontSize: '28px', color: '#ffd700', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5);
+
+    this.add.text(HALF_WIDTH, 530, `Best: ${this.highScore}`, {
+      fontSize: '18px', color: '#888888', fontFamily: GAME_FONT,
     }).setOrigin(0.5);
 
     // Try again button
@@ -104,7 +127,7 @@ export class GameOverScene extends Phaser.Scene {
       textColor: '#FFBB44',
       hoverTextColor: '#FFE8CC',
       fontSize: '18px',
-      onClick: () => this.scene.start('Game'),
+      onClick: () => this.scene.start('Title'),
     });
   }
 }

@@ -24,24 +24,24 @@ export class GameSceneBackground {
     const surfaceH = 574;
     const surfaceW = GAME_WIDTH;
 
-    // Dark slate metal counter surface (cool zone)
-    g.fillStyle(s.COUNTER_MID, 1);
+    // Warm adobe prep surface (matches cantina theme)
+    g.fillStyle(0x2A1E14, 1);
     g.fillRect(0, surfaceY, surfaceW, surfaceH);
 
-    // Subtle brushed-metal horizontal lines
-    g.lineStyle(1, s.COUNTER_LIGHT, 0.08);
-    for (let y = surfaceY + 4; y < surfaceY + surfaceH; y += 7) {
+    // Subtle wood grain horizontal lines
+    g.lineStyle(1, 0x3A2A1A, 0.35);
+    for (let y = surfaceY + 4; y < surfaceY + surfaceH; y += 8) {
       g.lineBetween(0, y, surfaceW, y);
     }
 
-    // Counter edge — brushed steel trim
-    g.fillStyle(s.COUNTER_TRIM, 1);
+    // Counter edge — warm brass trim
+    g.fillStyle(0x7A5830, 1);
     g.fillRect(0, surfaceY, surfaceW, 3);
-    g.fillStyle(s.COUNTER_HIGHLIGHT, 0.5);
+    g.fillStyle(0xC8A060, 0.5);
     g.fillRect(0, surfaceY, surfaceW, 1);
 
-    // Cool light reflection on surface
-    g.fillStyle(s.COUNTER_HIGHLIGHT, 0.04);
+    // Warm amber light reflection
+    g.fillStyle(0xFFCC88, 0.03);
     g.fillRect(0, surfaceY + 3, surfaceW, 2);
 
     // Bottom shadow gradient

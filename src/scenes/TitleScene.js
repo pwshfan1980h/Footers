@@ -1,6 +1,6 @@
 import Phaser from 'phaser';
 import { soundManager } from '../SoundManager.js';
-import { HALF_WIDTH, GAME_WIDTH, GAME_HEIGHT, NEON_CYAN, GAME_FONT } from '../data/constants.js';
+import { HALF_WIDTH, HALF_HEIGHT, GAME_WIDTH, GAME_HEIGHT, NEON_CYAN, GAME_FONT } from '../data/constants.js';
 import { SettingsMenu } from '../managers/SettingsMenu.js';
 
 const ACCENT_CSS = '#FFBB44';
@@ -143,31 +143,56 @@ export class TitleScene extends Phaser.Scene {
   }
 
   showMenu() {
-    const gap = 78;
+    const gap = 80;
     const menuItems = [
-      { label: 'Start Game', fontSize: '36px', action: () => this.transition() },
-      { label: 'Settings',   fontSize: '26px', action: () => this.settingsMenu.open() },
+      { label: 'START GAME', w: 280, h: 60, fontSize: '32px', primary: true, action: () => this.transition() },
+      { label: 'SETTINGS',   w: 200, h: 48, fontSize: '22px', primary: false, action: () => this.settingsMenu.open() },
     ];
 
     this.menuTexts = [];
 
     menuItems.forEach((item, i) => {
       const y = MENU_Y + i * gap;
-      const txt = this.add.text(HALF_WIDTH, y, item.label, {
+      const container = this.add.container(HALF_WIDTH, y).setDepth(3).setAlpha(0);
+
+      const bg = this.add.graphics();
+      const accentColor = item.primary ? 0xC8862F : 0x7A5830;
+      const fillColor = item.primary ? 0x2A1A08 : 0x1A1208;
+      bg.fillStyle(fillColor, 0.9);
+      bg.fillRoundedRect(-item.w / 2, -item.h / 2, item.w, item.h, 10);
+      bg.lineStyle(item.primary ? 2.5 : 1.5, accentColor, 0.9);
+      bg.strokeRoundedRect(-item.w / 2, -item.h / 2, item.w, item.h, 10);
+      container.add(bg);
+
+      const txt = this.add.text(0, 0, item.label, {
         fontFamily: GAME_FONT,
         fontSize: item.fontSize,
         fontStyle: 'bold',
-        color: '#FFE8CC',
-      }).setOrigin(0.5).setDepth(3).setAlpha(0);
+        color: item.primary ? '#FFCF78' : '#C8A060',
+      }).setOrigin(0.5);
+      container.add(txt);
 
-      txt.setInteractive({ useHandCursor: true })
+      const hitZone = this.add.zone(0, 0, item.w, item.h).setInteractive({ useHandCursor: true });
+      container.add(hitZone);
+
+      hitZone
         .on('pointerover', () => {
-          txt.setColor('#ffffff');
-          this.tweens.add({ targets: txt, scaleX: 1.05, scaleY: 1.05, duration: 140, ease: 'Sine.easeOut' });
+          bg.clear();
+          bg.fillStyle(item.primary ? 0x3A2A10 : 0x2A2010, 0.95);
+          bg.fillRoundedRect(-item.w / 2, -item.h / 2, item.w, item.h, 10);
+          bg.lineStyle(item.primary ? 2.5 : 1.5, item.primary ? 0xFFCC66 : 0xC8A060, 1);
+          bg.strokeRoundedRect(-item.w / 2, -item.h / 2, item.w, item.h, 10);
+          txt.setColor('#FFFFFF');
+          this.tweens.add({ targets: container, scaleX: 1.04, scaleY: 1.04, duration: 120, ease: 'Sine.easeOut' });
         })
         .on('pointerout', () => {
-          txt.setColor('#FFE8CC');
-          this.tweens.add({ targets: txt, scaleX: 1, scaleY: 1, duration: 140, ease: 'Sine.easeOut' });
+          bg.clear();
+          bg.fillStyle(fillColor, 0.9);
+          bg.fillRoundedRect(-item.w / 2, -item.h / 2, item.w, item.h, 10);
+          bg.lineStyle(item.primary ? 2.5 : 1.5, accentColor, 0.9);
+          bg.strokeRoundedRect(-item.w / 2, -item.h / 2, item.w, item.h, 10);
+          txt.setColor(item.primary ? '#FFCF78' : '#C8A060');
+          this.tweens.add({ targets: container, scaleX: 1, scaleY: 1, duration: 120, ease: 'Sine.easeOut' });
         })
         .on('pointerdown', () => {
           if (this.settingsMenu.isOpen) return;
@@ -176,8 +201,8 @@ export class TitleScene extends Phaser.Scene {
           item.action();
         });
 
-      this.menuTexts.push(txt);
-      this.tweens.add({ targets: txt, alpha: 1, duration: 420, delay: 60 * i, ease: 'Sine.easeOut' });
+      this.menuTexts.push(container);
+      this.tweens.add({ targets: container, alpha: 1, duration: 420, delay: 80 * i, ease: 'Sine.easeOut' });
     });
   }
 

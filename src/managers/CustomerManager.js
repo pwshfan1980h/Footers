@@ -210,33 +210,42 @@ export class CustomerManager {
 
     const ratio = Math.max(0, c.patience / c.patienceMax);
     const sc = c.personScale;
-    const barW = 14 * sc;
-    const barH = 1.5 * sc;
+    const barW = 70;
+    const barH = 10;
     const x = c.personX - barW / 2;
-    const y = c.personY - 32 * sc;
+    const y = c.personY - 38 * sc;
 
-    // Background
+    // Outer shadow
     g.fillStyle(0x000000, 0.5);
-    g.fillRect(x, y, barW, barH);
+    g.fillRoundedRect(x - 1, y - 1, barW + 2, barH + 2, 4);
+
+    // Track background
+    g.fillStyle(0x1a1a1a, 0.9);
+    g.fillRoundedRect(x, y, barW, barH, 3);
 
     // Fill — green → yellow → red
     let color;
-    if (ratio > 0.5) color = 0x44ff44;
-    else if (ratio > 0.25) color = 0xffff44;
-    else color = 0xff4444;
+    if (ratio > 0.5) color = 0x44ee44;
+    else if (ratio > 0.25) color = 0xffcc22;
+    else color = 0xff3333;
 
-    // Pulse when low
-    let alpha = 0.9;
+    // Pulse alpha when low
+    let alpha = 1.0;
     if (ratio < 0.25) {
-      alpha = 0.6 + Math.sin(Date.now() * 0.01) * 0.3;
+      alpha = 0.65 + Math.sin(Date.now() * 0.012) * 0.35;
     }
 
+    const fillW = Math.max(4, barW * ratio);
     g.fillStyle(color, alpha);
-    g.fillRect(x, y, barW * ratio, barH);
+    g.fillRoundedRect(x, y, fillW, barH, 3);
+
+    // Bright top edge highlight
+    g.fillStyle(0xffffff, 0.25);
+    g.fillRoundedRect(x + 1, y + 1, fillW - 2, 3, 2);
 
     // Border
-    g.lineStyle(1, 0xffffff, 0.3);
-    g.strokeRect(x, y, barW, barH);
+    g.lineStyle(1.5, 0x000000, 0.6);
+    g.strokeRoundedRect(x, y, barW, barH, 3);
   }
 
   // ======================== PERSON UPDATE ========================

@@ -59,10 +59,10 @@ export const THEME = {
   TABLE_HIGHLIGHT: 0xC8A878,
   TABLE_SHADOW: 0x3A2A1A,
 
-  // Ticket bar (cool-toned, distinct from scene)
-  TICKET_BAR_BG: 0x151D28,
-  TICKET_BAR_BORDER: 0x2A3848,
-  TICKET_BAR_ACCENT: 0x3A5068,
+  // Ticket bar (warm dark wood, distinct from scene)
+  TICKET_BAR_BG: 0x1A1208,
+  TICKET_BAR_BORDER: 0x3A2818,
+  TICKET_BAR_ACCENT: 0x6A4820,
 
   // Bin zone accent colors (stronger overlays)
   BIN_MEAT: 0x8B3030,

@@ -216,16 +216,19 @@ export class GameScene extends Phaser.Scene {
       wordWrap: { width: panelWidth - 140 },
     }).setOrigin(0.5).setDepth(251);
 
-    const tips = this.add.text(HALF_WIDTH, panelY + 300,
-      '1) Press the hotkey shown in each bin to place ingredients instantly.\n'
+    const tips = this.add.text(HALF_WIDTH, panelY + 280,
+      '1) Press the hotkey badge shown on each bin to place ingredients instantly.\n'
+      + '    Bread: Z / X / C   •   Meats: 1–4 / Q   •   Toppings: 5–0\n'
+      + '    Cheese: W / E   •   Sauces: A / S   •   Treatments: R F G H V\n\n'
       + '2) Build in exact ticket order. Wrong picks cost points.\n'
       + '3) Keep combos alive and finish before patience runs out.\n'
       + '4) Press ESC to open settings when you need a breather.', {
         fontFamily: GAME_FONT,
-        fontSize: '28px',
+        fontSize: '21px',
         color: '#FFE8CC',
         align: 'left',
-        lineSpacing: 12,
+        lineSpacing: 6,
+        wordWrap: { width: panelWidth - 120 },
       })
       .setOrigin(0.5)
       .setDepth(251);
@@ -543,40 +546,79 @@ export class GameScene extends Phaser.Scene {
 
   showWaveCompleteOverlay(waveScore, waveBonus, challengeBonus, onDone) {
     const s = this;
+    const objects = [];
+
     const overlay = s.add.graphics().setDepth(300);
-    overlay.fillStyle(0x000000, 0.6);
+    overlay.fillStyle(0x000000, 0.65);
     overlay.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+    objects.push(overlay);
 
-    const titleText = s.add.text(HALF_WIDTH, 360, `Wave ${this.currentWave} Complete!`, {
-      fontSize: '52px', color: '#FFBB44', fontFamily: 'Oxanium', fontStyle: 'bold',
-      stroke: '#000', strokeThickness: 4,
-    }).setOrigin(0.5).setDepth(301);
+    // Glowing panel
+    const panelW = 700; const panelH = challengeBonus > 0 ? 310 : 270;
+    const panelX = HALF_WIDTH - panelW / 2; const panelY = HALF_HEIGHT - panelH / 2 - 20;
+    const panel = s.add.graphics().setDepth(300);
+    panel.fillStyle(0x1A1208, 0.96);
+    panel.fillRoundedRect(panelX, panelY, panelW, panelH, 18);
+    panel.lineStyle(3, 0xFFBB44, 0.9);
+    panel.strokeRoundedRect(panelX, panelY, panelW, panelH, 18);
+    panel.fillStyle(0xFFBB44, 0.05);
+    panel.fillRoundedRect(panelX + 8, panelY + 8, panelW - 16, panelH - 16, 14);
+    objects.push(panel);
 
-    const scoreText = s.add.text(HALF_WIDTH, 430, `Score: +${waveScore}   Wave Bonus: +${waveBonus}`, {
-      fontSize: '24px', color: '#FFE8CC', fontFamily: 'Oxanium',
-    }).setOrigin(0.5).setDepth(301);
+    const titleText = s.add.text(HALF_WIDTH, panelY + 62, `WAVE ${this.currentWave} COMPLETE!`, {
+      fontSize: '52px', color: '#FFCF78', fontFamily: GAME_FONT, fontStyle: 'bold',
+      stroke: '#4A2A08', strokeThickness: 5,
+    }).setOrigin(0.5).setDepth(301).setScale(0.6).setAlpha(0);
+    objects.push(titleText);
 
-    let challengeText = null;
+    s.tweens.add({
+      targets: titleText, scaleX: 1, scaleY: 1, alpha: 1,
+      duration: 350, ease: 'Back.easeOut',
+    });
+
+    const div = s.add.graphics().setDepth(301);
+    div.lineStyle(1, 0xC8A060, 0.4);
+    div.lineBetween(panelX + 40, panelY + 104, panelX + panelW - 40, panelY + 104);
+    objects.push(div);
+
+    const scoreText = s.add.text(HALF_WIDTH, panelY + 140, `Score this wave: +${waveScore}`, {
+      fontSize: '24px', color: '#FFE8CC', fontFamily: GAME_FONT,
+    }).setOrigin(0.5).setDepth(301).setAlpha(0);
+    objects.push(scoreText);
+
+    const bonusText = s.add.text(HALF_WIDTH, panelY + 178, `Wave Bonus: +${waveBonus}`, {
+      fontSize: '22px', color: '#FFD080', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(301).setAlpha(0);
+    objects.push(bonusText);
+
+    s.tweens.add({ targets: scoreText, alpha: 1, duration: 280, delay: 180, ease: 'Sine.easeOut' });
+    s.tweens.add({ targets: bonusText, alpha: 1, duration: 280, delay: 280, ease: 'Sine.easeOut' });
+
+    let yNext = panelY + 212;
     if (challengeBonus > 0) {
-      challengeText = s.add.text(HALF_WIDTH, 470, `Challenge Bonus: +${challengeBonus}`, {
-        fontSize: '22px', color: '#44FF88', fontFamily: 'Oxanium', fontStyle: 'bold',
-      }).setOrigin(0.5).setDepth(301);
+      const challengeText = s.add.text(HALF_WIDTH, panelY + 216, `Challenge Bonus: +${challengeBonus} 🎯`, {
+        fontSize: '22px', color: '#44FF88', fontFamily: GAME_FONT, fontStyle: 'bold',
+        stroke: '#000', strokeThickness: 2,
+      }).setOrigin(0.5).setDepth(301).setAlpha(0);
+      objects.push(challengeText);
+      s.tweens.add({ targets: challengeText, alpha: 1, duration: 280, delay: 380, ease: 'Sine.easeOut' });
+      yNext = panelY + 258;
     }
 
-    const nextConfig = getWaveConfig(this.currentWave + 1);
-    const nextText = s.add.text(HALF_WIDTH, 530, `Next: Wave ${this.currentWave + 1}`, {
-      fontSize: '20px', color: '#AABBCC', fontFamily: 'Oxanium',
-    }).setOrigin(0.5).setDepth(301);
+    const nextText = s.add.text(HALF_WIDTH, yNext + 8, `▶  Wave ${this.currentWave + 1} incoming...`, {
+      fontSize: '18px', color: '#888880', fontFamily: GAME_FONT,
+    }).setOrigin(0.5).setDepth(301).setAlpha(0);
+    objects.push(nextText);
+    s.tweens.add({ targets: nextText, alpha: 1, duration: 280, delay: 500, ease: 'Sine.easeOut' });
 
-    // Auto-dismiss after 3 seconds
-    s.time.delayedCall(3000, () => {
-      overlay.destroy();
-      titleText.destroy();
-      scoreText.destroy();
-      if (challengeText) challengeText.destroy();
-      nextText.destroy();
-      onDone();
-    });
+    const dismiss = () => {
+      s.tweens.add({
+        targets: objects, alpha: 0, duration: 300, ease: 'Sine.easeIn',
+        onComplete: () => { objects.forEach(o => o.destroy()); onDone(); },
+      });
+    };
+
+    s.time.delayedCall(3200, dismiss);
   }
 
   announceCurrentChallenge() {

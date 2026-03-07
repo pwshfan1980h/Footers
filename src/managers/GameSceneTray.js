@@ -362,6 +362,9 @@ export class GameSceneTray {
     tray.completed = true;
     if (tray.hintText) tray.hintText.setText('');
 
+    // Clear bin highlight for this tray
+    if (s.binsManager) s.binsManager.clearBinHighlight();
+
     // Update next-key prompt (may shift to next tray)
     if (s.interactionManager.updateNextKeyPrompt) {
       s.interactionManager.updateNextKeyPrompt();
@@ -375,6 +378,29 @@ export class GameSceneTray {
     soundManager.successChime();
 
     s.particleManager.orderCompleted(tray.container.x, tray.container.y - 20);
+
+    // "ORDER UP!" floating text
+    const orderUp = s.add.text(tray.container.x, tray.container.y - 60, 'ORDER UP!', {
+      fontSize: '30px', color: '#FFDD44', fontFamily: GAME_FONT, fontStyle: 'bold',
+      stroke: '#3A2A00', strokeThickness: 4,
+    }).setOrigin(0.5).setDepth(120).setScale(0.5);
+
+    s.tweens.add({
+      targets: orderUp,
+      scaleX: 1.1, scaleY: 1.1,
+      duration: 200,
+      ease: 'Back.easeOut',
+      onComplete: () => {
+        s.tweens.add({
+          targets: orderUp,
+          y: orderUp.y - 55,
+          alpha: 0,
+          duration: 900,
+          ease: 'Power2.easeOut',
+          onComplete: () => orderUp.destroy(),
+        });
+      },
+    });
 
     const c = tray.container;
     this.animateCompletionHop(c, c.y);

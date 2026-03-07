@@ -194,8 +194,22 @@ export class GameSceneHUD {
 
   refreshHUD() {
     const s = this.scene;
+    const prevScore = this._lastScore || 0;
     s.scoreText.setText(`${s.currentScore}`);
     s.highScoreText.setText(`Best: ${s.highScore}`);
+
+    if (s.currentScore > prevScore) {
+      s.tweens.add({
+        targets: s.scoreText,
+        scaleX: 1.5, scaleY: 1.5,
+        duration: 110,
+        ease: 'Back.easeOut',
+        onComplete: () => {
+          s.tweens.add({ targets: s.scoreText, scaleX: 1, scaleY: 1, duration: 180, ease: 'Sine.easeOut' });
+        },
+      });
+    }
+    this._lastScore = s.currentScore;
 
     const missed = s.ordersMissed || 0;
     this.drawStrikeIndicators(missed);
@@ -256,23 +270,30 @@ export class GameSceneHUD {
     }
     this.strikeGraphics = s.add.graphics().setDepth(211);
     const g = this.strikeGraphics;
-    const baseX = GAME_WIDTH - 340;
+    const baseX = GAME_WIDTH - 400;
     const baseY = this.footerY + 26;
-    const spacing = 30;
+    const spacing = 40;
 
     for (let i = 0; i < MAX_MISSES; i++) {
       const cx = baseX + i * spacing;
       if (i < missed) {
-        // Red X for missed
-        g.lineStyle(4, 0xff4444, 1);
-        g.lineBetween(cx - 8, baseY - 8, cx + 8, baseY + 8);
-        g.lineBetween(cx + 8, baseY - 8, cx - 8, baseY + 8);
+        // Red X for missed — larger and more alarming
+        g.fillStyle(0x440000, 0.5);
+        g.fillCircle(cx, baseY, 14);
+        g.lineStyle(1, 0xff3333, 0.4);
+        g.strokeCircle(cx, baseY, 14);
+        g.lineStyle(4, 0xff2222, 1);
+        g.lineBetween(cx - 9, baseY - 9, cx + 9, baseY + 9);
+        g.lineBetween(cx + 9, baseY - 9, cx - 9, baseY + 9);
       } else {
-        // Open circle for remaining
-        g.lineStyle(3, 0xFFBB44, 0.8);
-        g.strokeCircle(cx, baseY, 9);
-        g.fillStyle(0xFFBB44, 0.2);
-        g.fillCircle(cx, baseY, 4);
+        // Heart / life icon for remaining lives
+        g.lineStyle(2.5, 0xFFBB44, 0.85);
+        g.strokeCircle(cx, baseY, 12);
+        g.fillStyle(0xFFBB44, 0.15);
+        g.fillCircle(cx, baseY, 12);
+        // Inner dot
+        g.fillStyle(0xFFBB44, 0.7);
+        g.fillCircle(cx, baseY, 5);
       }
     }
   }

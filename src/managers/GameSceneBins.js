@@ -5,11 +5,78 @@ import { INGREDIENTS, BIN_LAYOUT, TREATMENTS } from '../data/ingredients.js';
 import { soundManager } from '../SoundManager.js';
 import { GAME_FONT } from '../data/constants.js';
 
+const HOTKEYS = {
+  'meat_ham': '1', 'meat_turkey': '2', 'meat_roastbeef': '3', 'meat_bacon': '4', 'meat_prosciutto': 'Q',
+  'bread_white': 'Z', 'bread_wheat': 'X', 'bread_sourdough': 'C',
+  'top_lettuce': '5', 'top_tomato': '6', 'top_onion': '7',
+  'top_pickles': '8', 'top_arugula': '9', 'top_olives': '0',
+  'cheese_american': 'W', 'cheese_swiss': 'E',
+  'sauce_mayo': 'A', 'sauce_mustard': 'S',
+  'toasted': 'R', 'togo': 'F', 'salt': 'G', 'pepper': 'H', 'oil_vinegar': 'V',
+};
+
 
 export class GameSceneBins {
   constructor(scene) {
     this.scene = scene;
     this.binYOffset = 60;
+    this.binImageMap = {};   // ingredientKey → image object
+    this.highlightGfx = null;
+    this.highlightTween = null;
+    this._currentHighlight = null;
+  }
+
+  highlightBin(ingredientKey) {
+    if (this._currentHighlight === ingredientKey) return;
+    this.clearBinHighlight();
+    this._currentHighlight = ingredientKey;
+
+    const img = this.binImageMap[ingredientKey];
+    if (!img) return;
+
+    const s = this.scene;
+    if (!this.highlightGfx) {
+      this.highlightGfx = s.add.graphics().setDepth(25);
+    }
+
+    // Draw a pulsing ring around the bin position using a graphics overlay
+    const drawRing = (alpha) => {
+      if (!this.highlightGfx || !img || !img.active) return;
+      this.highlightGfx.clear();
+      const r = Math.max(img.displayWidth, img.displayHeight) * 0.55;
+      this.highlightGfx.lineStyle(3, 0xFFDD44, alpha);
+      this.highlightGfx.strokeCircle(img.x, img.y, r);
+      this.highlightGfx.fillStyle(0xFFDD44, alpha * 0.08);
+      this.highlightGfx.fillCircle(img.x, img.y, r);
+    };
+
+    drawRing(0.8);
+    this.highlightTween = s.tweens.addCounter({
+      from: 0.4, to: 0.9,
+      duration: 420, ease: 'Sine.easeInOut', yoyo: true, repeat: -1,
+      onUpdate: (tween) => drawRing(tween.getValue()),
+    });
+  }
+
+  clearBinHighlight() {
+    if (this.highlightTween) {
+      this.highlightTween.stop();
+      this.highlightTween = null;
+    }
+    this._currentHighlight = null;
+    if (this.highlightGfx) this.highlightGfx.clear();
+  }
+
+  addHotkeyBadge(x, y, key) {
+    const s = this.scene;
+    const g = s.add.graphics().setDepth(22);
+    g.fillStyle(0x1A1208, 0.92);
+    g.fillRoundedRect(x - 13, y - 11, 26, 22, 5);
+    g.lineStyle(1.5, 0xC8A060, 0.85);
+    g.strokeRoundedRect(x - 13, y - 11, 26, 22, 5);
+    s.add.text(x, y, key, {
+      fontSize: '16px', color: '#FFD080', fontFamily: GAME_FONT, fontStyle: 'bold',
+    }).setOrigin(0.5).setDepth(23);
   }
 
   create() {
@@ -118,6 +185,8 @@ export class GameSceneBins {
       const pileKey = key.replace('meat_', 'meat_pile_');
       const pile = s.add.image(x, y, pileKey).setDepth(20).setScale(1.08);
 
+      if (!isLocked) this.binImageMap[key] = pile;
+
       if (isLocked) {
         pile.setAlpha(0.3).setTint(0x444444);
       } else {
@@ -133,6 +202,10 @@ export class GameSceneBins {
       const label = s.add.text(x, y + 55, ing.name, {
         fontSize: '16px', color: isLocked ? '#666' : '#ddd', fontFamily: GAME_FONT, fontStyle: 'bold',
       }).setOrigin(0.5).setDepth(21);
+
+      if (!isLocked && HOTKEYS[key]) {
+        this.addHotkeyBadge(x + 30, y - 26, HOTKEYS[key]);
+      }
 
       s.meatPileItems.push({ img: pile, label, key, isLocked });
     });
@@ -178,6 +251,7 @@ export class GameSceneBins {
 
       const loaf = s.add.image(x, y, b.asset).setDepth(20);
       loaf.setScale(0.85);
+      this.binImageMap[b.key] = loaf;
       loaf.setInteractive({ useHandCursor: true });
       loaf.on('pointerover', () => loaf.setTint(0xdddddd));
       loaf.on('pointerout', () => loaf.clearTint());
@@ -189,6 +263,10 @@ export class GameSceneBins {
       s.add.text(x, y + 38, b.label, {
         fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
+
+      if (HOTKEYS[b.key]) {
+        this.addHotkeyBadge(x + 52, y - 22, HOTKEYS[b.key]);
+      }
 
       s.loafItems.push({ img: loaf, key: b.key });
     });
@@ -242,6 +320,7 @@ export class GameSceneBins {
       const y = pos.y;
 
       const stack = s.add.image(x, y, `cheese_stack_${c.key.split('_')[1]}`).setDepth(20);
+      this.binImageMap[c.key] = stack;
       stack.setInteractive({
         hitArea: new Phaser.Geom.Rectangle(15, 45, 92, 50),
         hitAreaCallback: Phaser.Geom.Rectangle.Contains,
@@ -257,6 +336,10 @@ export class GameSceneBins {
       const label = s.add.text(x, y + 52, c.label, {
         fontSize: '16px', color: '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
+
+      if (HOTKEYS[c.key]) {
+        this.addHotkeyBadge(x + 38, y - 28, HOTKEYS[c.key]);
+      }
 
       s.cheeseStackItems.push({ img: stack, key: c.key });
     });
@@ -303,6 +386,8 @@ export class GameSceneBins {
 
       const vegImg = s.add.image(v.x, v.y, v.asset).setDepth(20).setScale(1.08);
 
+      if (!isLocked) this.binImageMap[v.key] = vegImg;
+
       if (isLocked) {
         vegImg.setAlpha(0.3).setTint(0x444444);
       } else {
@@ -318,6 +403,10 @@ export class GameSceneBins {
       const label = s.add.text(v.x, v.y + 42, v.label, {
         fontSize: '16px', color: isLocked ? '#666' : '#ddd', fontStyle: 'bold', fontFamily: GAME_FONT
       }).setOrigin(0.5).setDepth(21);
+
+      if (!isLocked && HOTKEYS[v.key]) {
+        this.addHotkeyBadge(v.x + 32, v.y - 18, HOTKEYS[v.key]);
+      }
 
       s.veggieBowlItems.push({ img: vegImg, label, ...v });
     });
@@ -347,6 +436,19 @@ export class GameSceneBins {
       fontSize: '16px', color: '#ccc', fontStyle: 'bold', fontFamily: GAME_FONT
     }).setOrigin(0.5);
     container.add(label);
+
+    if (HOTKEYS[key]) {
+      const badgeG = s.add.graphics();
+      badgeG.fillStyle(0x1A1208, 0.92);
+      badgeG.fillRoundedRect(13, -32, 26, 22, 5);
+      badgeG.lineStyle(1.5, 0xC8A060, 0.85);
+      badgeG.strokeRoundedRect(13, -32, 26, 22, 5);
+      container.add(badgeG);
+      const badgeTxt = s.add.text(26, -21, HOTKEYS[key], {
+        fontSize: '16px', color: '#FFD080', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5);
+      container.add(badgeTxt);
+    }
 
     const hitW = 60;
     const hitH = 90;
@@ -412,6 +514,20 @@ export class GameSceneBins {
       stroke: '#000', strokeThickness: 2,
     }).setOrigin(0.5);
     c.add(label);
+
+    if (HOTKEYS[tKey]) {
+      const badgeG = s.add.graphics();
+      const badgeW = 26; const badgeH = 22;
+      badgeG.fillStyle(0x1A1208, 0.92);
+      badgeG.fillRoundedRect(-badgeW / 2, labelY + 18, badgeW, badgeH, 5);
+      badgeG.lineStyle(1.5, 0xC8A060, 0.85);
+      badgeG.strokeRoundedRect(-badgeW / 2, labelY + 18, badgeW, badgeH, 5);
+      c.add(badgeG);
+      const badgeTxt = s.add.text(0, labelY + 29, HOTKEYS[tKey], {
+        fontSize: '16px', color: '#FFD080', fontFamily: GAME_FONT, fontStyle: 'bold',
+      }).setOrigin(0.5);
+      c.add(badgeTxt);
+    }
 
     s.treatmentItems[tKey] = c;
   }

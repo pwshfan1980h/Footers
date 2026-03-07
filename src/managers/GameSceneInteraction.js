@@ -83,6 +83,10 @@ export class GameSceneInteraction {
       } else {
         tray.hintText.setText(ingName);
       }
+      // Highlight the matching bin
+      if (s.binsManager && tray === this.selectedTray) {
+        s.binsManager.highlightBin(nextKey);
+      }
     } else {
       const remainingTreats = (tray.order.treatments || []).filter(
         (t) => !tray.appliedTreatments.includes(t)
@@ -97,6 +101,7 @@ export class GameSceneInteraction {
       } else {
         tray.hintText.setText('');
       }
+      if (s.binsManager) s.binsManager.clearBinHighlight();
     }
   }
 
@@ -378,6 +383,9 @@ export class GameSceneInteraction {
     const s = this.scene;
     if (!tray || tray.done || tray.waitingForCustomer) return;
     this.selectedTray = tray;
+
+    // Clear old bin highlight when switching trays
+    if (s.binsManager) s.binsManager.clearBinHighlight();
 
     // Update prep track visual selection
     if (tray.slotIndex != null) {

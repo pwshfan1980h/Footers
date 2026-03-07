@@ -200,6 +200,8 @@ export class GameSceneScoring {
           totalScore: s.currentScore,
           ordersCompleted: s.ordersCompleted,
           ordersMissed: s.ordersMissed,
+          wave: s.currentWave || 1,
+          highScore: s.highScore || 0,
         });
       });
       return;

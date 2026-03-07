@@ -74,7 +74,7 @@ export class PrepTrack {
       glowColor = 0xC8A878;
       glowAlpha = 0.12;
     } else {
-      glowColor = 0x607888;
+      glowColor = 0x8B6A4A;
       glowAlpha = 0.08;
     }
 
@@ -111,7 +111,7 @@ export class PrepTrack {
       borderColor = 0x8B6A4A;
       borderAlpha = 0.4;
     } else {
-      borderColor = 0x607888;
+      borderColor = 0x8B6A4A;
       borderAlpha = 0.3;
     }
 
@@ -139,7 +139,7 @@ export class PrepTrack {
 
     // Slot number when empty
     if (!isOccupied) {
-      g.fillStyle(0x607888, 0.2);
+      g.fillStyle(0x8B6A4A, 0.2);
       g.fillCircle(slot.x, slot.y, 16);
     }
   }
@@ -156,7 +156,7 @@ export class PrepTrack {
         const label = this.scene.add.text(slot.x, slot.y, `${i + 1}`, {
           fontSize: '24px',
           fontFamily: GAME_FONT,
-          color: '#506070'
+          color: '#9A7A58'
         }).setOrigin(0.5).setDepth(6);
         this.slotLabels.push(label);
       }
